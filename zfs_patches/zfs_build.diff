@@ -1,0 +1,77 @@
+diff -ur zfs-fuse-0.5.0/src/SConstruct zfs-fuse-0.5.0_slash/src/SConstruct
+--- zfs-fuse-0.5.0/src/SConstruct	2008-09-12 21:37:59.000000000 -0400
++++ zfs-fuse-0.5.0_slash/src/SConstruct	2008-10-02 13:22:18.559655436 -0400
+@@ -14,6 +14,7 @@
+ env['CCFLAGS'] = Split('-pipe -Wall -Werror -std=c99 -Wno-switch -Wno-unused -Wno-missing-braces -Wno-parentheses -Wno-uninitialized -fno-strict-aliasing -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DTEXT_DOMAIN=\\"zfs-fuse\\" -DLINUX_AIO')
+ 
+ debug = int(ARGUMENTS.get('debug', '1'))
++slashlib = int(ARGUMENTS.get('slashlib', '0'))
+ 
+ if not debug:
+ 	env.Append(LINKFLAGS = ['-s'])
+@@ -28,6 +29,13 @@
+ 	elif debug == 3:
+ 		env.Append(CCFLAGS = Split('-finstrument-functions -DDEBUG'))
+ 
++if slashlib:
++	print "enabling slashlib target\n";
++	env.Append(CCFLAGS = ['-DSLASHLIB'])	
++	env['SLASHLIB'] = '1'		
++else:
++	env['SLASHLIB'] = '0'			
++
+ env['CPPPATH'] = []
+ 
+ f = os.popen('uname -m')
+diff -ur zfs-fuse-0.5.0/src/zfs-fuse/main.c zfs-fuse-0.5.0_slash/src/zfs-fuse/main.c
+--- zfs-fuse-0.5.0/src/zfs-fuse/main.c	2008-09-12 21:37:59.000000000 -0400
++++ zfs-fuse-0.5.0_slash/src/zfs-fuse/main.c	2008-10-02 13:16:56.194814708 -0400
+@@ -115,6 +115,7 @@
+ 	}
+ }
+ 
++#ifndef SLASHLIB
+ int main(int argc, char *argv[])
+ {
+ 	parse_args(argc, argv);
+@@ -123,11 +124,15 @@
+ 		do_daemon(cf_pidfile);
+ 	}
+ 
++#else
++int zfs_lib_start(void)
++{
++#endif
+ 	if(do_init() != 0) {
+ 		do_exit();
+ 		return 1;
+ 	}
+-
++	
+ 	if(set_signal_handler(SIGHUP, exit_handler) != 0 ||
+ 	   set_signal_handler(SIGINT, exit_handler) != 0 ||
+ 	   set_signal_handler(SIGTERM, exit_handler) != 0 ||
+diff -ur zfs-fuse-0.5.0/src/zfs-fuse/SConscript zfs-fuse-0.5.0_slash/src/zfs-fuse/SConscript
+--- zfs-fuse-0.5.0/src/zfs-fuse/SConscript	2008-09-12 21:37:59.000000000 -0400
++++ zfs-fuse-0.5.0_slash/src/zfs-fuse/SConscript	2008-10-30 19:19:18.977439681 -0400
+@@ -1,9 +1,18 @@
+ Import('env')
+ 
+-objects = Split('main.c cmd_listener.c ptrace.c util.c zfs_acl.c zfs_dir.c zfs_ioctl.c zfs_log.c zfs_replay.c zfs_rlock.c zfs_vfsops.c zfs_vnops.c zvol.c fuse_listener.c zfsfuse_socket.c zfs_operations.c #lib/libzpool/libzpool-kernel.a #lib/libzfscommon/libzfscommon-kernel.a #lib/libnvpair/libnvpair-kernel.a #lib/libavl/libavl.a #lib/libumem/libumem.a #lib/libsolkerncompat/libsolkerncompat.a')
++if (env['SLASHLIB']) == "1":
++	print "slashlib enabled %s\n"  % (env['SLASHLIB'])
++else:
++	print "slashlib disabled %s\n" % (env['SLASHLIB'])
++
++objects = Split('main.c cmd_listener.c ptrace.c util.c zfs_acl.c zfs_dir.c zfs_ioctl.c zfs_log.c zfs_replay.c zfs_rlock.c zfs_vfsops.c zfs_vnops.c zvol.c fuse_listener.c zfsfuse_socket.c zfs_operations_slash.c #lib/libzpool/libzpool-kernel.a #lib/libzfscommon/libzfscommon-kernel.a #lib/libnvpair/libnvpair-kernel.a #lib/libavl/libavl.a #lib/libumem/libumem.a #lib/libsolkerncompat/libsolkerncompat.a')
+ cpppath = Split('#lib/libavl/include #lib/libnvpair/include #lib/libumem/include #lib/libzfscommon/include #lib/libsolkerncompat/include')
+ ccflags = Split('-D_KERNEL')
+ 
+ libs = Split('rt pthread fuse dl z aio')
+ 
+-env.Program('zfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
++if (env['SLASHLIB']) == "1":
++	env.StaticLibrary('libzfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
++else:
++	env.Program('zfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
++
