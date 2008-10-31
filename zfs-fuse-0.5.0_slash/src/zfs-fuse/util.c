@@ -38,10 +38,12 @@
 #include "zfsfuse_socket.h"
 
 #include "cmd_listener.h"
+#ifndef SLASHLIB
 #include "fuse_listener.h"
 
 #include "fuse.h"
 #include "zfs_operations.h"
+#endif
 #include "util.h"
 
 int ioctl_fd = -1;
@@ -104,7 +106,11 @@ int do_init()
 
 	listener_thread_started = B_TRUE;
 
+#ifndef SLASHLIB	
 	return zfsfuse_listener_init();
+#else
+	return 0;
+#endif
 }
 
 void do_exit()
@@ -115,7 +121,9 @@ void do_exit()
 			cmn_err(CE_WARN, "Error in pthread_join().");
 	}
 
+#ifndef SLASHLIB
 	zfsfuse_listener_exit();
+#endif
 
 	if(ioctl_fd != -1)
 		zfsfuse_socket_close(ioctl_fd);
@@ -127,7 +135,9 @@ void do_exit()
 	libsolkerncompat_exit();
 }
 
+#ifndef SLASHLIB
 #define FUSE_OPTIONS "fsname=%s,allow_other,suid,dev"
+#endif
 
 #ifdef DEBUG
 uint32_t mounted = 0;
@@ -159,6 +169,7 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	fprintf(stderr, "mounting %s\n", dir);
 #endif
 
+#ifndef SLASHLIB
 	char *fuse_opts;
 	if(asprintf(&fuse_opts, FUSE_OPTIONS, spec) == -1) {
 		VERIFY(do_umount(vfs, B_FALSE) == 0);
@@ -210,6 +221,7 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 		fuse_unmount(dir);
 		return EIO;
 	}
+#endif
 
 	return 0;
 }

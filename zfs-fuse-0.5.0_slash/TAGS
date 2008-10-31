@@ -4454,49 +4454,6 @@ spa_errlog_drain(310,8215
 sync_error_list(333,8726
 spa_errlog_sync(374,10098
 
-src/lib/libzpool/zap_micro.c,1015
-zap_hash(45,1239
-zap_normalize(71,1896
-zap_match(88,2232
-zap_name_free(104,2577
-zap_name_alloc(111,2705
-mzap_byteswap(137,3260
-zap_byteswap(153,3680
-mze_compare(168,3968
-mze_insert(185,4351
-mze_find(201,4736
-mze_find_unused_cd(233,5479
-mze_remove(259,5977
-mze_destroy(269,6181
-mzap_open(280,6409
-zap_lockdir(366,8701
-zap_unlockdir(439,10616
-mzap_upgrade(446,10722
-mzap_create_impl(494,11879
-zap_create_claim(518,12406
-zap_create_claim_norm(526,12622
-zap_create(540,12952
-zap_create_norm(547,13137
-zap_destroy(557,13403
-_NOTE(568,13711
-zap_count(585,13967
-mzap_normalization_conflict(607,14452
-zap_lookup(648,15259
-zap_lookup_norm(656,15497
-zap_length(704,16533
-mzap_addent(739,17233
-zap_add(785,18391
-zap_update(830,19593
-zap_remove(877,20918
-zap_remove_norm(883,21060
-zap_cursor_init_serialized(929,22100
-zap_cursor_init(948,22543
-zap_cursor_fini(954,22666
-zap_cursor_serialize(970,22978
-zap_cursor_retrieve(981,23239
-zap_cursor_advance(1035,24574
-zap_get_stats(1049,24822
-
 src/lib/libzpool/refcount.c,537
 int reference_tracking_enable 34,1041
 int reference_tracking_enable 36,1122
@@ -5480,6 +5437,49 @@ spa_config_set(302,7960
 spa_config_generate(317,8395
 spa_config_update(382,10351
 spa_config_update_common(393,10641
+
+src/lib/libzpool/zap_micro.c,1015
+zap_hash(45,1239
+zap_normalize(71,1896
+zap_match(88,2232
+zap_name_free(104,2577
+zap_name_alloc(111,2705
+mzap_byteswap(137,3260
+zap_byteswap(153,3680
+mze_compare(168,3968
+mze_insert(185,4351
+mze_find(201,4736
+mze_find_unused_cd(233,5479
+mze_remove(259,5977
+mze_destroy(269,6181
+mzap_open(280,6409
+zap_lockdir(366,8701
+zap_unlockdir(439,10616
+mzap_upgrade(446,10722
+mzap_create_impl(494,11879
+zap_create_claim(518,12406
+zap_create_claim_norm(526,12622
+zap_create(540,12952
+zap_create_norm(547,13137
+zap_destroy(557,13403
+_NOTE(568,13711
+zap_count(585,13967
+mzap_normalization_conflict(607,14452
+zap_lookup(648,15259
+zap_lookup_norm(656,15497
+zap_length(704,16533
+mzap_addent(739,17233
+zap_add(785,18391
+zap_update(830,19593
+zap_remove(877,20918
+zap_remove_norm(883,21060
+zap_cursor_init_serialized(929,22100
+zap_cursor_init(948,22543
+zap_cursor_fini(954,22666
+zap_cursor_serialize(970,22978
+zap_cursor_retrieve(981,23239
+zap_cursor_advance(1035,24574
+zap_get_stats(1049,24822
 
 src/lib/libzfs/include/libzfs.h,3496
 #define	_LIBZFS_H28,946
@@ -10112,53 +10112,6 @@ typedef void *(vmem_alloc_t)106,3224
 typedef void (vmem_free_t)107,3277
 typedef void *(vmem_ximport_t)113,3470
 
-src/zfs-fuse/zfs_operations.c,1834
-#define ZFS_MAGIC 47,1336
-static void zfsfuse_getcred(49,1364
-static void zfsfuse_destroy(57,1529
-static void zfsfuse_statfs(80,2079
-static int zfsfuse_stat(112,2930
-static int zfsfuse_getattr(143,3817
-static void zfsfuse_getattr_helper(179,4565
-static int zfsfuse_lookup(188,4798
-static void zfsfuse_lookup_helper(249,5954
-static int zfsfuse_opendir(258,6193
-static void zfsfuse_opendir_helper(324,7404
-static int zfsfuse_release(333,7637
-static void zfsfuse_release_helper(360,8230
-static int zfsfuse_readdir(369,8490
-static void zfsfuse_readdir_helper(454,10143
-static int zfsfuse_opencreate(463,10411
-static void zfsfuse_open_helper(640,13839
-static void zfsfuse_create_helper(649,14092
-static int zfsfuse_readlink(658,14406
-static void zfsfuse_readlink_helper(710,15501
-static int zfsfuse_read(719,15705
-static void zfsfuse_read_helper(765,16669
-static int zfsfuse_mkdir(774,16931
-static void zfsfuse_mkdir_helper(839,18200
-static int zfsfuse_rmdir(848,18456
-static void zfsfuse_rmdir_helper(889,19459
-static int zfsfuse_setattr(898,19721
-static void zfsfuse_setattr_helper(1018,22409
-static int zfsfuse_unlink(1027,22687
-static void zfsfuse_unlink_helper(1062,23436
-static int zfsfuse_write(1071,23701
-static void zfsfuse_write_helper(1114,24675
-static int zfsfuse_mknod(1123,24961
-static void zfsfuse_mknod_helper(1196,26386
-static int zfsfuse_symlink(1205,26660
-static void zfsfuse_symlink_helper(1276,28035
-static int zfsfuse_rename(1285,28300
-static void zfsfuse_rename_helper(1338,29588
-static int zfsfuse_fsync(1349,29983
-static void zfsfuse_fsync_helper(1373,30521
-static int zfsfuse_link(1383,30800
-static void zfsfuse_link_helper(1462,32441
-static int zfsfuse_access(1472,32766
-static void zfsfuse_access_helper(1513,33551
-struct fuse_lowlevel_ops zfs_operations 1523,33794
-
 src/zfs-fuse/zfs_vfsops.c,1647
 int zfsfstype;68,1853
 vfsops_t *zfs_vfsops zfs_vfsops69,1868
@@ -10211,79 +10164,6 @@ zfs_set_version(1604,40285
 zfs_get_zplprop(1658,41444
 static vfsdef_t vfw 1697,42230
 struct modlfs zfs_modlfs 1706,42399
-
-src/zfs-fuse/main.c,281
-static const char *cf_pidfile cf_pidfile34,1025
-static int cf_daemonize 35,1063
-static void exit_handler(37,1093
-static int set_signal_handler(42,1162
-static struct option longopts[longopts63,1516
-void print_usage(82,1733
-static void parse_args(89,1949
-int main(118,2613
-
-src/zfs-fuse/zfs_vnops.c,1949
-zfs_open(169,6359
-zfs_close(197,7026
-zfs_holey(231,7883
-zfs_ioctl(272,8577
-zfs_map_page(326,9701
-zfs_unmap_page(336,9931
-mappedwrite(357,10430
-mappedread(419,11987
-offset_t zfs_read_chunk_size 455,12715
-zfs_read(477,13278
-zfs_prefault_write(580,15470
-zfs_write(657,16861
-zfs_get_done(899,23099
-zfs_get_data(916,23435
-zfs_access(1015,26177
-zfs_lookup(1058,27193
-zfs_create(1182,29824
-zfs_remove(1431,35315
-zfs_mkdir(1632,40027
-zfs_rmdir(1795,43812
-zfs_readdir(1926,46721
-ulong_t zfs_fsync_sync_cnt 2167,52309
-zfs_fsync(2170,52353
-zfs_getattr(2212,53565
-zfs_setattr(2406,58807
-typedef struct zfs_zlock 2837,69605
-} zfs_zlock_t;2841,69766
-zfs_rename_unlock(2847,69871
-zfs_rename_lock(2867,70391
-zfs_rename(2953,72394
-zfs_symlink(3251,79737
-zfs_readlink(3402,83362
-zfs_link(3451,84485
-zfs_null_putapage(3577,87140
-zfs_putapage(3607,87814
-zfs_putpage(3726,90675
-zfs_inactive(3793,92057
-zfs_seek(3860,93601
-zfs_frlock(3873,93918
-zfs_fillpage(3910,94891
-zfs_getpage(4034,98263
-zfs_map(4172,101267
-zfs_addmap(4252,102851
-zfs_delmap(4289,103977
-zfs_space(4331,105105
-zfs_fid(4368,105764
-zfs_pathconf(4420,106978
-zfs_getsecattr(4485,108228
-zfs_setsecattr(4503,108618
-zfs_inval(4528,109267
-zfs_isdir(4534,109313
-vnodeops_t *zfs_dvnodeops;zfs_dvnodeops4541,109393
-const fs_operation_def_t zfs_dvnodeops_template[zfs_dvnodeops_template4542,109420
-vnodeops_t *zfs_fvnodeops;zfs_fvnodeops4574,110734
-const fs_operation_def_t zfs_fvnodeops_template[zfs_fvnodeops_template4575,110761
-vnodeops_t *zfs_symvnodeops;zfs_symvnodeops4607,112081
-const fs_operation_def_t zfs_symvnodeops_template[zfs_symvnodeops_template4608,112110
-vnodeops_t *zfs_xdvnodeops;zfs_xdvnodeops4632,113047
-const fs_operation_def_t zfs_xdvnodeops_template[zfs_xdvnodeops_template4633,113075
-vnodeops_t *zfs_evnodeops;zfs_evnodeops4663,114289
-const fs_operation_def_t zfs_evnodeops_template[zfs_evnodeops_template4664,114316
 
 src/zfs-fuse/zfs_ioctl.c,3838
 ldi_ident_t zfs_li 78,2054
@@ -10640,9 +10520,6 @@ zvol_dump_init(1669,39409
 zvol_dumpify(1752,41809
 zvol_dump_fini(1811,43016
 
-src/zfs-fuse/util.h,30
-#define ZFSFUSE_UTIL_H27,922
-
 src/zfs-fuse/zfs_operations.h,32
 #define ZFS_OPERATIONS_H27,924
 
@@ -10663,35 +10540,6 @@ int copyinstr(215,4719
 int xcopyout(258,5641
 file_t *getf(getf289,6375
 void releasef(370,8044
-
-src/zfs-fuse/fuse_listener.h,91
-#define ZFSFUSE_LISTENER_H27,926
-typedef struct file_info 35,1042
-} file_info_t;38,1095
-
-src/zfs-fuse/fuse_listener.c,772
-#define NUM_THREADS 40,1157
-#define MAX_FILESYSTEMS 42,1181
-typedef struct fuse_fs_info 44,1211
-} fuse_fs_info_t;50,1329
-boolean_t exit_fuse_listener 52,1348
-int newfs_fd[newfs_fd54,1389
-#define MAX_FDS 56,1407
-int nfds;58,1446
-struct pollfd fds[fds59,1456
-fuse_fs_info_t fsinfo[fsinfo60,1484
-char *mountpoints[mountpoints61,1516
-pthread_t fuse_threads[fuse_threads63,1545
-pthread_mutex_t mtx 64,1582
-kmem_cache_t *file_info_cache file_info_cache66,1632
-int zfsfuse_listener_init(68,1671
-void zfsfuse_listener_exit(85,1986
-int zfsfuse_newfs(94,2131
-static int fd_read_loop(120,2762
-static void new_fs(146,3230
-static void destroy_fs(190,4181
-static void *zfsfuse_listener_loop(zfsfuse_listener_loop202,4447
-int zfsfuse_listener_start(300,6482
 
 src/zfs-fuse/cmd_listener.c,163
 #define MAX_CONNECTIONS 40,1144
@@ -10737,1076 +10585,226 @@ zfs_log_truncate(542,14872
 zfs_log_setattr(567,15396
 zfs_log_acl(632,17069
 
+src/zfs-fuse/zfs_operations.c,1834
+#define ZFS_MAGIC 47,1336
+static void zfsfuse_getcred(49,1364
+static void zfsfuse_destroy(57,1529
+static void zfsfuse_statfs(80,2079
+static int zfsfuse_stat(112,2930
+static int zfsfuse_getattr(143,3817
+static void zfsfuse_getattr_helper(179,4565
+static int zfsfuse_lookup(188,4798
+static void zfsfuse_lookup_helper(249,5954
+static int zfsfuse_opendir(258,6193
+static void zfsfuse_opendir_helper(324,7404
+static int zfsfuse_release(333,7637
+static void zfsfuse_release_helper(360,8230
+static int zfsfuse_readdir(369,8490
+static void zfsfuse_readdir_helper(454,10143
+static int zfsfuse_opencreate(463,10411
+static void zfsfuse_open_helper(640,13839
+static void zfsfuse_create_helper(649,14092
+static int zfsfuse_readlink(658,14406
+static void zfsfuse_readlink_helper(710,15501
+static int zfsfuse_read(719,15705
+static void zfsfuse_read_helper(765,16669
+static int zfsfuse_mkdir(774,16931
+static void zfsfuse_mkdir_helper(839,18200
+static int zfsfuse_rmdir(848,18456
+static void zfsfuse_rmdir_helper(889,19459
+static int zfsfuse_setattr(898,19721
+static void zfsfuse_setattr_helper(1018,22409
+static int zfsfuse_unlink(1027,22687
+static void zfsfuse_unlink_helper(1062,23436
+static int zfsfuse_write(1071,23701
+static void zfsfuse_write_helper(1114,24675
+static int zfsfuse_mknod(1123,24961
+static void zfsfuse_mknod_helper(1196,26386
+static int zfsfuse_symlink(1205,26660
+static void zfsfuse_symlink_helper(1276,28035
+static int zfsfuse_rename(1285,28300
+static void zfsfuse_rename_helper(1338,29588
+static int zfsfuse_fsync(1349,29983
+static void zfsfuse_fsync_helper(1373,30521
+static int zfsfuse_link(1383,30800
+static void zfsfuse_link_helper(1462,32441
+static int zfsfuse_access(1472,32766
+static void zfsfuse_access_helper(1513,33551
+struct fuse_lowlevel_ops zfs_operations 1523,33794
+
+src/zfs-fuse/util_slash.c,302
+int ioctl_fd 47,1297
+boolean_t listener_thread_started 49,1317
+pthread_t listener_thread;50,1362
+int num_filesystems;52,1390
+void do_daemon(58,1491
+int do_init(88,1985
+void do_exit(110,2392
+#define FUSE_OPTIONS 130,2781
+uint32_t mounted 133,2849
+int do_mount(136,2879
+int do_umount(217,4530
+
+src/zfs-fuse/main.c,281
+static const char *cf_pidfile cf_pidfile34,1025
+static int cf_daemonize 35,1063
+static void exit_handler(37,1093
+static int set_signal_handler(42,1162
+static struct option longopts[longopts63,1516
+void print_usage(82,1733
+static void parse_args(89,1949
+int main(119,2630
+
+src/zfs-fuse/zfs_operations_slash.c,1591
+#define ZFS_MAGIC 44,1290
+typedef unsigned long long int u64;46,1318
+typedef unsigned long long int __u64;47,1354
+typedef unsigned int __u32;48,1392
+struct fidgen 50,1421
+typedef struct file_info 55,1475
+} file_info_t;58,1528
+kmem_cache_t *file_info_cache file_info_cache60,1544
+#define FUSE_SET_ATTR_MODE	63,1615
+#define FUSE_SET_ATTR_UID	64,1651
+#define FUSE_SET_ATTR_GID	65,1686
+#define FUSE_SET_ATTR_SIZE	66,1721
+#define FUSE_SET_ATTR_ATIME	67,1757
+#define FUSE_SET_ATTR_MTIME	68,1794
+struct fuse_dirent 70,1832
+#define FUSE_NAME_OFFSET 78,1925
+#define FUSE_DIRENT_ALIGN(79,1996
+#define FUSE_DIRENT_SIZE(80,2076
+size_t fuse_dirent_size(84,2160
+char *fuse_add_dirent(fuse_add_dirent89,2263
+#define ZFS_MAGIC 110,2884
+static void zfsslash2_destroy(112,2912
+static int zfsslash2_statfs(135,3448
+static int zfsslash2_stat(163,4239
+static int zfsslash2_getattr(194,5128
+static int zfsslash2_lookup(224,5787
+static int zfsslash2_opendir(279,6889
+static int zfsslash2_release(349,8230
+static int zfsslash2_readdir(377,8817
+zfsslash2_opencreate(462,10413
+static int zfsslash2_readlink(630,13677
+static int zfsslash2_read(678,14695
+static int zfsslash2_mkdir(721,15620
+static int zfsslash2_rmdir(778,16807
+static int zfsslash2_setattr(818,17813
+static int zfsslash2_unlink(935,20428
+static int zfsslash2_write(969,21180
+static int zfsslash2_mknod(1011,22085
+static int zfsslash2_symlink(1083,23454
+static int zfsslash2_rename(1145,24734
+static int zfsslash2_fsync(1197,25993
+static int zfsslash2_link(1221,26487
+static int zfsslash2_access(1294,28044
+
+src/zfs-fuse/fuse_listener.c,772
+#define NUM_THREADS 40,1157
+#define MAX_FILESYSTEMS 42,1181
+typedef struct fuse_fs_info 44,1211
+} fuse_fs_info_t;50,1329
+boolean_t exit_fuse_listener 52,1348
+int newfs_fd[newfs_fd54,1389
+#define MAX_FDS 56,1407
+int nfds;58,1446
+struct pollfd fds[fds59,1456
+fuse_fs_info_t fsinfo[fsinfo60,1484
+char *mountpoints[mountpoints61,1516
+pthread_t fuse_threads[fuse_threads63,1545
+pthread_mutex_t mtx 64,1582
+kmem_cache_t *file_info_cache file_info_cache66,1632
+int zfsfuse_listener_init(68,1671
+void zfsfuse_listener_exit(85,1986
+int zfsfuse_newfs(94,2131
+static int fd_read_loop(120,2762
+static void new_fs(146,3230
+static void destroy_fs(190,4181
+static void *zfsfuse_listener_loop(zfsfuse_listener_loop202,4447
+int zfsfuse_listener_start(300,6482
+
 src/zfs-fuse/fuse.h,63
 #define ZFSFUSE_FUSE_H27,922
 #define FUSE_USE_VERSION 29,946
 
-../fuse-2.5.2/kernel/dev.c,2389
-static kmem_cache_t *fuse_req_cachep;fuse_req_cachep24,486
-static inline struct fuse_conn *fuse_get_conn(fuse_get_conn26,525
-static inline void fuse_request_init(37,744
-struct fuse_req *fuse_request_alloc(fuse_request_alloc45,932
-void fuse_request_free(53,1100
-static inline void block_sigs(59,1208
-static inline void restore_sigs(67,1359
-static inline void block_sigs(73,1494
-static inline void restore_sigs(82,1759
-static inline void block_sigs(90,1960
-static inline void restore_sigs(99,2224
-void fuse_reset_request(109,2433
-static void __fuse_get_request(117,2623
-static void __fuse_put_request(123,2746
-static struct fuse_req *do_get_request(do_get_request129,2869
-struct fuse_req *fuse_get_request(fuse_get_request147,3374
-static void fuse_putback_request(158,3603
-void fuse_put_request(172,3916
-static void fuse_put_request_locked(181,4116
-void fuse_release_background(187,4273
-static void process_init_reply(198,4480
-static void request_end(229,5577
-static void background_request(285,7711
-static void request_wait_answer(298,8070
-static unsigned len_args(329,8919
-static void queue_request(340,9100
-void request_send(366,9933
-static void request_send_nowait(385,10369
-void request_send_noreply(397,10618
-void request_send_background(403,10743
-void fuse_send_init(412,10951
-static inline int lock_request(439,11926
-static inline void unlock_request(458,12303
-struct fuse_copy_state 469,12499
-static void fuse_copy_init(482,12718
-static inline void fuse_copy_finish(494,13030
-static int fuse_copy_fill(511,13397
-static inline int fuse_copy_do(543,14209
-static inline int fuse_copy_page(564,14629
-static int fuse_copy_pages(590,15372
-static int fuse_copy_one(612,15964
-static int fuse_copy_args(624,16237
-static void request_wait(642,16704
-static inline size_t iov_length(661,17133
-static ssize_t fuse_dev_readv(680,17780
-static ssize_t fuse_dev_read(749,19387
-static struct fuse_req *request_find(request_find759,19655
-static int copy_out_args(772,19939
-static ssize_t fuse_dev_writev(802,20924
-static ssize_t fuse_dev_write(866,22284
-static unsigned fuse_dev_poll(875,22523
-static void end_requests(894,22955
-static int fuse_dev_release(906,23256
-struct file_operations fuse_dev_operations 922,23571
-static struct miscdevice fuse_miscdevice 933,23832
-int __init fuse_dev_init(939,23952
-void fuse_dev_cleanup(960,24321
+src/zfs-fuse/util.h,30
+#define ZFSFUSE_UTIL_H27,922
 
-../fuse-2.5.2/kernel/dir.c,2493
-static inline unsigned long time_to_jiffies(32,692
-static void fuse_change_timeout(43,952
-void fuse_invalidate_attr(55,1346
-static void fuse_invalidate_entry_cache(68,1715
-static void fuse_invalidate_entry(77,1912
-static void fuse_lookup_init(83,2032
-static int fuse_dentry_revalidate(107,2877
-static int dir_alias(154,4048
-static inline int invalid_nodeid(174,4404
-static int fuse_dentry_revalidate_2_4(179,4515
-static struct dentry_operations fuse_dentry_operations 185,4643
-static inline int valid_mode(193,4823
-static struct dentry *fuse_lookup(fuse_lookup199,4972
-static int fuse_create_open(265,6591
-static int create_new_entry(357,8860
-static int fuse_mknod(406,9891
-static int fuse_create(427,10499
-static int fuse_mkdir(441,10854
-static int fuse_symlink(460,11409
-static int fuse_unlink(478,11917
-static int fuse_rmdir(510,12820
-static int fuse_rename(536,13480
-static int fuse_link(584,14938
-int fuse_do_getattr(616,15945
-static int fuse_allow_task(666,17488
-static int fuse_revalidate(691,18137
-static int fuse_access(707,18527
-static int fuse_permission(753,19710
-static int parse_dirfile(803,21067
-static inline size_t fuse_send_readdir(828,21652
-static int fuse_readdir(835,21870
-static char *read_link(read_link870,22656
-static void free_link(904,23470
-static void *fuse_follow_link(fuse_follow_link911,23590
-static void fuse_put_link(917,23721
-static int fuse_follow_link(922,23867
-static void fuse_put_link(928,23993
-static int fuse_readlink(933,24103
-static int fuse_follow_link(945,24326
-static int fuse_dir_open(957,24527
-static int fuse_dir_release(962,24639
-static int fuse_dir_fsync(967,24757
-static void iattr_to_fattr(973,24940
-static int fuse_setattr(1014,26260
-static int fuse_getattr(1090,28177
-static struct dentry *fuse_lookup_2_4(fuse_lookup_2_41101,28427
-static int fuse_mknod_2_4(1106,28550
-static int fuse_create_2_4(1112,28691
-static int fuse_permission_2_4(1117,28819
-static int fuse_setxattr(1125,28997
-static ssize_t fuse_getxattr(1168,30049
-static ssize_t fuse_listxattr(1219,31284
-static int fuse_removexattr(1267,32422
-static struct inode_operations fuse_dir_inode_operations 1298,33084
-static struct file_operations fuse_dir_operations 1330,33816
-static struct inode_operations fuse_common_inode_operations 1339,34043
-static struct inode_operations fuse_symlink_inode_operations 1356,34446
-void fuse_init_common(1378,34941
-void fuse_init_dir(1383,35035
-void fuse_init_symlink(1389,35161
+src/zfs-fuse/zfs_vnops.c,1949
+zfs_open(169,6359
+zfs_close(197,7026
+zfs_holey(231,7883
+zfs_ioctl(272,8577
+zfs_map_page(326,9701
+zfs_unmap_page(336,9931
+mappedwrite(357,10430
+mappedread(419,11987
+offset_t zfs_read_chunk_size 455,12715
+zfs_read(477,13278
+zfs_prefault_write(580,15470
+zfs_write(657,16861
+zfs_get_done(899,23099
+zfs_get_data(916,23435
+zfs_access(1015,26177
+zfs_lookup(1058,27193
+zfs_create(1182,29824
+zfs_remove(1431,35315
+zfs_mkdir(1632,40027
+zfs_rmdir(1795,43812
+zfs_readdir(1926,46721
+ulong_t zfs_fsync_sync_cnt 2167,52309
+zfs_fsync(2170,52353
+zfs_getattr(2212,53565
+zfs_setattr(2406,58807
+typedef struct zfs_zlock 2837,69605
+} zfs_zlock_t;2841,69766
+zfs_rename_unlock(2847,69871
+zfs_rename_lock(2867,70391
+zfs_rename(2953,72394
+zfs_symlink(3251,79737
+zfs_readlink(3402,83362
+zfs_link(3451,84485
+zfs_null_putapage(3577,87140
+zfs_putapage(3607,87814
+zfs_putpage(3726,90675
+zfs_inactive(3793,92057
+zfs_seek(3860,93601
+zfs_frlock(3873,93918
+zfs_fillpage(3910,94891
+zfs_getpage(4034,98263
+zfs_map(4172,101267
+zfs_addmap(4252,102851
+zfs_delmap(4289,103977
+zfs_space(4331,105105
+zfs_fid(4368,105764
+zfs_pathconf(4420,106978
+zfs_getsecattr(4485,108228
+zfs_setsecattr(4503,108618
+zfs_inval(4528,109267
+zfs_isdir(4534,109313
+vnodeops_t *zfs_dvnodeops;zfs_dvnodeops4541,109393
+const fs_operation_def_t zfs_dvnodeops_template[zfs_dvnodeops_template4542,109420
+vnodeops_t *zfs_fvnodeops;zfs_fvnodeops4574,110734
+const fs_operation_def_t zfs_fvnodeops_template[zfs_fvnodeops_template4575,110761
+vnodeops_t *zfs_symvnodeops;zfs_symvnodeops4607,112081
+const fs_operation_def_t zfs_symvnodeops_template[zfs_symvnodeops_template4608,112110
+vnodeops_t *zfs_xdvnodeops;zfs_xdvnodeops4632,113047
+const fs_operation_def_t zfs_xdvnodeops_template[zfs_xdvnodeops_template4633,113075
+vnodeops_t *zfs_evnodeops;zfs_evnodeops4663,114289
+const fs_operation_def_t zfs_evnodeops_template[zfs_evnodeops_template4664,114316
 
-../fuse-2.5.2/kernel/file.c,1783
-#define PageUptodate(16,310
-#define clear_page_dirty(17,357
-static inline loff_t page_offset(20,443
-static struct file_operations fuse_direct_io_file_operations;25,557
-static int fuse_send_open(27,620
-struct fuse_file *fuse_file_alloc(fuse_file_alloc57,1413
-void fuse_file_free(71,1660
-void fuse_finish_open(77,1756
-int fuse_open_common(92,2177
-void fuse_send_release(130,2961
-int fuse_release_common(148,3506
-static int fuse_open(161,3842
-static int fuse_release(166,3950
-static int fuse_flush(171,4064
-int fuse_fsync_common(209,4851
-static int fuse_fsync(252,5828
-size_t fuse_send_read_common(257,5957
-static inline size_t fuse_send_read(284,6734
-static int fuse_readpage(291,6943
-static int fuse_send_readpages(322,7594
-struct fuse_readpages_data 339,8062
-static int fuse_readpages_fill(345,8160
-static int fuse_readpages(368,8800
-#define FUSE_BLOCK_SHIFT 393,9482
-#define FUSE_BLOCK_SIZE 394,9510
-#define FUSE_BLOCK_MASK 395,9560
-static int fuse_is_block_uptodate(400,9725
-static int fuse_file_read_block(418,10084
-static int fuse_file_bigread(456,10933
-static size_t fuse_send_write(492,11843
-static int fuse_prepare_write(520,12672
-static int fuse_commit_write(527,12808
-static void fuse_release_user_pages(567,13691
-static int fuse_get_user_pages(579,13920
-static ssize_t fuse_direct_io(606,14690
-static ssize_t fuse_direct_read(666,16012
-static ssize_t fuse_direct_write(672,16174
-static ssize_t fuse_file_read(691,16677
-static int fuse_file_mmap(711,17154
-static int fuse_set_page_dirty(723,17421
-static struct file_operations fuse_file_operations 731,17562
-static struct file_operations fuse_direct_io_file_operations 754,18110
-static struct address_space_operations fuse_file_aops 765,18391
-void fuse_init_file_inode(775,18651
+src/zfs-fuse/fuse_listener.h,91
+#define ZFSFUSE_LISTENER_H27,926
+typedef struct file_info 35,1042
+} file_info_t;38,1095
 
-../fuse-2.5.2/kernel/inode.c,2052
-spinlock_t fuse_lock;31,655
-static kmem_cache_t *fuse_inode_cachep;fuse_inode_cachep32,677
-#define FUSE_SUPER_MAGIC 34,718
-#define kstatfs 37,774
-#define MAX_LFS_FILESIZE 40,829
-struct fuse_mount_data 42,909
-static struct inode *fuse_alloc_inode(fuse_alloc_inode55,1164
-static void fuse_destroy_inode(80,1655
-static void fuse_read_inode(88,1862
-void fuse_send_forget(93,1929
-static void fuse_clear_inode(106,2326
-void fuse_change_attributes(116,2611
-static void fuse_init_inode(147,3545
-static int fuse_inode_eq(168,4166
-static int fuse_inode_set(177,4351
-struct inode *fuse_iget(fuse_iget184,4524
-static int fuse_inode_eq(222,5464
-struct inode *fuse_iget(fuse_iget230,5690
-static void fuse_put_super(264,6477
-static void convert_fuse_statfs(285,6981
-static int fuse_statfs(301,7425
-	OPT_FD,328,8061
-	OPT_ROOTMODE,329,8070
-	OPT_USER_ID,330,8085
-	OPT_GROUP_ID,331,8099
-	OPT_DEFAULT_PERMISSIONS,332,8114
-	OPT_ALLOW_OTHER,333,8140
-	OPT_LARGE_READ,335,8177
-	OPT_MAX_READ,337,8201
-	OPT_ERR338,8216
-static match_table_t tokens 341,8229
-static int parse_fuse_opt(355,8587
-static int fuse_show_options(429,9939
-static void free_conn(448,10485
-void fuse_release_conn(460,10774
-static struct fuse_conn *new_conn(new_conn467,10872
-static struct fuse_conn *get_conn(get_conn499,11656
-static struct inode *get_root_inode(get_root_inode523,12155
-static struct dentry *fuse_get_dentry(fuse_get_dentry534,12413
-static int fuse_encode_fh(562,12958
-static struct export_operations fuse_export_operations 590,13576
-static struct super_operations fuse_super_operations 597,13720
-static int fuse_fill_super(607,14014
-static struct super_block *fuse_get_sb(fuse_get_sb668,15222
-static struct file_system_type fuse_fs_type 675,15436
-static struct super_block *fuse_read_super_compat(fuse_read_super_compat682,15589
-static void fuse_inode_init_once(695,15870
-static int __init fuse_fs_init(705,16110
-static void fuse_fs_cleanup(726,16552
-static int __init fuse_init(732,16670
-static void __exit fuse_exit(759,17109
-
-../fuse-2.5.2/kernel/fuse_i.h,1415
-#  define KERNEL_2_621,515
-#    define KERNEL_2_6_6_PLUS23,586
-#    define KERNEL_2_6_8_PLUS26,675
-#    define KERNEL_2_6_9_PLUS29,764
-#    define KERNEL_2_6_10_PLUS32,854
-#    define KERNEL_2_6_11_PLUS35,945
-#    define KERNEL_2_6_12_PLUS38,1036
-#    define KERNEL_2_6_13_PLUS41,1127
-#    define KERNEL_2_6_16_PLUS44,1218
-#     define MODVERSIONS52,1361
-#     define i_size_read(56,1458
-#     define i_size_write(57,1508
-#  define new_decode_dev(59,1596
-#  define new_encode_dev(60,1628
-#define BUG_ON(74,1930
-#define container_of(77,1976
-#define __user82,2170
-static inline void set_page_dirty_lock(86,2238
-#define FUSE_MAX_PAGES_PER_REQ 94,2437
-#define FUSE_MAX_OUTSTANDING 97,2544
-#define FUSE_NAME_MAX 100,2648
-#define FUSE_DEFAULT_PERMISSIONS 105,2863
-#define FUSE_ALLOW_OTHER 109,3036
-#define FUSE_LARGE_READ 114,3223
-struct fuse_inode 118,3292
-struct fuse_file 137,3706
-struct fuse_in_arg 146,3894
-struct fuse_in 152,3980
-struct fuse_arg 167,4286
-struct fuse_out 173,4364
-struct fuse_req 197,4838
-struct fuse_conn 272,6461
-static inline struct fuse_conn **get_fuse_conn_super_p(get_fuse_conn_super_p365,8481
-static inline struct fuse_conn *get_fuse_conn_super(get_fuse_conn_super374,8692
-static inline struct fuse_conn *get_fuse_conn(get_fuse_conn379,8809
-static inline struct fuse_inode *get_fuse_inode(get_fuse_inode384,8923
-static inline u64 get_node_id(389,9052
-
-../fuse-2.5.2/kernel/fuse_kernel.h,2296
-#define __u64 41,1779
-#define __u32 42,1802
-#define __s32 43,1825
-#define FUSE_KERNEL_VERSION 49,1924
-#define FUSE_KERNEL_MINOR_VERSION 52,2001
-#define FUSE_ROOT_ID 55,2075
-#define FUSE_MAJOR 58,2152
-#define FUSE_MINOR 61,2228
-struct fuse_attr 66,2362
-struct fuse_kstatfs 83,2585
-#define FATTR_MODE	96,2761
-#define FATTR_UID	97,2789
-#define FATTR_GID	98,2816
-#define FATTR_SIZE	99,2843
-#define FATTR_ATIME	100,2871
-#define FATTR_MTIME	101,2900
-#define FATTR_FH	102,2929
-#define FOPEN_DIRECT_IO	110,3123
-#define FOPEN_KEEP_CACHE	111,3157
-enum fuse_opcode 113,3192
-	FUSE_LOOKUP	114,3211
-	FUSE_FORGET	115,3232
-	FUSE_GETATTR	116,3269
-	FUSE_SETATTR	117,3291
-	FUSE_READLINK	118,3313
-	FUSE_SYMLINK	119,3336
-	FUSE_MKNOD	120,3358
-	FUSE_MKDIR	121,3378
-	FUSE_UNLINK	122,3398
-	FUSE_RMDIR	123,3420
-	FUSE_RENAME	124,3441
-	FUSE_LINK	125,3463
-	FUSE_OPEN	126,3483
-	FUSE_READ	127,3503
-	FUSE_WRITE	128,3523
-	FUSE_STATFS	129,3544
-	FUSE_RELEASE 130,3566
-	FUSE_FSYNC 131,3592
-	FUSE_SETXATTR 132,3618
-	FUSE_GETXATTR 133,3644
-	FUSE_LISTXATTR 134,3670
-	FUSE_REMOVEXATTR 135,3696
-	FUSE_FLUSH 136,3722
-	FUSE_INIT 137,3748
-	FUSE_OPENDIR 138,3774
-	FUSE_READDIR 139,3800
-	FUSE_RELEASEDIR 140,3826
-	FUSE_FSYNCDIR 141,3852
-	FUSE_ACCESS 142,3878
-	FUSE_CREATE 143,3904
-#define FUSE_MIN_READ_BUFFER 147,4009
-struct fuse_entry_out 149,4044
-struct fuse_forget_in 160,4385
-struct fuse_attr_out 164,4429
-struct fuse_mknod_in 171,4576
-struct fuse_mkdir_in 176,4629
-struct fuse_rename_in 181,4685
-struct fuse_link_in 185,4728
-struct fuse_setattr_in 189,4772
-struct fuse_open_in 208,5036
-struct fuse_open_out 213,5089
-struct fuse_release_in 219,5162
-struct fuse_flush_in 225,5232
-struct fuse_read_in 231,5306
-struct fuse_write_in 238,5387
-struct fuse_write_out 245,5473
-#define FUSE_COMPAT_STATFS_SIZE 250,5530
-struct fuse_statfs_out 252,5566
-struct fuse_fsync_in 256,5620
-struct fuse_setxattr_in 262,5694
-struct fuse_getxattr_in 267,5751
-struct fuse_getxattr_out 272,5810
-struct fuse_access_in 277,5870
-struct fuse_init_in 282,5927
-struct fuse_init_out 287,5981
-struct fuse_in_header 294,6072
-struct fuse_out_header 305,6209
-struct fuse_dirent 311,6279
-#define FUSE_NAME_OFFSET 319,6372
-#define FUSE_DIRENT_ALIGN(320,6443
-#define FUSE_DIRENT_SIZE(321,6523
-
-../fuse-2.5.2/kernel/compat/parser.c,260
-#define MODVERSIONS10,244
-static int match_one(32,919
-int match_token(109,2685
-static int match_number(129,3296
-int match_int(157,4036
-int match_octal(171,4493
-int match_hex(185,4952
-void match_strcpy(199,5378
-char *match_strdup(match_strdup213,5784
-
-../fuse-2.5.2/kernel/compat/parser.h,152
-struct match_token 12,300
-typedef struct match_token match_table_t[match_table_t17,353
-enum {MAX_OPT_ARGS MAX_OPT_ARGS20,472
-} substring_t;26,598
-
-../fuse-2.5.2/kernel/config.h,236
-#define HAVE_KERNEL_XATTR 8,229
-#define HAVE_LOOKUP_INSTANTIATE_FILP 11,301
-#define PACKAGE_BUGREPORT 17,511
-#define PACKAGE_NAME 20,588
-#define PACKAGE_STRING 23,683
-#define PACKAGE_TARNAME 26,786
-#define PACKAGE_VERSION 29,870
-
-../fuse-2.5.2/include/old/fuse.h,0
-
-../fuse-2.5.2/include/fuse.h,1454
-#define _FUSE_H_10,222
-#define FUSE_USE_VERSION 20,589
-typedef int (*fuse_fill_dir_t)fuse_fill_dir_t52,1398
-typedef struct fuse_dirhandle *fuse_dirh_t;fuse_dirh_t56,1571
-typedef int (*fuse_dirfil_t)fuse_dirfil_t57,1615
-struct fuse_operations 74,2331
-struct fuse_context 370,12218
-#define fuse_main(412,13433
-typedef void (*fuse_processor_t)fuse_processor_t507,15882
-#    define FUSE_MINOR_VERSION 545,17358
-#    define fuse_main(546,17391
-#    define fuse_new 548,17498
-#    define fuse_setup 549,17537
-#    define fuse_operations 550,17580
-#    define fuse_file_info 551,17633
-#    define fuse_mount 552,17684
-#    define fuse_dirfil_t 554,17735
-#    define __fuse_read_cmd 555,17782
-#    define __fuse_process_cmd 556,17824
-#    define __fuse_loop_mt 557,17872
-#      define FUSE_MINOR_VERSION 559,17948
-#      define fuse_operations 560,17983
-#      define fuse_main 561,18037
-#      define fuse_new 562,18079
-#      define __fuse_setup 563,18119
-#      define __fuse_teardown 564,18165
-#      define __fuse_exited 565,18209
-#      define __fuse_set_getcontext_func 566,18249
-#      define fuse_mount 567,18315
-#      define FUSE_MAJOR_VERSION 571,18465
-#      define FUSE_MINOR_VERSION 572,18500
-#      define fuse_statfs 573,18535
-#      define fuse_operations 574,18581
-#      define fuse_main 575,18635
-#      define fuse_new 576,18677
-#      define fuse_mount 577,18717
-#      define FUSE_DEBUG 578,18761
-
-../fuse-2.5.2/include/fuse_compat.h,299
-struct fuse_file_info_compat22 14,341
-struct fuse_operations_compat22 22,499
-typedef int (*fuse_dirfil_t_compat)fuse_dirfil_t_compat74,3051
-struct fuse_operations_compat2 75,3132
-struct fuse_statfs_compat1 109,4845
-struct fuse_operations_compat1 118,4993
-#define FUSE_DEBUG_COMPAT1 141,6011
-
-../fuse-2.5.2/include/fuse_common.h,194
-#define _FUSE_COMMON_H_14,382
-#define FUSE_MAJOR_VERSION 20,497
-#define FUSE_MINOR_VERSION 23,574
-#define FUSE_MAKE_VERSION(25,604
-#define FUSE_VERSION 26,662
-struct fuse_file_info 42,990
-
-../fuse-2.5.2/include/fuse_lowlevel.h,733
-#define _FUSE_LOWLEVEL_H_10,231
-#define FUSE_USE_VERSION 21,692
-#define FUSE_ROOT_ID 41,1139
-typedef unsigned long fuse_ino_t;44,1188
-typedef struct fuse_req *fuse_req_t;fuse_req_t47,1251
-struct fuse_entry_param 65,1581
-struct fuse_ctx 90,2281
-#define FUSE_SET_ATTR_MODE	102,2511
-#define FUSE_SET_ATTR_UID	103,2547
-#define FUSE_SET_ATTR_GID	104,2582
-#define FUSE_SET_ATTR_SIZE	105,2617
-#define FUSE_SET_ATTR_ATIME	106,2653
-#define FUSE_SET_ATTR_MTIME	107,2690
-struct fuse_lowlevel_ops 134,3802
-struct fuse_session_ops 964,28756
-struct fuse_chan_ops 1101,32245
-#  define FUSE_MINOR_VERSION 1243,36127
-#  define fuse_file_info 1244,36158
-#  define fuse_reply_statfs 1245,36205
-#  define fuse_reply_open 1246,36258
-
-../fuse-2.5.2/include/fuse_lowlevel_compat.h,37
-struct fuse_file_info_compat 14,341
-
-../fuse-2.5.2/include/fuse_opt.h,303
-#define _FUSE_OPT_H_10,221
-struct fuse_opt 73,2100
-#define FUSE_OPT_KEY(94,2607
-#define FUSE_OPT_END 100,2755
-struct fuse_args 105,2820
-#define FUSE_ARGS_INIT(119,3044
-#define FUSE_OPT_KEY_OPT 125,3196
-#define FUSE_OPT_KEY_NONOPT 133,3431
-typedef int (*fuse_opt_proc_t)fuse_opt_proc_t160,4457
-
-../fuse-2.5.2/include/fuse_kernel.h,2296
-#define __u64 41,1779
-#define __u32 42,1802
-#define __s32 43,1825
-#define FUSE_KERNEL_VERSION 49,1924
-#define FUSE_KERNEL_MINOR_VERSION 52,2001
-#define FUSE_ROOT_ID 55,2075
-#define FUSE_MAJOR 58,2152
-#define FUSE_MINOR 61,2228
-struct fuse_attr 66,2362
-struct fuse_kstatfs 83,2585
-#define FATTR_MODE	96,2761
-#define FATTR_UID	97,2789
-#define FATTR_GID	98,2816
-#define FATTR_SIZE	99,2843
-#define FATTR_ATIME	100,2871
-#define FATTR_MTIME	101,2900
-#define FATTR_FH	102,2929
-#define FOPEN_DIRECT_IO	110,3123
-#define FOPEN_KEEP_CACHE	111,3157
-enum fuse_opcode 113,3192
-	FUSE_LOOKUP	114,3211
-	FUSE_FORGET	115,3232
-	FUSE_GETATTR	116,3269
-	FUSE_SETATTR	117,3291
-	FUSE_READLINK	118,3313
-	FUSE_SYMLINK	119,3336
-	FUSE_MKNOD	120,3358
-	FUSE_MKDIR	121,3378
-	FUSE_UNLINK	122,3398
-	FUSE_RMDIR	123,3420
-	FUSE_RENAME	124,3441
-	FUSE_LINK	125,3463
-	FUSE_OPEN	126,3483
-	FUSE_READ	127,3503
-	FUSE_WRITE	128,3523
-	FUSE_STATFS	129,3544
-	FUSE_RELEASE 130,3566
-	FUSE_FSYNC 131,3592
-	FUSE_SETXATTR 132,3618
-	FUSE_GETXATTR 133,3644
-	FUSE_LISTXATTR 134,3670
-	FUSE_REMOVEXATTR 135,3696
-	FUSE_FLUSH 136,3722
-	FUSE_INIT 137,3748
-	FUSE_OPENDIR 138,3774
-	FUSE_READDIR 139,3800
-	FUSE_RELEASEDIR 140,3826
-	FUSE_FSYNCDIR 141,3852
-	FUSE_ACCESS 142,3878
-	FUSE_CREATE 143,3904
-#define FUSE_MIN_READ_BUFFER 147,4009
-struct fuse_entry_out 149,4044
-struct fuse_forget_in 160,4385
-struct fuse_attr_out 164,4429
-struct fuse_mknod_in 171,4576
-struct fuse_mkdir_in 176,4629
-struct fuse_rename_in 181,4685
-struct fuse_link_in 185,4728
-struct fuse_setattr_in 189,4772
-struct fuse_open_in 208,5036
-struct fuse_open_out 213,5089
-struct fuse_release_in 219,5162
-struct fuse_flush_in 225,5232
-struct fuse_read_in 231,5306
-struct fuse_write_in 238,5387
-struct fuse_write_out 245,5473
-#define FUSE_COMPAT_STATFS_SIZE 250,5530
-struct fuse_statfs_out 252,5566
-struct fuse_fsync_in 256,5620
-struct fuse_setxattr_in 262,5694
-struct fuse_getxattr_in 267,5751
-struct fuse_getxattr_out 272,5810
-struct fuse_access_in 277,5870
-struct fuse_init_in 282,5927
-struct fuse_init_out 287,5981
-struct fuse_in_header 294,6072
-struct fuse_out_header 305,6209
-struct fuse_dirent 311,6279
-#define FUSE_NAME_OFFSET 319,6372
-#define FUSE_DIRENT_ALIGN(320,6443
-#define FUSE_DIRENT_SIZE(321,6523
-
-../fuse-2.5.2/include/config.h,680
-#define HAVE_DLFCN_H 5,180
-#define HAVE_FDATASYNC 8,260
-#define HAVE_FORK 11,337
-#define HAVE_INTTYPES_H 14,418
-#define HAVE_MEMORY_H 17,503
-#define HAVE_SETXATTR 20,583
-#define HAVE_STDINT_H 23,666
-#define HAVE_STDLIB_H 26,749
-#define HAVE_STRINGS_H 29,833
-#define HAVE_STRING_H 32,917
-#define HAVE_STRUCT_STAT_ST_ATIM 35,1001
-#define HAVE_SYS_STAT_H 38,1097
-#define HAVE_SYS_TYPES_H 41,1185
-#define HAVE_UNISTD_H 44,1271
-#define PACKAGE 50,1373
-#define PACKAGE_BUGREPORT 53,1476
-#define PACKAGE_NAME 56,1553
-#define PACKAGE_STRING 59,1641
-#define PACKAGE_TARNAME 62,1737
-#define PACKAGE_VERSION 65,1814
-#define STDC_HEADERS 68,1902
-#define VERSION 71,1958
-
-../fuse-2.5.2/lib/fuse.c,4532
-#define _GNU_SOURCE11,232
-#define FUSE_MAX_PATH 30,566
-#define FUSE_UNKNOWN_INO 32,594
-struct fuse_config 34,631
-struct fuse 52,972
-struct node 69,1361
-struct fuse_dirhandle 82,1601
-#define mutex_init(104,2223
-static void mutex_init(106,2283
-static struct node *get_node_nocheck(get_node_nocheck116,2544
-static struct node *get_node(get_node128,2840
-static void free_node(139,3135
-static void unhash_id(145,3219
-static void hash_id(157,3530
-static unsigned int name_hash(164,3710
-static void unhash_name(177,4048
-static int hash_name(199,4778
-static void delete_node(214,5174
-static void unref_node(225,5432
-static fuse_ino_t next_id(233,5599
-static struct node *lookup_node(lookup_node243,5809
-static struct node *find_node(find_node256,6188
-static char *add_name(add_name286,6963
-static char *get_path_name(get_path_name301,7251
-static char *get_path(get_path337,8070
-static void forget_node(342,8175
-static void remove_node(358,8589
-static int rename_node(369,8852
-static void set_stat(405,9697
-static int is_open(417,10064
-static char *hidden_name(hidden_name429,10366
-static int hide_node(471,11428
-static int lookup_path(490,11958
-static struct fuse *req_fuse(req_fuse522,12925
-static struct fuse *req_fuse_prepare(req_fuse_prepare527,13026
-static inline void reply_err(540,13346
-static void reply_entry(546,13493
-static void fuse_data_init(556,13761
-static void fuse_data_destroy(568,14003
-static void fuse_lookup(581,14287
-static void fuse_forget(611,15130
-static void fuse_getattr(622,15437
-static int do_chmod(649,16085
-static int do_chown(660,16282
-static int do_truncate(674,16651
-static int do_utime(688,16999
-static void fuse_setattr(701,17277
-static void fuse_access(737,18509
-static void fuse_readlink(760,19072
-static void fuse_mknod(784,19678
-static void fuse_mkdir(823,20897
-static void fuse_unlink(851,21663
-static void fuse_rmdir(881,22482
-static void fuse_symlink(907,23130
-static void fuse_rename(935,23919
-static void fuse_link(973,25134
-static void fuse_create(1006,26104
-static void fuse_open(1066,27993
-static void fuse_read(1110,29227
-static void fuse_write(1156,30402
-static void fuse_flush(1195,31553
-static void fuse_release(1219,32166
-static void fuse_fsync(1254,33054
-static struct fuse_dirhandle *get_dirhandle(get_dirhandle1278,33691
-static void fuse_opendir(1288,34037
-static int fill_dir_common(1345,35609
-static int fill_dir(1401,37037
-static int fill_dir_old(1407,37225
-static int readdir_fill(1420,37527
-static void fuse_readdir(1448,38319
-static void fuse_releasedir(1483,39247
-static void fuse_fsyncdir(1506,39922
-static int default_statfs(1529,40502
-static void fuse_statfs(1536,40618
-static void fuse_setxattr(1554,40985
-static int common_getxattr(1574,41533
-static void fuse_getxattr(1593,42006
-static int common_listxattr(1620,42711
-static void fuse_listxattr(1639,43162
-static void fuse_removexattr(1665,43811
-static struct fuse_lowlevel_ops fuse_path_ops 1684,44279
-static void free_cmd(1718,45206
-void fuse_process_cmd(1724,45289
-int fuse_exited(1730,45438
-struct fuse_session *fuse_get_session(fuse_get_session1735,45514
-static struct fuse_cmd *fuse_alloc_cmd(fuse_alloc_cmd1740,45591
-struct fuse_cmd *fuse_read_cmd(fuse_read_cmd1756,46027
-int fuse_loop(1775,46536
-int fuse_invalidate(1783,46651
-void fuse_exit(1790,46761
-struct fuse_context *fuse_get_context(fuse_get_context1795,46827
-void fuse_set_getcontext_func(1804,47005
-    KEY_HELP,1810,47111
-    KEY_KEEP1811,47125
-#define FUSE_LIB_OPT(1814,47142
-static const struct fuse_opt fuse_lib_opts[fuse_lib_opts1816,47215
-static void fuse_lib_help(1840,48399
-static int fuse_lib_opt_proc(1857,49252
-int fuse_is_lib_option(1869,49492
-struct fuse *fuse_new_common(fuse_new_common1875,49628
-struct fuse *fuse_new(fuse_new1977,52301
-void fuse_destroy(1983,52486
-static int fuse_do_open(2019,53347
-static void fuse_do_release(2036,53888
-static int fuse_do_opendir(2045,54186
-static void convert_statfs_compat(2061,54646
-static void convert_statfs_old(2073,55093
-static int fuse_do_statfs(2084,55459
-static struct fuse *fuse_new_common_compat(fuse_new_common_compat2105,56120
-struct fuse *fuse_new_compat22(fuse_new_compat222125,56740
-struct fuse *fuse_new_compat2(fuse_new_compat22133,57046
-struct fuse *fuse_new_compat1(fuse_new_compat12140,57333
-static int fuse_do_open(2159,58059
-static void fuse_do_release(2164,58176
-static int fuse_do_opendir(2170,58333
-static int fuse_do_statfs(2176,58483
-
-../fuse-2.5.2/lib/fuse_i.h,24
-struct fuse_cmd 14,263
-
-../fuse-2.5.2/lib/fuse_kern_chan.c,220
-static int fuse_kern_chan_receive(17,336
-static int fuse_kern_chan_send(43,1143
-static void fuse_kern_chan_destroy(62,1655
-#define MIN_BUFSIZE 67,1746
-struct fuse_chan *fuse_kern_chan_new(fuse_kern_chan_new69,1775
-
-../fuse-2.5.2/lib/fuse_loop.c,30
-int fuse_session_loop(14,272
-
-../fuse-2.5.2/lib/fuse_loop_mt.c,263
-#define FUSE_MAX_WORKERS 20,395
-struct fuse_worker 22,424
-#define mutex_init(36,713
-static void mutex_init(38,773
-static int fuse_loop_mt_send(48,1034
-static void *do_work(do_work60,1441
-static int start_thread(118,3168
-int fuse_session_loop_mt(141,3799
-
-../fuse-2.5.2/lib/fuse_lowlevel.c,2670
-#define PARAM(22,438
-struct fuse_ll 24,499
-struct fuse_req 35,673
-static const char *opname(opname42,790
-static void convert_stat(79,2125
-static void convert_attr(99,2803
-static  size_t iov_length(113,3266
-static void free_req(123,3460
-static int send_reply(128,3517
-size_t fuse_dirent_size(164,4437
-char *fuse_add_dirent(fuse_add_dirent169,4540
-static void convert_statfs(189,5160
-static int send_reply_ok(202,5584
-int fuse_reply_err(207,5708
-void fuse_reply_none(212,5800
-static unsigned long calc_timeout_sec(217,5861
-static unsigned int calc_timeout_nsec(227,6055
-static void fill_entry(238,6301
-static void fill_open(250,6761
-int fuse_reply_entry(260,7024
-int fuse_reply_create(274,7414
-int fuse_reply_attr(288,7772
-int fuse_reply_readlink(301,8142
-int fuse_reply_open(306,8268
-int fuse_reply_write(315,8480
-int fuse_reply_buf(325,8675
-int fuse_reply_statfs(330,8787
-int fuse_reply_xattr(341,9083
-static void do_lookup(351,9281
-static void do_forget(359,9474
-static void do_getattr(366,9667
-static void do_setattr(374,9851
-static void do_access(395,10522
-static void do_readlink(404,10758
-static void do_mknod(412,10939
-static void do_mkdir(421,11193
-static void do_unlink(430,11436
-static void do_rmdir(438,11629
-static void do_symlink(446,11819
-static void do_rename(455,12064
-static void do_link(467,12404
-static void do_create(476,12647
-static void do_open(490,13005
-static void do_read(504,13314
-static void do_write(518,13685
-static void do_flush(535,14127
-static void do_release(550,14460
-static void do_fsync(566,14825
-static void do_opendir(581,15186
-static void do_readdir(595,15507
-static void do_releasedir(610,15871
-static void do_fsyncdir(626,16248
-static void do_statfs(641,16621
-static void do_setxattr(649,16769
-static void do_getxattr(662,17156
-static void do_listxattr(671,17414
-static void do_removexattr(680,17664
-static void do_init(688,17872
-void *fuse_req_userdata(fuse_req_userdata723,18809
-const struct fuse_ctx *fuse_req_ctx(fuse_req_ctx728,18883
-static void fuse_ll_process(733,18962
-    KEY_HELP,897,23505
-    KEY_VERSION,898,23519
-static struct fuse_opt fuse_ll_opts[fuse_ll_opts901,23540
-static void fuse_ll_version(912,23922
-static int fuse_ll_opt_proc(918,24089
-int fuse_lowlevel_is_lib_option(938,24464
-static void fuse_ll_destroy(943,24564
-struct fuse_session *fuse_lowlevel_new(fuse_lowlevel_new953,24732
-static void fill_open_compat(998,25867
-static void convert_statfs_compat(1008,26144
-int fuse_reply_open_compat(1020,26551
-int fuse_reply_statfs_compat(1030,26811
-struct fuse_session *fuse_lowlevel_new_compat(fuse_lowlevel_new_compat1040,27045
-
-../fuse-2.5.2/lib/fuse_mt.c,567
-static pthread_key_t context_key;18,354
-static pthread_mutex_t context_lock 19,388
-static int context_ref;20,453
-static struct fuse_context *mt_getcontext(mt_getcontext22,478
-static void mt_freecontext(38,939
-static int mt_create_context_key(43,999
-static void mt_delete_context_key(61,1487
-struct procdata 73,1790
-static void mt_session_proc(81,1938
-static void mt_session_exit(92,2239
-static int mt_session_exited(101,2446
-static int mt_chan_receive(107,2588
-static int mt_chan_send(123,2927
-int fuse_loop_mt_proc(130,3159
-int fuse_loop_mt(178,4326
-
-../fuse-2.5.2/lib/fuse_opt.c,756
-struct fuse_opt_context 16,307
-void fuse_opt_free_args(28,520
-static int alloc_failed(40,799
-int fuse_opt_add_arg(46,906
-static int next_arg(65,1370
-static int add_arg(75,1609
-int fuse_opt_add_opt(80,1729
-static int add_opt(100,2173
-static int insert_arg(105,2290
-static int call_proc(120,2765
-static int match_template(134,3114
-static const struct fuse_opt *find_opt(find_opt155,3635
-int fuse_opt_match(164,3908
-static int process_opt_param(170,4046
-static int process_opt(189,4547
-static int process_opt_sep_arg(211,5251
-static int process_gopt(235,5830
-static int process_real_option_group(254,6448
-static int process_option_group(272,6795
-static int process_one(290,7216
-static int opt_parse(312,7874
-int fuse_opt_parse(336,8513
-
-../fuse-2.5.2/lib/fuse_session.c,718
-struct fuse_session 16,312
-struct fuse_chan 26,440
-struct fuse_session *fuse_session_new(fuse_session_new38,573
-void fuse_session_add_chan(53,932
-struct fuse_chan *fuse_session_next_chan(fuse_session_next_chan61,1101
-void fuse_session_process(71,1348
-void fuse_session_destroy(77,1525
-void fuse_session_exit(86,1712
-void fuse_session_reset(93,1840
-int fuse_session_exited(100,1969
-struct fuse_chan *fuse_chan_new(fuse_chan_new108,2122
-int fuse_chan_fd(126,2566
-size_t fuse_chan_bufsize(131,2629
-void *fuse_chan_data(fuse_chan_data136,2705
-struct fuse_session *fuse_chan_session(fuse_chan_session141,2774
-int fuse_chan_receive(146,2859
-int fuse_chan_send(151,2974
-void fuse_chan_destroy(156,3100
-
-../fuse-2.5.2/lib/fuse_signals.c,219
-static struct fuse_session *fuse_instance;fuse_instance15,292
-static void exit_handler(17,336
-static int set_one_signal_handler(24,456
-int fuse_set_signal_handlers(47,1005
-void fuse_remove_signal_handlers(59,1365
-
-../fuse-2.5.2/lib/helper.c,930
-    KEY_HELP,22,423
-    KEY_HELP_NOHEADER,23,437
-    KEY_VERSION,24,460
-    KEY_KEEP,25,477
-struct helper_opts 28,495
-#define FUSE_HELPER_OPT(35,600
-static const struct fuse_opt fuse_helper_opts[fuse_helper_opts37,673
-static void usage(55,1344
-static void helper_help(67,1710
-static void helper_version(78,2043
-static int fuse_helper_opt_proc(83,2149
-static int add_default_fsname(115,2884
-int fuse_parse_cmdline(136,3468
-static int fuse_daemonize(168,4226
-static struct fuse *fuse_setup_common(fuse_setup_common189,4714
-struct fuse *fuse_setup(fuse_setup236,5961
-void fuse_teardown(245,6302
-static int fuse_main_common(255,6520
-int fuse_main_real(282,7147
-int fuse_main(289,7338
-struct fuse *fuse_setup_compat22(fuse_setup_compat22299,7493
-struct fuse *fuse_setup_compat2(fuse_setup_compat2308,7907
-int fuse_main_real_compat22(318,8363
-void fuse_main_compat1(326,8648
-int fuse_main_compat2(333,8894
-
-../fuse-2.5.2/lib/mount.c,530
-#define FUSERMOUNT_PROG 23,455
-#define FUSE_COMMFD_ENV 24,500
-    KEY_KERN,27,555
-    KEY_ALLOW_ROOT,28,569
-    KEY_RO,29,589
-    KEY_HELP,30,601
-    KEY_VERSION,31,615
-struct mount_opts 34,636
-static const struct fuse_opt fuse_mount_opts[fuse_mount_opts41,740
-static void mount_help(72,2231
-static void mount_version(86,2832
-static int fuse_mount_opt_proc(91,2911
-static int receive_fd(127,3678
-void fuse_unmount(168,4640
-int fuse_mount_compat22(202,5242
-int fuse_mount(263,6542
-int fuse_mount_compat1(287,7113
-
-../fuse-2.5.2/lib/mount_bsd.c,469
-#define FUSERMOUNT_PROG 21,402
-#define FUSE_DEV_TRUNK 22,449
-    KEY_ALLOW_ROOT,25,501
-    KEY_RO,26,521
-    KEY_HELP,27,533
-    KEY_VERSION,28,547
-    KEY_KERN29,564
-struct mount_opts 32,581
-static const struct fuse_opt fuse_mount_opts[fuse_mount_opts39,685
-static void mount_help(111,4304
-static void mount_version(120,4501
-static int fuse_mount_opt_proc(125,4580
-void fuse_unmount(157,5293
-static int fuse_mount_core(190,6132
-int fuse_mount(275,7768
-
-../fuse-2.5.2/util/fusermount.c,1731
-#define FUSE_COMMFD_ENV 42,1031
-#define FUSE_DEV_OLD 44,1079
-#define FUSE_DEV_NEW 45,1120
-#define FUSE_VERSION_FILE_OLD 46,1153
-#define FUSE_CONF 47,1207
-#define MS_DIRSYNC 50,1262
-static const char *progname;progname53,1293
-static int user_allow_other 55,1323
-static int mount_max 56,1356
-static const char *get_user_name(get_user_name58,1386
-static uid_t oldfsuid;69,1656
-static gid_t oldfsgid;70,1679
-static void drop_privs(72,1703
-static void restore_privs(80,1846
-static int do_unmount(88,1970
-static int lock_mtab(102,2382
-static void unlock_mtab(119,2817
-static int check_name(131,3156
-static int add_mount(144,3445
-static int unmount_rename(180,4356
-static int unmount_fuse(197,4764
-static int count_fuse_fs(305,7643
-static int lock_mtab(326,8134
-static void unlock_mtab(331,8176
-static int count_fuse_fs(336,8240
-static int add_mount(341,8286
-static int unmount_fuse(351,8489
-static void strip_line(357,8622
-static void parse_line(369,8950
-static void read_conf(381,9322
-static int begins_with(410,10242
-struct mount_flags 418,10390
-static struct mount_flags mount_flags[mount_flags425,10486
-static int find_mount_flag(442,11079
-static int add_option(462,11666
-static int get_mnt_opts(482,12226
-static int opt_eq(514,13080
-static int check_mountpoint_empty(522,13250
-static int do_mount(554,14188
-static int check_version(673,18139
-static int check_perm(703,18854
-static int try_open(787,21474
-static int try_open_fuse_device(806,21979
-static int open_fuse_device(825,22282
-static int mount_fuse(839,22565
-static char *resolve_path(resolve_path918,24403
-static int send_fd(984,26161
-static void usage(1020,27179
-static void show_version(1035,27607
-int main(1041,27713
-
-../fuse-2.5.2/example/fusexmp.c,896
-#define _XOPEN_SOURCE 13,261
-static int xmp_getattr(27,482
-static int xmp_access(38,649
-static int xmp_readlink(49,805
-static int xmp_readdir(62,1010
-static int xmp_mknod(88,1569
-static int xmp_mkdir(108,2057
-static int xmp_unlink(119,2214
-static int xmp_rmdir(130,2354
-static int xmp_symlink(141,2492
-static int xmp_rename(152,2654
-static int xmp_link(163,2814
-static int xmp_chmod(174,2970
-static int xmp_chown(185,3127
-static int xmp_truncate(196,3298
-static int xmp_utime(207,3460
-static int xmp_open(219,3625
-static int xmp_read(231,3815
-static int xmp_write(250,4170
-static int xmp_statfs(269,4534
-static int xmp_release(280,4705
-static int xmp_fsync(290,4917
-static int xmp_setxattr(304,5281
-static int xmp_getxattr(313,5526
-static int xmp_listxattr(322,5745
-static int xmp_removexattr(330,5920
-static struct fuse_operations xmp_oper 339,6111
-int main(369,6847
-
-../fuse-2.5.2/example/fusexmp_fh.c,1107
-#define _GNU_SOURCE11,221
-static int xmp_getattr(24,429
-static int xmp_fgetattr(35,596
-static int xmp_access(49,835
-static int xmp_readlink(60,991
-static int xmp_opendir(72,1195
-static inline DIR *get_dirp(get_dirp82,1388
-static int xmp_readdir(87,1487
-static int xmp_releasedir(107,1992
-static int xmp_mknod(115,2145
-static int xmp_mkdir(129,2391
-static int xmp_unlink(140,2548
-static int xmp_rmdir(151,2688
-static int xmp_symlink(162,2826
-static int xmp_rename(173,2988
-static int xmp_link(184,3148
-static int xmp_chmod(195,3304
-static int xmp_chown(206,3461
-static int xmp_truncate(217,3632
-static int xmp_ftruncate(228,3794
-static int xmp_utime(242,4030
-static int xmp_create(253,4194
-static int xmp_open(265,4403
-static int xmp_read(277,4591
-static int xmp_write(290,4852
-static int xmp_statfs(303,5122
-static int xmp_release(314,5293
-static int xmp_fsync(322,5417
-static int xmp_setxattr(344,5857
-static int xmp_getxattr(353,6102
-static int xmp_listxattr(362,6321
-static int xmp_removexattr(370,6496
-static struct fuse_operations xmp_oper 379,6687
-int main(414,7573
-
-../fuse-2.5.2/example/hello.c,292
-static const char *hello_str hello_str15,296
-static const char *hello_path hello_path16,345
-static int hello_getattr(18,388
-static int hello_readdir(38,840
-static int hello_open(54,1200
-static int hello_read(65,1410
-static struct fuse_operations hello_oper 84,1849
-int main(91,2006
-
-../fuse-2.5.2/example/hello_ll.c,500
-static const char *hello_str hello_str18,365
-static const char *hello_name hello_name19,414
-static int hello_stat(21,456
-static void hello_ll_getattr(42,855
-static void hello_ll_lookup(56,1183
-struct dirbuf 73,1595
-static void dirbuf_add(78,1645
-#define min(89,1991
-static int reply_buf_limited(91,2034
-static void hello_ll_readdir(100,2326
-static void hello_ll_open(119,2800
-static void hello_ll_read(130,3092
-static struct fuse_lowlevel_ops hello_ll_oper 139,3338
-int main(147,3556
-
-../fuse-2.5.2/example/null.c,222
-static int null_getattr(15,296
-static int null_truncate(31,696
-static int null_open(41,844
-static int null_read(51,1001
-static int null_write(64,1255
-static struct fuse_operations null_oper 77,1516
-int main(85,1695
+src/zfs-fuse/zfs_slashlib_init.c,280
+static const char *cf_pidfile cf_pidfile33,998
+static int cf_daemonize 34,1036
+static void exit_handler(36,1066
+static int set_signal_handler(41,1134
+static struct option longopts[longopts62,1488
+void print_usage(81,1705
+static void parse_args(88,1923
+int main(118,2604

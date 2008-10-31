@@ -29,6 +29,7 @@
 #include <getopt.h>
 
 #include "util.h"
+#include "zfs_slashlib.h"
 
 static const char *cf_pidfile = NULL;
 static int cf_daemonize = 1;
@@ -56,82 +57,15 @@ static int set_signal_handler(int sig, void (*handler)(int))
 	return 0;
 }
 
-extern char *optarg;
-extern int optind, opterr, optopt;
-
-static struct option longopts[] = {
-	{ "no-daemon",
-	  0, /* has-arg */
-	  &cf_daemonize, /* flag */
-	  0 /* val */
-	},
-	{ "pidfile",
-	  1,
-	  NULL,
-	  'p'
-	},
-	{ "help",
-	  0,
-	  NULL,
-	  'h'
-	},
-	{ 0, 0, 0, 0 }
-};
-
-void print_usage(int argc, char *argv[]) {
-	const char *progname = "zfs-slash2";
-	if (argc > 0)
-		progname = argv[0];
-	fprintf(stderr, "Usage: %s [--no-daemon] [-p | --pidfile filename] [-h | --help]\n", progname);
-}
-
-static void parse_args(int argc, char *argv[])
+int zfs_lib_start(const char *poolname, const char *cachefile)
 {
-	int retval;
-	while ((retval = getopt_long(argc, argv, "-hp:", longopts, NULL)) != -1) {
-		switch (retval) {
-			case 1: /* non-option argument passed (due to - in optstring) */
-			case 'h':
-			case '?':
-				print_usage(argc, argv);
-				exit(1);
-			case 'p':
-				if (cf_pidfile != NULL) {
-					print_usage(argc, argv);
-					exit(1);
-				}
-				cf_pidfile = optarg;
-				break;
-			case 0:
-				break; /* flag is not NULL */
-			default:
-				// This should never happen
-				fprintf(stderr, "Internal error: Unrecognized getopt_long return 0x%02x\n", retval);
-				print_usage(argc, argv);
-				exit(1);
-				break;
-		}
-	}
-}
-
-#ifndef SLASHLIB
-int main(int argc, char *argv[])
-{
-	parse_args(argc, argv);
-
-	if (cf_daemonize) {
-		do_daemon(cf_pidfile);
-	}
-
-#else
-int zfs_lib_start(void)
-{
-#endif
 	if(do_init() != 0) {
 		do_exit();
 		return 1;
 	}
-	
+
+#if 0	
+	//XXX these handlers should go into slash2 proper.
 	if(set_signal_handler(SIGHUP, exit_handler) != 0 ||
 	   set_signal_handler(SIGINT, exit_handler) != 0 ||
 	   set_signal_handler(SIGTERM, exit_handler) != 0 ||
@@ -139,10 +73,12 @@ int zfs_lib_start(void)
 		do_exit();
 		return 2;
 	}
+#endif
+	return 0;
+}
 
-	int ret = zfsfuse_listener_start();
-
+void zfs_lib_stop(void)
+{
+	zfs_slashlib_exit = B_TRUE;
 	do_exit();
-
-	return ret;
 }

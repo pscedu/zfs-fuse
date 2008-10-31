@@ -40,24 +40,11 @@
 #include <time.h>
 
 #include "util.h"
+#include "zfs_slashlib.h"
 
 #define ZFS_MAGIC 0x2f52f5
-
-typedef unsigned long long int u64;
-typedef unsigned long long int __u64;
-typedef unsigned int __u32;
-
-struct fidgen {
-        u64 fid;
-        u64 gen;
-};
-
-typedef struct file_info {
-	vnode_t *vp;
-	int flags;
-} file_info_t;
-
 kmem_cache_t *file_info_cache = NULL;
+
 
 /* 'to_set' flags in setattr */
 #define FUSE_SET_ATTR_MODE	(1 << 0)
@@ -109,7 +96,7 @@ char *fuse_add_dirent(char *buf, const char *name, const struct stat *stbuf,
 
 #define ZFS_MAGIC 0x2f52f5
 
-static void zfsslash2_destroy(void *userdata)
+void zfsslash2_destroy(void *userdata)
 {
 	vfs_t *vfs = (vfs_t *) userdata;
 	
@@ -132,7 +119,7 @@ static void zfsslash2_destroy(void *userdata)
 #endif
 }
 
-static int zfsslash2_statfs(void *vfsdata, struct statvfs *stat)
+int zfsslash2_statfs(void *vfsdata, struct statvfs *stat)
 {
 	vfs_t *vfs = (vfs_t *)vfsdata;
 
@@ -160,7 +147,7 @@ static int zfsslash2_statfs(void *vfsdata, struct statvfs *stat)
 	return (0);
 }
 
-static int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
+int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 {
 	ASSERT(vp != NULL);
 	ASSERT(stbuf != NULL);
@@ -191,7 +178,7 @@ static int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 	return 0;
 }
 
-static int zfsslash2_getattr(void *vfsdata, u64 ino, cred_t *cred, struct stat *stbuf)
+int zfsslash2_getattr(void *vfsdata, u64 ino, cred_t *cred, struct stat *stbuf)
 {
 	vfs_t *vfs = (vfs_t *)vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -221,7 +208,7 @@ static int zfsslash2_getattr(void *vfsdata, u64 ino, cred_t *cred, struct stat *
 	return error;
 }
 
-static int zfsslash2_lookup(void *vfsdata, u64 parent, const char *name, cred_t *cred, struct stat *stb)
+int zfsslash2_lookup(void *vfsdata, u64 parent, const char *name, cred_t *cred, struct stat *stb)
 {
 	if(strlen(name) >= MAXNAMELEN)
 		return ENAMETOOLONG;
@@ -276,7 +263,7 @@ out:
 
 /* XXX replace fuse_file_info with something meaningful for slash d_ino cache
  */
-static int zfsslash2_opendir(void *vfsdata, u64 ino, cred_t *cred, struct fidgen *fg, void **private)
+int zfsslash2_opendir(void *vfsdata, u64 ino, cred_t *cred, struct fidgen *fg, void **private)
 {
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -346,7 +333,7 @@ out:
 
 /*  XXX convert to the slash d_ino cache .. same as above
  */
-static int zfsslash2_release(void *vfsdata, u64 ino, cred_t *cred, void *data)
+int zfsslash2_release(void *vfsdata, u64 ino, cred_t *cred, void *data)
 {
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -374,8 +361,7 @@ static int zfsslash2_release(void *vfsdata, u64 ino, cred_t *cred, void *data)
 
 
 /* XXX caller will have to free outbuf */
-static int zfsslash2_readdir(void *vfsdata, u64 ino, cred_t *cred, size_t size, off_t off, 
-			     char *outbuf, size_t *outbuf_len, void *data)
+int zfsslash2_readdir(void *vfsdata, u64 ino, cred_t *cred, size_t size, off_t off, char *outbuf, size_t *outbuf_len, void *data)
 {	
 	vnode_t *vp = ((file_info_t *)(uintptr_t) data)->vp;
 
@@ -458,7 +444,7 @@ out:
 }
 
 
-static int 
+int 
 zfsslash2_opencreate(void *vfsdata, u64 ino, cred_t *cred, int fflags, 
 		     mode_t createmode, const char *name, struct fidgen *fg, 
 		     struct stat *stb, void **private)
@@ -627,7 +613,7 @@ out:
 
 
 
-static int zfsslash2_readlink(void *vfsdata, u64 ino, char *buf, cred_t *cred)
+int zfsslash2_readlink(void *vfsdata, u64 ino, char *buf, cred_t *cred)
 {
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -675,7 +661,7 @@ static int zfsslash2_readlink(void *vfsdata, u64 ino, char *buf, cred_t *cred)
 }
 
 
-static int zfsslash2_read(void *vfsdata, u64 ino, cred_t *cred, char *buf, size_t size, off_t off, void *data)
+int zfsslash2_read(void *vfsdata, u64 ino, cred_t *cred, char *buf, size_t size, off_t off, void *data)
 {
 	file_info_t *info = (file_info_t *)(uintptr_t) data;
 	u64 real_ino = ino == 1 ? 3 : ino;
@@ -718,8 +704,7 @@ static int zfsslash2_read(void *vfsdata, u64 ino, cred_t *cred, char *buf, size_
 }
 
 
-static int zfsslash2_mkdir(void *vfsdata, u64 parent, const char *name, mode_t mode, 
-			   cred_t *cred, struct stat *stb, struct fidgen *fg)
+int zfsslash2_mkdir(void *vfsdata, u64 parent, const char *name, mode_t mode, cred_t *cred, struct stat *stb, struct fidgen *fg)
 {
 	if(strlen(name) >= MAXNAMELEN)
 		return ENAMETOOLONG;
@@ -775,7 +760,7 @@ out:
 }
 
 
-static int zfsslash2_rmdir(void *vfsdata, u64 parent, const char *name, cred_t *cred)
+int zfsslash2_rmdir(void *vfsdata, u64 parent, const char *name, cred_t *cred)
 {
 	if(strlen(name) >= MAXNAMELEN)
 		return ENAMETOOLONG;
@@ -815,7 +800,7 @@ static int zfsslash2_rmdir(void *vfsdata, u64 parent, const char *name, cred_t *
 }
 
 
-static int zfsslash2_setattr(void *vfsdata, u64 ino, struct stat *attr, int to_set, cred_t *cred, struct stat *out_attr, void *data)
+int zfsslash2_setattr(void *vfsdata, u64 ino, struct stat *attr, int to_set, cred_t *cred, struct stat *out_attr, void *data)
 {
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -932,7 +917,7 @@ out: ;
 }
 
 
-static int zfsslash2_unlink(void *vfsdata, u64 parent, const char *name, cred_t *cred)
+int zfsslash2_unlink(void *vfsdata, u64 parent, const char *name, cred_t *cred)
 {
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -966,7 +951,7 @@ static int zfsslash2_unlink(void *vfsdata, u64 parent, const char *name, cred_t 
 }
 
 
-static int zfsslash2_write(void *vfsdata, u64 ino, cred_t *cred, const char *buf, size_t size, off_t off, void *data)
+int zfsslash2_write(void *vfsdata, u64 ino, cred_t *cred, const char *buf, size_t size, off_t off, void *data)
 {
 	file_info_t *info = (file_info_t *)(uintptr_t) data;
 	u64 real_ino = ino == 1 ? 3 : ino;
@@ -1008,7 +993,7 @@ static int zfsslash2_write(void *vfsdata, u64 ino, cred_t *cred, const char *buf
 
 
 #if 0
-static int zfsslash2_mknod(void *vfsdata, u64 parent, const char *name, mode_t mode, dev_t rdev)
+int zfsslash2_mknod(void *vfsdata, u64 parent, const char *name, mode_t mode, dev_t rdev)
 {
 	if(strlen(name) >= MAXNAMELEN)
 		return ENAMETOOLONG;
@@ -1080,7 +1065,7 @@ out:
 #endif
 
 
-static int zfsslash2_symlink(void *vfsdata, const char *link, u64 parent, const char *name, cred_t *cred, struct stat *stb, struct fidgen *fg)
+int zfsslash2_symlink(void *vfsdata, const char *link, u64 parent, const char *name, cred_t *cred, struct stat *stb, struct fidgen *fg)
 {
 	if(strlen(name) >= MAXNAMELEN)
 		return ENAMETOOLONG;
@@ -1142,7 +1127,7 @@ out:
 }
 
 
-static int zfsslash2_rename(void *vfsdata, u64 parent, const char *name, u64 newparent, const char *newname, cred_t *cred)
+int zfsslash2_rename(void *vfsdata, u64 parent, const char *name, u64 newparent, const char *newname, cred_t *cred)
 {
 	if(strlen(name) >= MAXNAMELEN)
 		return ENAMETOOLONG;
@@ -1194,7 +1179,7 @@ static int zfsslash2_rename(void *vfsdata, u64 parent, const char *name, u64 new
 	return error;
 }
 
-static int zfsslash2_fsync(void *vfsdata, u64 ino, cred_t *cred, int datasync, void *data)
+int zfsslash2_fsync(void *vfsdata, u64 ino, cred_t *cred, int datasync, void *data)
 {
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -1218,8 +1203,7 @@ static int zfsslash2_fsync(void *vfsdata, u64 ino, cred_t *cred, int datasync, v
 }
 
 
-static int zfsslash2_link(void *vfsdata, u64 ino, u64 newparent, const char *newname, 
-			  struct fidgen *fg, cred_t *cred, struct stat *stb)
+int zfsslash2_link(void *vfsdata, u64 ino, u64 newparent, const char *newname, struct fidgen *fg, cred_t *cred, struct stat *stb)
 {
 	if(strlen(newname) >= MAXNAMELEN)
 		return ENAMETOOLONG;
@@ -1291,7 +1275,7 @@ out:
  }
 
 
-static int zfsslash2_access(void *vfsdata, u64 ino, int mask, cred_t *cred)
+int zfsslash2_access(void *vfsdata, u64 ino, int mask, cred_t *cred)
 {
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;

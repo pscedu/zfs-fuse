@@ -115,7 +115,6 @@ static void parse_args(int argc, char *argv[])
 	}
 }
 
-#ifndef SLASHLIB
 int main(int argc, char *argv[])
 {
 	parse_args(argc, argv);
@@ -124,10 +123,6 @@ int main(int argc, char *argv[])
 		do_daemon(cf_pidfile);
 	}
 
-#else
-int zfs_lib_start(void)
-{
-#endif
 	if(do_init() != 0) {
 		do_exit();
 		return 1;
