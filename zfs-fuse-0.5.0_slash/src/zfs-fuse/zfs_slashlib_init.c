@@ -33,6 +33,8 @@
 
 static const char *cf_pidfile = NULL;
 static int cf_daemonize = 1;
+int zfs_slashlib_exit=0;
+
 
 static void exit_handler(int sig)
 {
