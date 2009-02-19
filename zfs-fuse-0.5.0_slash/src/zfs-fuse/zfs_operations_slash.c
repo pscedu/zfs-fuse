@@ -174,7 +174,7 @@ int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 	return 0;
 }
 
-int zfsslash2_getattr(void *vfsdata, uint64_t ino, cred_t *cred, struct stat *stbuf)
+int zfsslash2_getattr(void *vfsdata, uint64_t ino, cred_t *cred, struct stat *stbuf, uint64_t *gen)
 {
 	vfs_t *vfs = (vfs_t *)vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -197,6 +197,8 @@ int zfsslash2_getattr(void *vfsdata, uint64_t ino, cred_t *cred, struct stat *st
 	ASSERT(vp != NULL);
 
 	error = zfsslash2_stat(vp, stbuf, cred);
+
+	*gen = VTOZ(vp)->z_phys->zp_gen;
 
 	VN_RELE(vp);
 	ZFS_EXIT(zfsvfs);

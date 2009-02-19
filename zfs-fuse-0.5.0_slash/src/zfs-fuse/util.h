@@ -36,5 +36,6 @@ extern int do_mount(char *spec, char *dir, int mflag, char *opt);
 extern int do_umount(vfs_t *vfs, boolean_t force);
 
 extern int zfs_slashlib_exit;
+extern kmem_cache_t *file_info_cache;
 
 #endif

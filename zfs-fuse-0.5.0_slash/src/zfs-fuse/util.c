@@ -43,8 +43,11 @@
 
 #include "fuse.h"
 #include "zfs_operations.h"
+#else
+#include "zfs_slashlib.h"
 #endif
 #include "util.h"
+
 
 int ioctl_fd = -1;
 
@@ -89,6 +92,9 @@ void do_daemon(const char *pidfile)
 
 int do_init()
 {
+#ifdef DEBUG
+	fprintf(stderr, "do_init(): \n");
+#endif
 	libsolkerncompat_init();
 
 	zfs_vfsinit(zfstype, NULL);
@@ -109,6 +115,10 @@ int do_init()
 #ifndef SLASHLIB	
 	return zfsfuse_listener_init();
 #else
+	file_info_cache = kmem_cache_create("file_info_t", sizeof(file_info_t),\
+					    0, NULL, NULL, NULL, NULL, NULL, 0);
+        VERIFY(file_info_cache != NULL);
+
 	return 0;
 #endif
 }
@@ -128,6 +138,9 @@ void do_exit()
 	if(ioctl_fd != -1)
 		zfsfuse_socket_close(ioctl_fd);
 
+	if(file_info_cache != NULL)
+                kmem_cache_destroy(file_info_cache);
+
 	int ret = zfs_ioctl_fini();
 	if(ret != 0)
 		cmn_err(CE_WARN, "Error %i in zfs_ioctl_fini().\n", ret);
@@ -145,6 +158,8 @@ uint32_t mounted = 0;
 
 int do_mount(char *spec, char *dir, int mflag, char *opt)
 {
+	extern void *zfsVfs;
+
 	VERIFY(mflag == 0);
 	VERIFY(opt[0] == '\0');
 
@@ -154,6 +169,8 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 
 	VFS_INIT(vfs, zfs_vfsops, 0);
 	VFS_HOLD(vfs);
+
+	zfsVfs = vfs;
 
 	struct mounta uap = {spec, dir, mflag | MS_SYSSPACE, NULL, opt, strlen(opt)};
 

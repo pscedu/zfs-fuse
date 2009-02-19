@@ -30,7 +30,7 @@ void zfs_lib_stop(void);
 
 int zfsslash2_statfs(void *vfsdata, struct statvfs *stat);
 int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred);
-int zfsslash2_getattr(void *vfsdata, uint64_t ino, cred_t *cred, struct stat *stbuf);
+int zfsslash2_getattr(void *vfsdata, uint64_t ino, cred_t *cred, struct stat *stbuf, uint64_t *gen);
 int zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name, fidgen_t *fg, cred_t *cred, struct stat *stb);
 int zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred, fidgen_t *fg, void **private);
 int zfsslash2_release(void *vfsdata, uint64_t ino, cred_t *cred, void *data);
