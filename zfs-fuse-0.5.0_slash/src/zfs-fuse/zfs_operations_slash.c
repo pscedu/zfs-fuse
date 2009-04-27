@@ -61,6 +61,12 @@ struct fuse_dirent {
 	char name[0];
 };
 
+struct srm_getattr_rep {
+	struct stat attr;
+        uint64_t gen;
+        int rc;
+};
+
 #define FUSE_NAME_OFFSET ((unsigned) ((struct fuse_dirent *) 0)->name)
 #define FUSE_DIRENT_ALIGN(x) (((x) + sizeof(__uint64_t) - 1) & ~(sizeof(__uint64_t) - 1))
 #define FUSE_DIRENT_SIZE(d) \
@@ -198,7 +204,8 @@ int zfsslash2_getattr(void *vfsdata, uint64_t ino, cred_t *cred, struct stat *st
 
 	error = zfsslash2_stat(vp, stbuf, cred);
 
-	*gen = VTOZ(vp)->z_phys->zp_gen;
+	if (gen)
+		*gen = VTOZ(vp)->z_phys->zp_gen;
 
 	VN_RELE(vp);
 	ZFS_EXIT(zfsvfs);
@@ -375,7 +382,7 @@ int zfsslash2_release(void *vfsdata, uint64_t ino, cred_t *cred, void *data)
 
 
 /* XXX caller will have to free outbuf */
-int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size, off_t off, char *outbuf, size_t *outbuf_len, void *data)
+int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size, off_t off, char *outbuf, size_t *outbuf_len, void *attrs, int nstbprefetch, void *data)
 {	
 	vnode_t *vp = ((file_info_t *)(uintptr_t) data)->vp;
 
@@ -402,6 +409,7 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size, of
 	} entry;
 
 	struct stat fstat = { 0 };
+	struct srm_getattr_rep *attr = (struct srm_getattr_rep *)attrs;
 
 	iovec_t iovec;
 	uio_t uio;
@@ -419,6 +427,8 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size, of
 	off_t next = off;
 
 	int error;
+	int prefetch_cnt = 0;
+
 
 	for(;;) {
 		iovec.iov_base = entry.buf;
@@ -440,13 +450,21 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size, of
 		int dsize = fuse_dirent_size(strlen(entry.dirent.d_name));
 		if(dsize > outbuf_resid)
 			break;
-		
+						
 		fuse_add_dirent(outbuf + outbuf_off, entry.dirent.d_name, 
 				&fstat, entry.dirent.d_off);
 
-		//printf("fuse_add_dirent dname=%s diroffset=%llx bufoffset=%d\n", 
-		//     entry.dirent.d_name, (unsigned long long)entry.dirent.d_off, outbuf_off);
-		
+		if (nstbprefetch - 1) {
+			attr->rc = zfsslash2_getattr(vfsdata, 
+						     entry.dirent.d_ino, 
+						     cred, &attr->attr, 
+						     &attr->gen);
+
+			//fprintf(stderr, "rc=%d st_ino=%lu gen=%lu\n", 
+			//	attr->rc, attr->attr.st_ino, attr->gen);
+			attr++;
+			nstbprefetch--;
+		}
 		outbuf_off += dsize;
 		outbuf_resid -= dsize;
 		next = entry.dirent.d_off;

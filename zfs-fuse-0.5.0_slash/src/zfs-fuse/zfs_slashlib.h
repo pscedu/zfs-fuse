@@ -34,7 +34,7 @@ int zfsslash2_getattr(void *vfsdata, uint64_t ino, cred_t *cred, struct stat *st
 int zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name, fidgen_t *fg, cred_t *cred, struct stat *stb);
 int zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred, fidgen_t *fg, void **private);
 int zfsslash2_release(void *vfsdata, uint64_t ino, cred_t *cred, void *data);
-int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size, off_t off, char *outbuf, size_t *outbuf_len, void *data);
+int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size, off_t off, char *outbuf, size_t *outbuf_len, void  *attrs, int nstbprefetch, void *data);
 int zfsslash2_readlink(void *vfsdata, uint64_t ino, char *buf, cred_t *cred);
 int zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred, char *buf, size_t size, off_t off, void *data);
 int zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name, mode_t mode, cred_t *cred, struct stat *stb, fidgen_t *fg);
