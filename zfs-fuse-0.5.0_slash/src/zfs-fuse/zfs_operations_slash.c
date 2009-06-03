@@ -479,6 +479,81 @@ out:
 	return error;
 }
 
+int
+zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
+{
+	int i;
+
+	ASSERT(linkvp);
+	
+	cred_t creds = {0};
+	znode_t *znode;
+
+	int error = zfs_zget(zfsvfs, 3, &znode, B_TRUE);
+	if (error)
+		return error == EEXIST ? ENOENT : error;
+
+	ASSERT(znode != NULL);
+	vnode_t *dvp = ZTOV(znode);
+	ASSERT(dvp != NULL);
+
+	vnode_t *vp = NULL;
+
+	error = VOP_LOOKUP(dvp, ".slfidns", &vp, NULL, 0, NULL, &creds, 
+			   NULL, NULL, NULL);
+	if (error) {
+		VN_RELE(dvp);
+		return (error);
+	}
+
+	/* Release the root dir dvp and stash the .slfidns vp there.
+	 */
+	VN_RELE(dvp);
+	dvp = vp;
+	/* Lookup our fid's parent directory in the fid namespace, closing 
+	 *   parent dvp's along the way.
+	 */
+	char immns_name[2];
+	uint8_t c;	
+	for (i=0; i < 3; i++, VN_RELE(dvp), dvp=vp) {
+
+		c = (uint8_t)(((uint64_t)VTOZ(linkvp)->z_id & 
+			       (0x000000000000000fULL << i*4)) >> i*4);
+		immns_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
+		immns_name[1] = '\0';
+
+		error = VOP_LOOKUP(dvp, immns_name, &vp, NULL, 0, NULL, &creds,
+				   NULL, NULL, NULL);
+
+		fprintf(stderr, "immns_name=%s parent=%ld child=%ld error=%d\n", 
+			immns_name, (uint64_t)VTOZ(dvp)->z_id, (uint64_t)VTOZ(vp)->z_id, 
+			error);
+
+		if (error) {
+			VN_RELE(dvp);
+			return (error);
+		}
+	}	
+	/* Should have the immns parent vp now.
+	 */
+	char fidname[20];
+	snprintf(fidname, 20, "%016lx", (uint64_t)VTOZ(linkvp)->z_id);
+
+	ASSERT(vp);
+	if (!unlink)
+		error = VOP_LINK(vp, linkvp, (char *)fidname, &creds, NULL, FALLOWDIRLINK);
+	else
+		error = VOP_REMOVE(vp, (char *)fidname, &creds, NULL, 0);;
+
+	fprintf(stderr, "fidname=%s parent=%ld linkvp=%ld error=%d\n", 
+		fidname, (uint64_t)VTOZ(dvp)->z_id, 
+		(uint64_t)VTOZ(linkvp)->z_id, error);
+
+	if (error)
+		VN_RELE(vp);
+	
+	return (error);
+}
 
 int 
 zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags, 
@@ -569,6 +644,9 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 
 		VN_RELE(vp);
 		vp = new_vp;
+		
+		if ((error = zfsslash2_fidlink(zfsvfs, vp, 0)))
+			goto out;
 	} else {
 		/*
 		 * Get the attributes to check whether file is large.
@@ -629,14 +707,14 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 	*private = info;
 
 	//if(flags & FCREAT) {
-		fg->fid = VTOZ(vp)->z_id;
-		if(fg->fid == 3) {
-			fg->fid = 1;
-			stb->st_ino = 1;
-		}
-
-		fg->gen = VTOZ(vp)->z_phys->zp_gen;
-		//}
+	fg->fid = VTOZ(vp)->z_id;
+	if(fg->fid == 3) {
+		fg->fid = 1;
+		stb->st_ino = 1;
+	}
+	
+	fg->gen = VTOZ(vp)->z_phys->zp_gen;
+	//}
 out:
 	if(error) {
 		ASSERT(vp->v_count > 0);
@@ -779,6 +857,8 @@ int zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name, mode_t mod
 		goto out;
 
 	ASSERT(vp != NULL);
+
+	error = zfsslash2_fidlink(zfsvfs, vp, 0);
 
 	fg->fid = VTOZ(vp)->z_id;
 	if(fg->fid == 3) {
@@ -982,8 +1062,21 @@ int zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name, cred_t *c
 	vnode_t *dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
 
-	error = VOP_REMOVE(dvp, (char *) name, cred, NULL, 0);
+	vnode_t *vp=NULL;
+	error = VOP_LOOKUP(dvp, (char *)name, &vp, NULL, 0, NULL, cred, 
+			   NULL, NULL, NULL);	
+	if (error)
+		goto out;
+	
+	error = VOP_REMOVE(dvp, (char *)name, cred, NULL, 0);
+	if (error) {
+		VN_RELE(vp);
+		goto out;	
+	}
 
+	error = zfsslash2_fidlink(zfsvfs, vp, 1);	
+	VN_RELE(vp);
+ out:
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
 

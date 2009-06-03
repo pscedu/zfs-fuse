@@ -3503,7 +3503,7 @@ top:
 	 * POSIX dictates that we return EPERM here.
 	 * Better choices include ENOTSUP or EISDIR.
 	 */
-	if (svp->v_type == VDIR) {
+	if (svp->v_type == VDIR && !(flags & FALLOWDIRLINK)) {
 		ZFS_EXIT(zfsvfs);
 		return (EPERM);
 	}

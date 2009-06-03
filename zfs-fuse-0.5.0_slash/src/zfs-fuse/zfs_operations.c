@@ -522,7 +522,6 @@ static int zfsfuse_opencreate(fuse_req_t req, fuse_ino_t ino, struct fuse_file_i
 
 	if (flags & FCREAT) {
 		enum vcexcl excl;
-
 		/*
 		 * Wish to create a file.
 		 */
