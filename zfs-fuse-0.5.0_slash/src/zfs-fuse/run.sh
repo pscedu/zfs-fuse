@@ -1,5 +1,7 @@
 #!/bin/sh
 
+dir=$(dirname $0)
+
 ulimit -c unlimited
 
-./zfs-fuse --no-daemon
+echo $dir/zfs-fuse --no-daemon
