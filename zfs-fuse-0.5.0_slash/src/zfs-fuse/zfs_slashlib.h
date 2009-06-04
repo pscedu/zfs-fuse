@@ -1,3 +1,5 @@
+/* $Id$ */
+
 #ifndef ZFS_SLASHLIB_H
 #define ZFS_SLASHLIB_H 1
 
