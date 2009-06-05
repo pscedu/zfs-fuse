@@ -1,4 +1,5 @@
 #!/bin/sh
+# $Id$
 
 dir=$(dirname $0)
 
