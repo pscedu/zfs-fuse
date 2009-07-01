@@ -3545,7 +3545,7 @@ top:
 		return (error);
 	}
 
-	error = zfs_link_create(dl, szp, tx, 0);
+	error = zfs_link_create(dl, szp, tx, flags);
 
 	if (error == 0) {
 		uint64_t txtype = TX_LINK;

@@ -86,11 +86,11 @@
 #ifdef	__cplusplus
 extern "C" {
 #endif
-
+	
 #define	ZAP_MAXNAMELEN 256
 #define	ZAP_MAXVALUELEN 1024
-
-/*
+	
+	/*
  * The matchtype specifies which entry will be accessed.
  * MT_EXACT: only find an exact match (non-normalized)
  * MT_FIRST: find the "first" normalized (case and Unicode
@@ -120,7 +120,7 @@ typedef enum matchtype
  * Eventually, other flags will permit unicode normalization as well.
  */
 uint64_t zap_create(objset_t *ds, dmu_object_type_t ot,
-    dmu_object_type_t bonustype, int bonuslen, dmu_tx_t *tx);
+		    dmu_object_type_t bonustype, int bonuslen, dmu_tx_t *tx);
 uint64_t zap_create_norm(objset_t *ds, int normflags, dmu_object_type_t ot,
     dmu_object_type_t bonustype, int bonuslen, dmu_tx_t *tx);
 
@@ -192,10 +192,16 @@ int zap_lookup_norm(objset_t *ds, uint64_t zapobj, const char *name,
  * If an attribute with the given name already exists, the call will
  * fail and return EEXIST.
  */
-int zap_add(objset_t *ds, uint64_t zapobj, const char *name,
-    int integer_size, uint64_t num_integers,
-    const void *val, dmu_tx_t *tx);
+#define zap_add(d, z, n, i, nu, val, tx)	\
+	__zap_add(d, z, n, i, nu, val, tx, 0)
 
+#define zap_add_nochk(d, z, n, i, nu, val, tx)        \
+        __zap_add(d, z, n, i, nu, val, tx, 1)
+	
+int __zap_add(objset_t *ds, uint64_t zapobj, const char *name,
+	      int integer_size, uint64_t num_integers,
+	      const void *val, dmu_tx_t *tx, int flags);
+	
 /*
  * Set the attribute with the given name to the given value.  If an
  * attribute with the given name does not exist, it will be created.  If

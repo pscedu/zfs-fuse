@@ -781,16 +781,22 @@ again:
 	ASSERT(!"out of entries!");
 }
 
+
 int
-zap_add(objset_t *os, uint64_t zapobj, const char *name,
-    int integer_size, uint64_t num_integers,
-    const void *val, dmu_tx_t *tx)
+__zap_add(objset_t *os, uint64_t zapobj, const char *name,
+	  int integer_size, uint64_t num_integers,
+	  const void *val, dmu_tx_t *tx, int flags)
 {
 	zap_t *zap;
 	int err;
 	mzap_ent_t *mze;
 	const uint64_t *intval = val;
 	zap_name_t *zn;
+
+	if (flags) { 
+		dprintf(stderr, "flags=%d name=%s integer_size=%d num_integers=%ld\n", 
+			flags, name, integer_size, num_integers);
+	}
 
 	err = zap_lockdir(os, zapobj, tx, RW_WRITER, TRUE, TRUE, &zap);
 	if (err)
@@ -812,9 +818,13 @@ zap_add(objset_t *os, uint64_t zapobj, const char *name,
 			err = fzap_add(zn, integer_size, num_integers, val, tx);
 		zap = zn->zn_zap;	/* fzap_add() may change zap */
 	} else {
-		mze = mze_find(zn);
-		if (mze != NULL) {
-			err = EEXIST;
+		if (!flags) {
+			mze = mze_find(zn);
+			if (mze != NULL) {
+				err = EEXIST;
+			} else {
+				mzap_addent(zn, *intval);
+			}
 		} else {
 			mzap_addent(zn, *intval);
 		}

@@ -520,7 +520,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	for (i=0; i < 3; i++, VN_RELE(dvp), dvp=vp) {
 
 		c = (uint8_t)(((uint64_t)VTOZ(linkvp)->z_id & 
-			       (0x000000000000000fULL << i*4)) >> i*4);
+			       (0x0000000000f00000ULL >> i*(4))) >> (((2-i)*4)+12));
 		immns_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
 		immns_name[1] = '\0';
 
@@ -528,9 +528,11 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 				   NULL, NULL, NULL);
 
 #ifdef DEBUG
-		fprintf(stderr, "immns_name=%s parent=%ld child=%ld error=%d\n", 
-			immns_name, (uint64_t)VTOZ(dvp)->z_id, (uint64_t)VTOZ(vp)->z_id, 
-			error);
+		fprintf(stderr, "immns_name=%s parent=%ld child=%ld "
+			"error=%d\n", 
+			immns_name, (uint64_t)VTOZ(dvp)->z_id, 
+			(uint64_t)VTOZ(vp)->z_id, error);
+
 #endif
 
 		if (error) {
@@ -547,11 +549,13 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	if (!unlink)
 		error = VOP_LINK(vp, linkvp, (char *)fidname, &creds, NULL, FALLOWDIRLINK);
 	else
-		error = VOP_REMOVE(vp, (char *)fidname, &creds, NULL, 0);;
+		error = VOP_REMOVE(vp, (char *)fidname, &creds, NULL, 0);
 
+#ifdef DEBUG
 	fprintf(stderr, "fidname=%s parent=%ld linkvp=%ld error=%d\n", 
 		fidname, (uint64_t)VTOZ(dvp)->z_id, 
 		(uint64_t)VTOZ(linkvp)->z_id, error);
+#endif
 
 	if (error)
 		VN_RELE(vp);
