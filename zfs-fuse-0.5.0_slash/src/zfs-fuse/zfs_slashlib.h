@@ -1,7 +1,7 @@
 /* $Id$ */
 
 #ifndef ZFS_SLASHLIB_H
-#define ZFS_SLASHLIB_H 1
+#define ZFS_SLASHLIB_H
 
 #include <sys/types.h>
 #include <sys/statvfs.h>
@@ -20,38 +20,36 @@ typedef void vnode_t;
 typedef struct slash_fidgen fidgen_t;
 #endif
 
-
 typedef struct file_info {
 	vnode_t *vp;
 	int flags;
 } file_info_t;
 
-
 int zfs_lib_start(const char *, const char *);
 void zfs_lib_stop(void);
 
-int zfsslash2_statfs(void *vfsdata, struct statvfs *stat);
-int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred);
-int zfsslash2_getattr(void *vfsdata, uint64_t ino, cred_t *cred, struct stat *stbuf, uint64_t *gen);
-int zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name, fidgen_t *fg, cred_t *cred, struct stat *stb);
-int zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred, fidgen_t *fg, void **private);
-int zfsslash2_release(void *vfsdata, uint64_t ino, cred_t *cred, void *data);
-int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size, off_t off, char *outbuf, size_t *outbuf_len, void  *attrs, int nstbprefetch, void *data);
-int zfsslash2_readlink(void *vfsdata, uint64_t ino, char *buf, cred_t *cred);
-int zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred, char *buf, size_t size, off_t off, void *data);
-int zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name, mode_t mode, cred_t *cred, struct stat *stb, fidgen_t *fg);
-int zfsslash2_rmdir(void *vfsdata, uint64_t parent, const char *name, cred_t *cred);
-int zfsslash2_setattr(void *vfsdata, uint64_t ino, struct stat *attr, int to_set, cred_t *cred, struct stat *out_attr, void *data);
-int zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name, cred_t *cred);
-int zfsslash2_write(void *vfsdata, uint64_t ino, cred_t *cred, const char *buf, size_t size, off_t off, void *data);
-int zfsslash2_mknod(void *vfsdata, uint64_t parent, const char *name, mode_t mode, dev_t rdev);
-int zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent, const char *name, cred_t *cred, struct stat *stb, fidgen_t *fg);
-int zfsslash2_rename(void *vfsdata, uint64_t parent, const char *name, uint64_t newparent, const char *newname, cred_t *cred);
-int zfsslash2_fsync(void *vfsdata, uint64_t ino, cred_t *cred, int datasync, void *data);
-int zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent, const char *newname, fidgen_t *fg, cred_t *cred, struct stat *stb);
-int zfsslash2_access(void *vfsdata, uint64_t ino, int mask, cred_t *cred);
-int zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
-			 mode_t createmode, const char *name, fidgen_t *fg,
-			 struct stat *stb, void **private);
+int zfsslash2_statfs(void *, struct statvfs *);
+int zfsslash2_stat(vnode_t *, struct stat *, cred_t *);
+int zfsslash2_getattr(void *, uint64_t, cred_t *, struct stat *, uint64_t *);
+int zfsslash2_lookup(void *, uint64_t, const char *, fidgen_t *, cred_t *, struct stat *);
+int zfsslash2_opendir(void *, uint64_t, cred_t *, fidgen_t *, void **);
+int zfsslash2_release(void *, uint64_t, cred_t *, void *);
+int zfsslash2_readdir(void *, uint64_t, cred_t *, size_t, off_t, char *, size_t *, void  *, int, void *);
+int zfsslash2_readlink(void *, uint64_t, char *, cred_t *);
+int zfsslash2_read(void *, uint64_t, cred_t *, char *, size_t, off_t, void *);
+int zfsslash2_mkdir(void *, uint64_t, const char *, mode_t, cred_t *, struct stat *, fidgen_t *);
+int zfsslash2_rmdir(void *, uint64_t, const char *, cred_t *);
+int zfsslash2_setattr(void *, uint64_t, struct stat *, int, cred_t *, struct stat *, void *);
+int zfsslash2_unlink(void *, uint64_t, const char *, cred_t *);
+int zfsslash2_write(void *, uint64_t, cred_t *, const char *, size_t, off_t, void *);
+int zfsslash2_mknod(void *, uint64_t, const char *, mode_t, dev_t);
+int zfsslash2_symlink(void *, const char *, uint64_t, const char *, cred_t *, struct stat *, fidgen_t *);
+int zfsslash2_rename(void *, uint64_t, const char *, uint64_t, const char *, cred_t *);
+int zfsslash2_fsync(void *, uint64_t, cred_t *, int, void *);
+int zfsslash2_link(void *, uint64_t, uint64_t, const char *, fidgen_t *, cred_t *, struct stat *);
+int zfsslash2_access(void *, uint64_t, int, cred_t *);
+int zfsslash2_opencreate(void *, uint64_t, cred_t *, int, mode_t, const char *, fidgen_t *, struct stat *, void **);
 
-#endif 
+extern void *zfsVfs;
+
+#endif
