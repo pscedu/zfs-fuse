@@ -219,7 +219,7 @@ int
 zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name, 
 		 fidgen_t *fg, cred_t *cred, struct stat *stb)
 {
-	if(strlen(name) >= MAXNAMELEN)
+	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
 	vfs_t *vfs = (vfs_t *)vfsdata;
@@ -384,7 +384,9 @@ int zfsslash2_release(void *vfsdata, uint64_t ino, cred_t *cred, void *data)
 
 
 /* XXX caller will have to free outbuf */
-int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size, off_t off, char *outbuf, size_t *outbuf_len, void *attrs, int nstbprefetch, void *data)
+int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
+    off_t off, char *outbuf, size_t *outbuf_len, void *attrs, int nstbprefetch,
+    void *data)
 {	
 	vnode_t *vp = ((file_info_t *)(uintptr_t) data)->vp;
 
@@ -406,12 +408,12 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size, of
 	ZFS_ENTER(zfsvfs);
 
 	union {
-		char buf[DIRENT64_RECLEN(MAXNAMELEN)];
+		char buf[DIRENT64_RECLEN(MAXNAMELEN)]; /* off-by-one */
 		struct dirent64 dirent;
 	} entry;
 
 	struct stat fstat = { 0 };
-	struct srm_getattr_rep *attr = (struct srm_getattr_rep *)attrs;
+	struct srm_getattr_rep *attr = attrs;
 
 	iovec_t iovec;
 	uio_t uio;
@@ -453,22 +455,25 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size, of
 		if(dsize > outbuf_resid)
 			break;
 						
-		fuse_add_dirent(outbuf + outbuf_off, entry.dirent.d_name, 
-				&fstat, entry.dirent.d_off);
+#define FID_PATH_NAME ".slfidns"
+		if (strcmp(entry.dirent.d_name, FID_PATH_NAME)) {
+			fuse_add_dirent(outbuf + outbuf_off,
+			    entry.dirent.d_name, &fstat,
+			    entry.dirent.d_off);
+			outbuf_off += dsize;
+			outbuf_resid -= dsize;
 
-		if (nstbprefetch - 1) {
-			attr->rc = zfsslash2_getattr(vfsdata, 
-						     entry.dirent.d_ino, 
-						     cred, &attr->attr, 
-						     &attr->gen);
+			if (nstbprefetch - 1) {
+				attr->rc = zfsslash2_getattr(vfsdata, 
+				    entry.dirent.d_ino, cred,
+				    &attr->attr, &attr->gen);
 
-			//fprintf(stderr, "rc=%d st_ino=%lu gen=%lu\n", 
-			//	attr->rc, attr->attr.st_ino, attr->gen);
-			attr++;
-			nstbprefetch--;
+				//fprintf(stderr, "rc=%d st_ino=%lu gen=%lu\n", 
+				//	attr->rc, attr->attr.st_ino, attr->gen);
+				attr++;
+				nstbprefetch--;
+			}
 		}
-		outbuf_off += dsize;
-		outbuf_resid -= dsize;
 		next = entry.dirent.d_off;
 	}
 
@@ -568,7 +573,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		     mode_t createmode, const char *name, struct fidgen *fg, 
 		     struct stat *stb, void **private)
 {
-	if(name && strlen(name) >= MAXNAMELEN)
+	if(name && strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
 	uint64_t real_ino = ino == 1 ? 3 : ino;
@@ -829,7 +834,7 @@ int zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred, char *buf, size_t 
 
 int zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name, mode_t mode, cred_t *cred, struct stat *stb, struct fidgen *fg)
 {
-	if(strlen(name) >= MAXNAMELEN)
+	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
 	vfs_t *vfs = (vfs_t *) vfsdata;
@@ -890,7 +895,7 @@ out:
 
 int zfsslash2_rmdir(void *vfsdata, uint64_t parent, const char *name, cred_t *cred)
 {
-	if(strlen(name) >= MAXNAMELEN)
+	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
 	vfs_t *vfs = (vfs_t *) vfsdata;
@@ -1051,7 +1056,7 @@ int zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name, cred_t *c
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 	uint64_t real_parent = (parent == 1 ? 3 : parent);
 
-	if(strlen(name) >= MAXNAMELEN)
+	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
 	ZFS_ENTER(zfsvfs);
@@ -1136,7 +1141,7 @@ int zfsslash2_write(void *vfsdata, uint64_t ino, cred_t *cred, const char *buf, 
 #if 0
 int zfsslash2_mknod(void *vfsdata, uint64_t parent, const char *name, mode_t mode, dev_t rdev)
 {
-	if(strlen(name) >= MAXNAMELEN)
+	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
 	vfs_t *vfs = (vfs_t *) vfsdata;
@@ -1208,7 +1213,7 @@ out:
 
 int zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent, const char *name, cred_t *cred, struct stat *stb, struct fidgen *fg)
 {
-	if(strlen(name) >= MAXNAMELEN)
+	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
 	vfs_t *vfs = (vfs_t *) vfsdata;
@@ -1271,9 +1276,9 @@ out:
 
 int zfsslash2_rename(void *vfsdata, uint64_t parent, const char *name, uint64_t newparent, const char *newname, cred_t *cred)
 {
-	if(strlen(name) >= MAXNAMELEN)
+	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
-	if(strlen(newname) >= MAXNAMELEN)
+	if(strlen(newname) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
 	vfs_t *vfs = (vfs_t *) vfsdata;
@@ -1347,7 +1352,7 @@ int zfsslash2_fsync(void *vfsdata, uint64_t ino, cred_t *cred, int datasync, voi
 
 int zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent, const char *newname, struct fidgen *fg, cred_t *cred, struct stat *stb)
 {
-	if(strlen(newname) >= MAXNAMELEN)
+	if(strlen(newname) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
 	vfs_t *vfs = (vfs_t *) vfsdata;
