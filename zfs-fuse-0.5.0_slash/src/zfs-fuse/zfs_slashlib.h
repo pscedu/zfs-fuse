@@ -50,6 +50,9 @@ int zfsslash2_link(void *, uint64_t, uint64_t, const char *, fidgen_t *, cred_t 
 int zfsslash2_access(void *, uint64_t, int, cred_t *);
 int zfsslash2_opencreate(void *, uint64_t, cred_t *, int, mode_t, const char *, fidgen_t *, struct stat *, void **);
 
+void do_init(void);
+void do_exit(void);
+
 extern void *zfsVfs;
 
 #endif
