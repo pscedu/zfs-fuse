@@ -771,7 +771,7 @@ int zfsslash2_readlink(void *vfsdata, uint64_t ino, char *buf, cred_t *cred)
 	uio.uio_fmode = 0;
 	uio.uio_llimit = RLIM64_INFINITY;
 	iovec.iov_base = buf;
-	iovec.iov_len = sizeof(buf) - 1;
+	iovec.iov_len = PATH_MAX;
 	uio.uio_resid = iovec.iov_len;
 	uio.uio_loffset = 0;
 
@@ -781,8 +781,8 @@ int zfsslash2_readlink(void *vfsdata, uint64_t ino, char *buf, cred_t *cred)
 	ZFS_EXIT(zfsvfs);
 
 	if(!error) {
-		VERIFY(uio.uio_loffset < sizeof(buf));
-		buf[uio.uio_loffset] = '\0';
+		VERIFY(uio.uio_loffset <= PATH_MAX);
+		buf[sizeof(buf) - 1] = '\0';
 	}
 
 	return error;
