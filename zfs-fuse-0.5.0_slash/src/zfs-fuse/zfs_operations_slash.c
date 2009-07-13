@@ -168,7 +168,7 @@ int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 	stbuf->st_dev = vattr.va_fsid;
 	stbuf->st_ino = vattr.va_nodeid == 3 ? 1 : vattr.va_nodeid;
 	stbuf->st_mode = VTTOIF(vattr.va_type) | vattr.va_mode;
-	stbuf->st_nlink = vattr.va_nlink;
+	stbuf->st_nlink = MAX(1, vattr.va_nlink - 1);
 	stbuf->st_uid = vattr.va_uid;
 	stbuf->st_gid = vattr.va_gid;
 	stbuf->st_rdev = vattr.va_rdev;
@@ -551,10 +551,10 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	snprintf(fidname, 20, "%016lx", (uint64_t)VTOZ(linkvp)->z_id);
 
 	ASSERT(vp);
-	if (!unlink)
-		error = VOP_LINK(vp, linkvp, (char *)fidname, &creds, NULL, FALLOWDIRLINK);
-	else
+	if (unlink)
 		error = VOP_REMOVE(vp, (char *)fidname, &creds, NULL, 0);
+	else
+		error = VOP_LINK(vp, linkvp, (char *)fidname, &creds, NULL, FALLOWDIRLINK);
 
 #ifdef DEBUG
 	fprintf(stderr, "fidname=%s parent=%ld linkvp=%ld error=%d\n", 
