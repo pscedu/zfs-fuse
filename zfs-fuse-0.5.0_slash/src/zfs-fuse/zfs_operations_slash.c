@@ -281,7 +281,7 @@ out:
 
 /* XXX replace fuse_file_info with something meaningful for slash d_ino cache
  */
-int zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred, struct fidgen *fg, void **private)
+int zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred, struct fidgen *fg, struct stat *stb, void **private)
 {
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -342,6 +342,9 @@ int zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred, struct fidgen *
 		fg->gen = VTOZ(vp)->z_phys->zp_gen;
 	}
 
+	error = zfsslash2_stat(vp, stb, cred);
+	if(error)
+		goto out;
 out:
 	if(error)
 		VN_RELE(vp);
@@ -519,6 +522,8 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	dvp = vp;
 	/* Lookup our fid's parent directory in the fid namespace, closing 
 	 *   parent dvp's along the way.
+	 (uint8_t)(((fid & 0x0000000000f00000ULL) >> BPHXC) >>
+                                (((FP_DEPTH-1)*BPHXC) + (BPHXC*3))),
 	 */
 	char immns_name[2];
 	uint8_t c;	

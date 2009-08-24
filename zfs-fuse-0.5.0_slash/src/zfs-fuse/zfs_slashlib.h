@@ -32,7 +32,7 @@ int zfsslash2_statfs(void *, struct statvfs *);
 int zfsslash2_stat(vnode_t *, struct stat *, cred_t *);
 int zfsslash2_getattr(void *, uint64_t, cred_t *, struct stat *, uint64_t *);
 int zfsslash2_lookup(void *, uint64_t, const char *, fidgen_t *, cred_t *, struct stat *);
-int zfsslash2_opendir(void *, uint64_t, cred_t *, fidgen_t *, void **);
+int zfsslash2_opendir(void *, uint64_t, cred_t *, fidgen_t *, struct stat *, void **);
 int zfsslash2_release(void *, uint64_t, cred_t *, void *);
 int zfsslash2_readdir(void *, uint64_t, cred_t *, size_t, off_t, char *, size_t *, void  *, int, void *);
 int zfsslash2_readlink(void *, uint64_t, char *, cred_t *);
