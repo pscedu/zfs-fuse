@@ -2258,6 +2258,7 @@ zfs_getattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 		links = pzp->zp_links;
 	vap->va_nlink = MIN(links, UINT32_MAX);	/* nlink_t limit! */
 	vap->va_size = pzp->zp_size;
+	vap->va_s2size = pzp->zp_pad[0];
 	vap->va_rdev = vp->v_rdev;
 	vap->va_seq = zp->z_seq;
 
@@ -2460,6 +2461,8 @@ zfs_setattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 		return (EINVAL);
 	}
 
+	if (mask & AT_SIZE && mask & AT_SLASH2SIZE)
+		abort();
 	/*
 	 * If this is an xvattr_t, then get a pointer to the structure of
 	 * optional attributes.  If this is NULL, then we have a vattr_t.
@@ -2791,6 +2794,9 @@ top:
 	if (mask & AT_MTIME)
 		ZFS_TIME_ENCODE(&vap->va_mtime, pzp->zp_mtime);
 
+	if (mask & AT_SLASH2SIZE)
+		pzp->zp_pad[0] = vap->va_s2size;
+	
 	/* XXX - shouldn't this be done *before* the ATIME/MTIME checks? */
 	if (mask & AT_SIZE)
 		zfs_time_stamper_locked(zp, CONTENT_MODIFIED, tx);

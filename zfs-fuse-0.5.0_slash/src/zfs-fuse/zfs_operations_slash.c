@@ -55,6 +55,8 @@ kmem_cache_t *file_info_cache = NULL;
 #define FUSE_SET_ATTR_ATIME	(1 << 4)
 #define FUSE_SET_ATTR_MTIME	(1 << 5)
 
+#define SLASH2_SET_ATTR_SIZE    FUSE_SET_ATTR_SIZE
+
 struct fuse_dirent {
 	__uint64_t	ino;
 	__uint64_t	off;
@@ -1024,7 +1026,7 @@ int zfsslash2_setattr(void *vfsdata, uint64_t ino, struct stat *attr, int to_set
 		vattr.va_gid = attr->st_gid;
 	}
 	if(to_set & FUSE_SET_ATTR_SIZE) {
-		vattr.va_mask |= AT_SIZE;
+		vattr.va_mask |= AT_SLASH2SIZE;
 		vattr.va_size = attr->st_size;
 	}
 	if(to_set & FUSE_SET_ATTR_ATIME) {

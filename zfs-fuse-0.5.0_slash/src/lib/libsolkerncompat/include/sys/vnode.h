@@ -162,6 +162,7 @@ typedef struct vattr {
 	u_longlong_t va_nodeid;  /* node id */
 	nlink_t      va_nlink;   /* number of references to file */
 	u_offset_t   va_size;    /* file size in bytes */
+	u_offset_t   va_s2size;  /* slash2 file size in bytes */
 	timestruc_t  va_atime;   /* time of last access */
 	timestruc_t  va_mtime;   /* time of last modification */
 	timestruc_t  va_ctime;   /* time of last status change */
@@ -226,6 +227,8 @@ struct pollhead;
 #define AT_NBLOCKS 0x2000
 #define AT_SEQ     0x8000
 #define AT_XVATTR  0x10000
+#define AT_SLASH2SIZE 0x20000
+
 
 #define AT_ALL   (AT_TYPE|AT_MODE|AT_UID|AT_GID|AT_FSID|AT_NODEID|\
                  AT_NLINK|AT_SIZE|AT_ATIME|AT_MTIME|AT_CTIME|\
