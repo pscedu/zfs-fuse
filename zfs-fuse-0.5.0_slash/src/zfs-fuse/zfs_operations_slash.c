@@ -159,7 +159,8 @@ int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 	ASSERT(stbuf != NULL);
 
 	vattr_t vattr;
-	vattr.va_mask = AT_STAT | AT_NBLOCKS | AT_BLKSIZE | AT_SIZE;
+	//	vattr.va_mask = AT_STAT | AT_NBLOCKS | AT_BLKSIZE | AT_SIZE;
+	vattr.va_mask = AT_STAT | AT_NBLOCKS | AT_BLKSIZE | AT_SLASH2SIZE;
 
 	int error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);
 	if(error)
@@ -174,7 +175,7 @@ int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 	stbuf->st_uid = vattr.va_uid;
 	stbuf->st_gid = vattr.va_gid;
 	stbuf->st_rdev = vattr.va_rdev;
-	stbuf->st_size = vattr.va_size;
+	stbuf->st_size = vattr.va_s2size;
 	stbuf->st_blksize = vattr.va_blksize;
 	stbuf->st_blocks = vattr.va_nblocks;
 	TIMESTRUC_TO_TIME(vattr.va_atime, &stbuf->st_atime);
@@ -939,6 +940,45 @@ int zfsslash2_rmdir(void *vfsdata, uint64_t parent, const char *name, cred_t *cr
 	return error;
 }
 
+int zfsslash2_sets2szattr(void *vfsdata, uint64_t ino, uint64_t size, void *data)
+{
+	vfs_t *vfs = (vfs_t *) vfsdata;
+        zfsvfs_t *zfsvfs = vfs->vfs_data;
+        uint64_t real_ino = real_ino == 1 ? 3 : ino;
+	file_info_t *info = (file_info_t *)data;
+	int error=0;
+	
+	ZFS_ENTER(zfsvfs);
+	
+	vnode_t *vp;
+	
+	vp = info->vp;
+
+	/* Check if file is opened for writing */
+	if((info->flags & FWRITE) == 0) {
+		error = EBADF;
+		goto out;
+	}
+	/* Sanity check */
+	if(vp->v_type != VREG) {
+		error = EINVAL;
+		goto out;
+	}
+	
+	vattr_t vattr = { 0 };
+	cred_t cred = { 0 };
+	
+	vattr.va_mask |= AT_SLASH2SIZE;
+	vattr.va_s2size = size;
+	
+	error = VOP_SETATTR(vp, &vattr, 0, &cred, NULL);
+	
+ out:
+	ZFS_EXIT(zfsvfs);
+	
+	return error;
+}
+
 
 int zfsslash2_setattr(void *vfsdata, uint64_t ino, struct stat *attr, int to_set, cred_t *cred, struct stat *out_attr, void *data)
 {
@@ -1027,7 +1067,7 @@ int zfsslash2_setattr(void *vfsdata, uint64_t ino, struct stat *attr, int to_set
 	}
 	if(to_set & FUSE_SET_ATTR_SIZE) {
 		vattr.va_mask |= AT_SLASH2SIZE;
-		vattr.va_size = attr->st_size;
+		vattr.va_s2size = attr->st_size;
 	}
 	if(to_set & FUSE_SET_ATTR_ATIME) {
 		vattr.va_mask |= AT_ATIME;
@@ -1041,9 +1081,7 @@ int zfsslash2_setattr(void *vfsdata, uint64_t ino, struct stat *attr, int to_set
 	int flags = (to_set & (FUSE_SET_ATTR_ATIME | FUSE_SET_ATTR_MTIME)) ? ATTR_UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL);
 
-out: ;
-	struct stat stat_reply;
-
+ out: 
 	if(!error)
 		error = zfsslash2_stat(vp, out_attr, cred);
 
