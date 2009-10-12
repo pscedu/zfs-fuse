@@ -604,6 +604,8 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		flags = FREAD;
 	}
 
+	fflags |= O_DSYNC;
+
 	if(fflags & O_CREAT)
 		flags |= FCREAT;
 	if(fflags & O_SYNC)
@@ -810,10 +812,6 @@ int zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred, char *buf, size_t 
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
-	char *outbuf = kmem_alloc(size, KM_NOSLEEP);
-	if(outbuf == NULL)
-		return ENOMEM;
-
 	ZFS_ENTER(zfsvfs);
 
 	iovec_t iovec;
@@ -824,7 +822,7 @@ int zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred, char *buf, size_t 
 	uio.uio_fmode = 0;
 	uio.uio_llimit = RLIM64_INFINITY;
 
-	iovec.iov_base = outbuf;
+	iovec.iov_base = buf;
 	iovec.iov_len = size;
 	uio.uio_resid = iovec.iov_len;
 	uio.uio_loffset = off;
@@ -832,9 +830,6 @@ int zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred, char *buf, size_t 
 	int error = VOP_READ(vp, &uio, info->flags, cred, NULL);
 
 	ZFS_EXIT(zfsvfs);
-
-	//if(!error)
-		//	fuse_reply_buf(req, outbuf, uio.uio_loffset - off);
 
 	return error;
 }
