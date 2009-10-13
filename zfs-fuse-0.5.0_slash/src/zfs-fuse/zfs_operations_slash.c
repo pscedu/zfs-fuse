@@ -405,7 +405,7 @@ int zfsslash2_release(void *vfsdata, uint64_t ino, cred_t *cred, void *data)
 
 /* XXX caller will have to free outbuf */
 int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
-    off_t off, char *outbuf, size_t *outbuf_len, void *attrs, int nstbprefetch,
+    off_t off, void *outbuf, size_t *outbuf_len, void *attrs, int nstbprefetch,
     void *data)
 {
 	vnode_t *vp = ((file_info_t *)(uintptr_t) data)->vp;
@@ -815,7 +815,7 @@ int zfsslash2_readlink(void *vfsdata, uint64_t ino, char *buf, cred_t *cred)
 
 int
 zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred,
-    char *buf, size_t size, off_t off, void *data)
+    void *buf, size_t size, off_t off, void *data)
 {
 	file_info_t *info = (file_info_t *)(uintptr_t) data;
 	uint64_t real_ino = ino == 1 ? 3 : ino;
@@ -1159,7 +1159,7 @@ int zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name, cred_t *c
 
 int
 zfsslash2_write(void *vfsdata, uint64_t ino, cred_t *cred,
-    const char *buf, size_t size, off_t off, void *data)
+    const void *buf, size_t size, off_t off, void *data)
 {
 	file_info_t *info = (file_info_t *)(uintptr_t) data;
 	uint64_t real_ino = ino == 1 ? 3 : ino;
