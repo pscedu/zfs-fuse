@@ -71,6 +71,9 @@ struct srm_getattr_rep {
 	int rc;
 };
 
+#define SL_PATH_PREFIX	".sl"
+#define SL_PATH_FIDNS	".slfidns"
+
 #define FUSE_NAME_OFFSET ((unsigned) ((struct fuse_dirent *) 0)->name)
 #define FUSE_DIRENT_ALIGN(x) (((x) + sizeof(__uint64_t) - 1) & ~(sizeof(__uint64_t) - 1))
 #define FUSE_DIRENT_SIZE(d) \
@@ -100,6 +103,15 @@ char *fuse_add_dirent(char *buf, const char *name, const struct stat *stbuf,
 	memset(buf + entlen, 0, padlen);
 
     return buf + entsize;
+}
+
+int
+zfsslash2_isreserved(uint64_t ino, const char *cpn)
+{
+	if (ino == 3 &&
+	    strncmp(cpn, SL_PATH_PREFIX, strlen(SL_PATH_PREFIX)) == 0)
+		return (1);
+	return (0);
 }
 
 void zfsslash2_destroy(void *userdata)
@@ -463,8 +475,8 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 		if(dsize > outbuf_resid)
 			break;
 
-#define FID_PATH_NAME ".slfidns"
-		if (strcmp(entry.dirent.d_name, FID_PATH_NAME)) {
+		/* skip internal slash metastructure */
+		if (!zfsslash2_isreserved(ino, entry.dirent.d_name)) {
 			fuse_add_dirent(outbuf + outbuf_off,
 			    entry.dirent.d_name, &fstat,
 			    entry.dirent.d_off);
@@ -514,7 +526,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 
 	vnode_t *vp = NULL;
 
-	error = VOP_LOOKUP(dvp, ".slfidns", &vp, NULL, 0, NULL, &creds,
+	error = VOP_LOOKUP(dvp, SL_PATH_FIDNS, &vp, NULL, 0, NULL, &creds,
 			   NULL, NULL, NULL);
 	if (error) {
 		VN_RELE(dvp);
