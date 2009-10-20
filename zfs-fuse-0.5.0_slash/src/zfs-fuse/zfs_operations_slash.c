@@ -108,7 +108,9 @@ char *fuse_add_dirent(char *buf, const char *name, const struct stat *stbuf,
 int
 zfsslash2_isreserved(uint64_t ino, const char *cpn)
 {
-	if (ino == 3 &&
+	extern int allow_internal_fsaccess;
+
+	if (!allow_internal_fsaccess && ino == 3 &&
 	    strncmp(cpn, SL_PATH_PREFIX, strlen(SL_PATH_PREFIX)) == 0)
 		return (1);
 	return (0);
@@ -483,7 +485,7 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 			outbuf_off += dsize;
 			outbuf_resid -= dsize;
 
-			if (nstbprefetch - 1) {
+			if (nstbprefetch) {
 				attr->rc = zfsslash2_getattr(vfsdata,
 				    entry.dirent.d_ino, cred,
 				    &attr->attr, &attr->gen);
