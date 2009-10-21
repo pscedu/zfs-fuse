@@ -453,7 +453,6 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 	off_t next = off;
 
 	int error;
-	int prefetch_cnt = 0;
 
 
 	for(;;) {
