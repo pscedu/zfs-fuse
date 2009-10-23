@@ -185,7 +185,8 @@ int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 	stbuf->st_dev = vattr.va_fsid;
 	stbuf->st_ino = vattr.va_nodeid == 3 ? 1 : vattr.va_nodeid;
 	stbuf->st_mode = VTTOIF(vattr.va_type) | vattr.va_mode;
-	stbuf->st_nlink = MAX(1, vattr.va_nlink - 1);
+	stbuf->st_nlink = MAX(1, vattr.va_nlink - 1);	/* subtract 1 for slfidns */
+	/* XXX adjust st_nlink of files in repldir */
 	stbuf->st_uid = vattr.va_uid;
 	stbuf->st_gid = vattr.va_gid;
 	stbuf->st_rdev = vattr.va_rdev;
