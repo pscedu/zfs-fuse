@@ -855,7 +855,8 @@ zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred,
 
 int
 zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
-    mode_t mode, cred_t *cred, struct stat *stb, struct fidgen *fg)
+    mode_t mode, cred_t *cred, struct stat *stb, struct fidgen *fg,
+    int suppress_fidlink)
 {
 	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
@@ -894,17 +895,21 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 	ASSERT(vp != NULL);
 
-	error = zfsslash2_fidlink(zfsvfs, vp, 0);
+	if (suppress_fidlink == 0)
+		error = zfsslash2_fidlink(zfsvfs, vp, 0);
 
-	fg->fid = VTOZ(vp)->z_id;
-	if(fg->fid == 3) {
-		fg->fid = 1;
-		stb->st_ino = 1;
+	if (fg) {
+		fg->fid = VTOZ(vp)->z_id;
+		if (fg->fid == 3)
+			fg->fid = 1;
+		fg->gen = VTOZ(vp)->z_phys->zp_gen;
 	}
 
-	fg->gen = VTOZ(vp)->z_phys->zp_gen;
-
-	error = zfsslash2_stat(vp, stb, cred);
+	if (stb) {
+		error = zfsslash2_stat(vp, stb, cred);
+		if (stb->st_ino == 3)
+			stb->st_ino = 1;
+	}
 
 out:
 	if(vp != NULL)
