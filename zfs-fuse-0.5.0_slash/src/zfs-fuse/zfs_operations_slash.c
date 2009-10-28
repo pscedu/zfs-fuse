@@ -108,10 +108,8 @@ char *fuse_add_dirent(char *buf, const char *name, const struct stat *stbuf,
 int
 zfsslash2_isreserved(uint64_t ino, const char *cpn)
 {
-	extern int allow_internal_fsaccess;
-
-	if (!allow_internal_fsaccess && ino == 3 &&
-	    strncmp(cpn, SL_PATH_PREFIX, strlen(SL_PATH_PREFIX)) == 0)
+	if (ino == 3 && strncmp(cpn, SL_PATH_PREFIX,
+	    strlen(SL_PATH_PREFIX)) == 0)
 		return (1);
 	return (0);
 }
