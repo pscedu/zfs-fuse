@@ -74,6 +74,12 @@ struct srm_getattr_rep {
 #define SL_PATH_PREFIX	".sl"
 #define SL_PATH_FIDNS	".slfidns"
 
+#define TRANSLATE_INUM(ip)					\
+	do {							\
+		if (*(ip) == 1)					\
+			*(ip) = 3;				\
+	} while (0)
+
 #define FUSE_NAME_OFFSET ((unsigned) ((struct fuse_dirent *) 0)->name)
 #define FUSE_DIRENT_ALIGN(x) (((x) + sizeof(__uint64_t) - 1) & ~(sizeof(__uint64_t) - 1))
 #define FUSE_DIRENT_SIZE(d) \
@@ -958,12 +964,46 @@ int zfsslash2_rmdir(void *vfsdata, uint64_t parent, const char *name, cred_t *cr
 	return error;
 }
 
-int zfsslash2_sets2szattr(void *vfsdata, uint64_t ino, uint64_t size, void *data)
+int
+zfsslash2_gets2szattr(void *vfsdata, uint64_t ino, off64_t *sizep, void *data)
 {
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
+	zfsvfs_t *zfsvfs = vfs->vfs_data;
+	file_info_t *info = data;
+	vattr_t vattr;
+	cred_t cred;
+	vnode_t *vp;
+	int error = 0;
+
+	ZFS_ENTER(zfsvfs);
+
+	TRANSLATE_INUM(&ino);
+
+	vp = info->vp;
+
+	/* Sanity check */
+	if (vp->v_type != VREG) {
+		error = EINVAL;
+		goto out;
+	}
+
+	vattr.va_mask = AT_SLASH2SIZE;
+	error = VOP_GETATTR(vp, &vattr, 0, &cred, NULL);
+	if (error == 0)
+		*sizep = vattr.va_s2size;
+
+ out:
+	ZFS_EXIT(zfsvfs);
+	return (error);
+}
+
+int
+zfsslash2_sets2szattr(void *vfsdata, uint64_t ino, off64_t size, void *data)
+{
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 	uint64_t real_ino = real_ino == 1 ? 3 : ino;
-	file_info_t *info = (file_info_t *)data;
+	file_info_t *info = data;
 	int error=0;
 
 	ZFS_ENTER(zfsvfs);
@@ -996,7 +1036,6 @@ int zfsslash2_sets2szattr(void *vfsdata, uint64_t ino, uint64_t size, void *data
 
 	return error;
 }
-
 
 int
 zfsslash2_setattr(void *vfsdata, uint64_t ino, struct stat *attr,
