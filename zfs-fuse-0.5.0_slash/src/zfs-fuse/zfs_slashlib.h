@@ -38,7 +38,7 @@ int zfsslash2_mkdir(void *, uint64_t, const char *, mode_t, cred_t *, struct sta
 int zfsslash2_mknod(void *, uint64_t, const char *, mode_t, dev_t);
 int zfsslash2_opencreate(void *, uint64_t, cred_t *, int, mode_t, const char *, fidgen_t *, struct stat *, void **);
 int zfsslash2_opendir(void *, uint64_t, cred_t *, fidgen_t *, struct stat *, void **);
-int zfsslash2_read(void *, uint64_t, cred_t *, void *, size_t, off_t, void *);
+int zfsslash2_read(void *, uint64_t, cred_t *, void *, size_t, size_t *, off_t, void *);
 int zfsslash2_readdir(void *, uint64_t, cred_t *, size_t, off_t, void *, size_t *, void  *, int, void *);
 int zfsslash2_readlink(void *, uint64_t, char *, cred_t *);
 int zfsslash2_release(void *, uint64_t, cred_t *, void *);
@@ -50,7 +50,7 @@ int zfsslash2_stat(vnode_t *, struct stat *, cred_t *);
 int zfsslash2_statfs(void *, struct statvfs *);
 int zfsslash2_symlink(void *, const char *, uint64_t, const char *, cred_t *, struct stat *, fidgen_t *);
 int zfsslash2_unlink(void *, uint64_t, const char *, cred_t *);
-int zfsslash2_write(void *, uint64_t, cred_t *, const void *, size_t, off_t, void *);
+int zfsslash2_write(void *, uint64_t, cred_t *, const void *, size_t, size_t *, off_t, void *);
 
 int  do_init(void);
 void do_exit(void);

@@ -819,9 +819,12 @@ int zfsslash2_readlink(void *vfsdata, uint64_t ino, char *buf, cred_t *cred)
 }
 
 
+/*
+ * Returns errno on failure, 0 on success.
+ */
 int
 zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred,
-    void *buf, size_t size, off_t off, void *data)
+    void *buf, size_t size, size_t *nb, off_t off, void *data)
 {
 	file_info_t *info = (file_info_t *)(uintptr_t) data;
 	uint64_t real_ino = ino == 1 ? 3 : ino;
@@ -853,7 +856,9 @@ zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred,
 
 	ZFS_EXIT(zfsvfs);
 
-	return error;
+	if (error == 0)
+		*nb = uio.uio_loffset - off;
+	return (error);
 }
 
 
@@ -1200,10 +1205,12 @@ int zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name, cred_t *c
 	return error;
 }
 
-
+/*
+ * Returns errno on failure, 0 on success.
+ */
 int
 zfsslash2_write(void *vfsdata, uint64_t ino, cred_t *cred,
-    const void *buf, size_t size, off_t off, void *data)
+    const void *buf, size_t size, size_t *nb, off_t off, void *data)
 {
 	file_info_t *info = (file_info_t *)(uintptr_t) data;
 	uint64_t real_ino = ino == 1 ? 3 : ino;
@@ -1238,6 +1245,7 @@ zfsslash2_write(void *vfsdata, uint64_t ino, cred_t *cred,
 	if(!error) {
 		/* When not using direct_io, we must always write 'size' bytes */
 		VERIFY(uio.uio_resid == 0);
+		*nb = size - uio.uio_resid;
 	}
 
 	return error;
