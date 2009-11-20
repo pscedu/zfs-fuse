@@ -280,12 +280,12 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
 	if(ino == 3)
 		ino = 1;
 
-	VTOZ(vp)->z_phys->zp_gen;
-
-	error = zfsslash2_stat(vp, stb, cred);
+	if (stb)
+		error = zfsslash2_stat(vp, stb, cred);
 
 	if (VTOZ(vp)->z_id == 3) {
-		stb->st_ino = 1;
+		if (stb)
+			stb->st_ino = 1;
 		fg->fid = 1;
 	} else
 		fg->fid = VTOZ(vp)->z_id;
