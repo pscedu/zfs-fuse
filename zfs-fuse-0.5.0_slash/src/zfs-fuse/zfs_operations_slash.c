@@ -305,7 +305,7 @@ out:
  */
 int
 zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred,
-    struct fidgen *fg, struct stat *stb, file_info_t **finfo)
+    struct fidgen *fg, struct stat *stb, void **finfo)
 {
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -598,7 +598,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 int
 zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		     mode_t createmode, const char *name, struct fidgen *fg,
-		     struct stat *stb, file_info_t **finfo)
+		     struct stat *stb, void **finfo)
 {
 	if(name && strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
