@@ -36,8 +36,8 @@ int zfsslash2_link(void *, uint64_t, uint64_t, const char *, fidgen_t *, cred_t 
 int zfsslash2_lookup(void *, uint64_t, const char *, fidgen_t *, cred_t *, struct stat *);
 int zfsslash2_mkdir(void *, uint64_t, const char *, mode_t, cred_t *, struct stat *, fidgen_t *, int);
 int zfsslash2_mknod(void *, uint64_t, const char *, mode_t, dev_t);
-int zfsslash2_opencreate(void *, uint64_t, cred_t *, int, mode_t, const char *, fidgen_t *, struct stat *, void **);
-int zfsslash2_opendir(void *, uint64_t, cred_t *, fidgen_t *, struct stat *, void **);
+int zfsslash2_opencreate(void *, uint64_t, cred_t *, int, mode_t, const char *, fidgen_t *, struct stat *, file_info_t **);
+int zfsslash2_opendir(void *, uint64_t, cred_t *, fidgen_t *, struct stat *, file_info_t **);
 int zfsslash2_read(void *, uint64_t, cred_t *, void *, size_t, size_t *, off_t, void *);
 int zfsslash2_readdir(void *, uint64_t, cred_t *, size_t, off_t, void *, size_t *, void  *, int, void *);
 int zfsslash2_readlink(void *, uint64_t, char *, cred_t *);

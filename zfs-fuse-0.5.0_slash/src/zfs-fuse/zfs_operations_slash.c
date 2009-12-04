@@ -305,7 +305,7 @@ out:
  */
 int
 zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred,
-    struct fidgen *fg, struct stat *stb, void **private)
+    struct fidgen *fg, struct stat *stb, file_info_t **finfo)
 {
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -347,16 +347,15 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred,
 
 	if(!error) {
 		/* XXX convert to the slash d_ino cache */
-		file_info_t *info = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
-		if(info == NULL) {
+		*finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
+		if(*finfo == NULL) {
 			error = ENOMEM;
 			goto out;
 		}
 
-		info->vp = vp;
-		info->flags = FREAD;
+		finfo->vp = vp;
+		finfo->flags = FREAD;
 
-		*private = info;
 
 		if (VTOZ(vp)->z_id == 3)
 			fg->fid = 1;
@@ -599,7 +598,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 int
 zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		     mode_t createmode, const char *name, struct fidgen *fg,
-		     struct stat *stb, void **private)
+		     struct stat *stb, file_info_t **finfo)
 {
 	if(name && strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
@@ -738,16 +737,14 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 	if(error)
 		goto out;
 	//}
-	file_info_t *info = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
-	if(info == NULL) {
+	*finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
+	if(finfo == NULL) {
 		error = ENOMEM;
 		goto out;
 	}
 
-	info->vp = vp;
-	info->flags = flags;
-
-	*private = info;
+	finfo->vp = vp;
+	finfo->flags = flags;
 
 	//if(flags & FCREAT) {
 	fg->fid = VTOZ(vp)->z_id;
