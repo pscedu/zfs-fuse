@@ -353,8 +353,8 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred,
 			goto out;
 		}
 
-		(*finfo)->vp = vp;
-		(*finfo)->flags = FREAD;
+		((file_info_t *)(*finfo))->vp = vp;
+		((file_info_t *)(*finfo))->flags = FREAD;
 
 
 		if (VTOZ(vp)->z_id == 3)
@@ -743,8 +743,8 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		goto out;
 	}
 
-	(*finfo)->vp = vp;
-	(*finfo)->flags = flags;
+	((file_info_t *)(*finfo))->vp = vp;
+	((file_info_t *)(*finfo))->flags = flags;
 
 	//if(flags & FCREAT) {
 	fg->fid = VTOZ(vp)->z_id;
