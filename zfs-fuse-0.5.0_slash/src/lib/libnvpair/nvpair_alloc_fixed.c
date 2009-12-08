@@ -26,7 +26,6 @@
 
 
 
-#include <sys/stropts.h>
 #include <sys/isa_defs.h>
 #include <sys/nvpair.h>
 #include <sys/sysmacros.h>
