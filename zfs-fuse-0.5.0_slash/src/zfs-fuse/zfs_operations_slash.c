@@ -80,7 +80,7 @@ struct srm_getattr_rep {
 			*(ip) = 3;				\
 	} while (0)
 
-#define FUSE_NAME_OFFSET ((unsigned) ((struct fuse_dirent *) 0)->name)
+#define FUSE_NAME_OFFSET ((unsigned long) ((struct fuse_dirent *) 0)->name)
 #define FUSE_DIRENT_ALIGN(x) (((x) + sizeof(__uint64_t) - 1) & ~(sizeof(__uint64_t) - 1))
 #define FUSE_DIRENT_SIZE(d) \
 	FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + (d)->namelen)
