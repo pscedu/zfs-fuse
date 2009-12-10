@@ -55,6 +55,8 @@ int zfsslash2_write(void *, uint64_t, cred_t *, const void *, size_t, size_t *, 
 int  do_init(void);
 void do_exit(void);
 
+#define zfs_init()	do_init()
+
 extern void *zfsVfs;
 
 #endif
