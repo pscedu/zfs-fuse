@@ -780,9 +780,9 @@ again:
 }
 
 int
-zap_add(objset_t *os, uint64_t zapobj, const char *name,
+_zap_add(objset_t *os, uint64_t zapobj, const char *name,
     int integer_size, uint64_t num_integers,
-    const void *val, dmu_tx_t *tx)
+    const void *val, dmu_tx_t *tx, int flags)
 {
 	zap_t *zap;
 	int err;
@@ -809,14 +809,15 @@ zap_add(objset_t *os, uint64_t zapobj, const char *name,
 		if (err == 0)
 			err = fzap_add(zn, integer_size, num_integers, val, tx);
 		zap = zn->zn_zap;	/* fzap_add() may change zap */
-	} else {
+	} else if (flags == 0) {
 		mze = mze_find(zn);
 		if (mze != NULL) {
 			err = EEXIST;
 		} else {
 			mzap_addent(zn, *intval);
 		}
-	}
+	} else
+		mzap_addent(zn, *intval);
 	ASSERT(zap == zn->zn_zap);
 	zap_name_free(zn);
 	if (zap != NULL)	/* may be NULL if fzap_add() failed */

@@ -692,8 +692,12 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	mutex_exit(&dzp->z_lock);
 
 	value = zfs_dirent(zp);
-	error = zap_add(zp->z_zfsvfs->z_os, dzp->z_id, dl->dl_name,
-	    8, 1, &value, tx);
+	if (flag & FALLOWDIRLINK)
+		error = zap_add_nochk(zp->z_zfsvfs->z_os, dzp->z_id, dl->dl_name,
+		    8, 1, &value, tx);
+	else
+		error = zap_add(zp->z_zfsvfs->z_os, dzp->z_id, dl->dl_name,
+		    8, 1, &value, tx);
 	ASSERT(error == 0);
 
 	dnlc_update(ZTOV(dzp), dl->dl_name, vp);

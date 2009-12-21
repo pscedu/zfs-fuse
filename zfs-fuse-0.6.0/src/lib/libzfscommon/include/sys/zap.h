@@ -191,9 +191,12 @@ int zap_count_write(objset_t *os, uint64_t zapobj, const char *name,
  * If an attribute with the given name already exists, the call will
  * fail and return EEXIST.
  */
-int zap_add(objset_t *ds, uint64_t zapobj, const char *name,
+int _zap_add(objset_t *ds, uint64_t zapobj, const char *name,
     int integer_size, uint64_t num_integers,
-    const void *val, dmu_tx_t *tx);
+    const void *val, dmu_tx_t *tx, int flags);
+
+#define zap_add(d, z, n, i, nu, val, tx)	_zap_add(d, z, n, i, nu, val, tx, 0)
+#define zap_add_nochk(d, z, n, i, nu, val, tx)	_zap_add(d, z, n, i, nu, val, tx, 1)
 
 /*
  * Set the attribute with the given name to the given value.  If an

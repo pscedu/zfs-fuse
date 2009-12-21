@@ -174,6 +174,7 @@ typedef struct vattr {
 	uint_t       va_blksize; /* fundamental block size */
 	u_longlong_t va_nblocks; /* # of blocks allocated */
 	uint_t       va_seq;     /* sequence number */
+	u_offset_t   va_s2size;  /* slash2 file size in bytes */
 } vattr_t;
 
 /*
@@ -231,6 +232,7 @@ struct pollhead;
 #define AT_NBLOCKS 0x2000
 #define AT_SEQ     0x8000
 #define AT_XVATTR  0x10000
+#define AT_SLASH2SIZE 0x20000
 
 #define AT_ALL   (AT_TYPE|AT_MODE|AT_UID|AT_GID|AT_FSID|AT_NODEID|\
                  AT_NLINK|AT_SIZE|AT_ATIME|AT_MTIME|AT_CTIME|\

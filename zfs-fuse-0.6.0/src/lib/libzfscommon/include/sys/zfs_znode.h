@@ -152,7 +152,8 @@ typedef struct znode_phys {
 	uint64_t zp_uid;		/* 128 - file owner */
 	uint64_t zp_gid;		/* 136 - owning group */
 	uint64_t zp_zap;		/* 144 - extra attributes */
-	uint64_t zp_pad[3];		/* 152 - future */
+	uint64_t zp_s2size;		/* 152 - slash2 file size */
+	uint64_t zp_pad[2];		/* 160 - future */
 	zfs_acl_phys_t zp_acl;		/* 176 - 263 ACL */
 	/*
 	 * Data may pad out any remaining bytes in the znode buffer, eg:

@@ -37,4 +37,7 @@ extern int do_umount(vfs_t *vfs, boolean_t force);
 
 extern char * fuse_mount_options; /* run-time mount options */
 
+extern int zfs_slashlib_exit;
+extern kmem_cache_t *file_info_cache;
+
 #endif

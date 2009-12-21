@@ -4,6 +4,7 @@ import os, sys, re
 #
 #   install_dir=/usr/local/sbin - directory where the install target copies the binaries
 #   debug=1 - compilation style: 0 = optimize and strip, 1 = optimize with debug info, 2 = debug info, 3 = instrument functions
+#   4 = no optimization
 
 install_dir = ARGUMENTS.get('install_dir', '/usr/local/sbin')
 
@@ -14,6 +15,7 @@ env['LINKFLAGS'] = Split('-pipe -Wall')
 env['CCFLAGS'] = Split('-pipe -Wall -std=c99 -Wno-switch -Wno-unused -Wno-missing-braces -Wno-parentheses -Wno-uninitialized -fno-strict-aliasing -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_REENTRANT -DTEXT_DOMAIN=\\"zfs-fuse\\" -DLINUX_AIO')
 
 debug = int(ARGUMENTS.get('debug', '1'))
+slashlib = int(ARGUMENTS.get('slashlib', '0'))
 
 if not debug:
 	env.Append(LINKFLAGS = ['-s'])
@@ -27,6 +29,10 @@ else:
 		env.Append(CCFLAGS = ['-DDEBUG'])
 	elif debug == 3:
 		env.Append(CCFLAGS = Split('-finstrument-functions -DDEBUG'))
+
+if slashlib:
+	env.Append(CCFLAGS = ['-DSLASHLIB'])
+	env['SLASHLIB'] = '1'
 
 env['CPPPATH'] = []
 

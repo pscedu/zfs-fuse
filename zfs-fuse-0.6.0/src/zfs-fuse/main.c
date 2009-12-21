@@ -42,6 +42,7 @@ static const char *cf_fuse_mount_options = NULL;
 static int cf_disable_block_cache = 0;
 static int cf_disable_page_cache = 0;
 static int cf_daemonize = 1;
+void *zfsVfs;
 
 static void exit_handler(int sig)
 {

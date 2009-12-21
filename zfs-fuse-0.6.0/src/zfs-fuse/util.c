@@ -39,10 +39,15 @@
 #include "zfsfuse_socket.h"
 
 #include "cmd_listener.h"
+
+#ifdef SLASHLIB
+#include "zfs_slashlib.h"
+#else
 #include "fuse_listener.h"
 
 #include "fuse.h"
 #include "zfs_operations.h"
+#endif
 #include "util.h"
 
 int ioctl_fd = -1;
@@ -106,7 +111,14 @@ int do_init()
 
 	listener_thread_started = B_TRUE;
 
+#ifdef SLASHLIB
+	file_info_cache = kmem_cache_create("file_info_t", sizeof(file_info_t),
+	    0, NULL, NULL, NULL, NULL, NULL, 0);
+	VERIFY(file_info_cache != NULL);
+	return 0; 
+#else
 	return zfsfuse_listener_init();
+#endif
 }
 
 void do_exit()
@@ -117,10 +129,17 @@ void do_exit()
 			cmn_err(CE_WARN, "Error in pthread_join().");
 	}
 
+#ifndef SLASHLIB
 	zfsfuse_listener_exit();
+#endif
 
 	if(ioctl_fd != -1)
 		zfsfuse_socket_close(ioctl_fd);
+
+#ifdef SLASHLIB
+	if (file_info_cache)
+		kmem_cache_destroy(file_info_cache);
+#endif
 
 	int ret = zfs_ioctl_fini();
 	if(ret != 0)
@@ -131,7 +150,9 @@ void do_exit()
 
 /* big_writes added if fuse 2.8 is detected at runtime */
 /* other mount options are added if specified in the command line */
+#ifndef SLASHLIB
 #define FUSE_OPTIONS "fsname=%s,allow_other,suid,dev%s" // ,big_writes"
+#endif
 
 #ifdef DEBUG
 uint32_t mounted = 0;
@@ -139,6 +160,8 @@ uint32_t mounted = 0;
 
 int do_mount(char *spec, char *dir, int mflag, char *opt)
 {
+	extern void *zfsVfs;
+
 	VERIFY(mflag == 0);
 	VERIFY(opt[0] == '\0');
 
@@ -148,6 +171,8 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 
 	VFS_INIT(vfs, zfs_vfsops, 0);
 	VFS_HOLD(vfs);
+
+	zfsVfs = vfs;
 
 	struct mounta uap = {spec, dir, mflag | MS_SYSSPACE, NULL, opt, strlen(opt)};
 
@@ -163,6 +188,7 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	fprintf(stderr, "mounting %s\n", dir);
 #endif
 
+#ifndef SLASHLIB
 	char *fuse_opts;
 	if (fuse_version() <= 27) {
 	if(asprintf(&fuse_opts, FUSE_OPTIONS, spec, fuse_mount_options) == -1) {
@@ -217,7 +243,7 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 		fuse_unmount(dir,ch);
 		return EIO;
 	}
-
+#endif
 	return 0;
 }
 

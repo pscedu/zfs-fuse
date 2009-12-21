@@ -2234,6 +2234,7 @@ zfs_getattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 		links = pzp->zp_links;
 	vap->va_nlink = MIN(links, UINT32_MAX);	/* nlink_t limit! */
 	vap->va_size = pzp->zp_size;
+	vap->va_s2size = pzp->zp_s2size;
 	vap->va_rdev = vp->v_rdev;
 	vap->va_seq = zp->z_seq;
 
@@ -2438,6 +2439,8 @@ zfs_setattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 		ZFS_EXIT(zfsvfs);
 		return (EINVAL);
 	}
+
+	ASSERT(mask & (AT_SIZE | AT_SLASH2SIZE) != (AT_SIZE | AT_SLASH2SIZE));
 
 	/*
 	 * If this is an xvattr_t, then get a pointer to the structure of
@@ -2814,6 +2817,9 @@ top:
 
 	if (mask & AT_MTIME)
 		ZFS_TIME_ENCODE(&vap->va_mtime, pzp->zp_mtime);
+
+	if (mask & AT_SLASH2SIZE)
+		pzp->zp_s2size = vap->va_s2size;
 
 	/* XXX - shouldn't this be done *before* the ATIME/MTIME checks? */
 	if (mask & AT_SIZE)
@@ -3572,7 +3578,7 @@ top:
 	 * POSIX dictates that we return EPERM here.
 	 * Better choices include ENOTSUP or EISDIR.
 	 */
-	if (svp->v_type == VDIR) {
+	if (svp->v_type == VDIR && !(flags & FALLOWDIRLINK)) {
 		ZFS_EXIT(zfsvfs);
 		return (EPERM);
 	}
@@ -3614,7 +3620,7 @@ top:
 		return (error);
 	}
 
-	error = zfs_link_create(dl, szp, tx, 0);
+	error = zfs_link_create(dl, szp, tx, flags & FALLOWDIRLINK);
 
 	if (error == 0) {
 		uint64_t txtype = TX_LINK;
