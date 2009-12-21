@@ -25,6 +25,10 @@ typedef struct file_info {
 	int flags;
 } file_info_t;
 
+#define SLF_READ	1
+#define SLF_WRITE	2
+
+
 int zfs_lib_start(const char *, const char *);
 void zfs_lib_stop(void);
 
