@@ -105,6 +105,7 @@ char *fuse_add_dirent(char *buf, const char *name, const struct stat *stbuf,
     dirent->namelen = namelen;
     dirent->type = (stbuf->st_mode & 0170000) >> 12;
     strncpy(dirent->name, name, namelen);
+
     if (padlen)
 	memset(buf + entlen, 0, padlen);
 
@@ -610,16 +611,17 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 	ZFS_ENTER(zfsvfs);
 
 	/* Map flags */
-	int mode=0, flags=0;
+	int mode, flags;
 
-	if (fflags & SLF_WRITE) {
+	if(fflags & O_WRONLY) {
 		mode = VWRITE;
 		flags = FWRITE;
-	}
-
-	if (fflags & SLF_READ) {
-		mode  |= VREAD;
-		flags |= FREAD;
+	} else if(fflags & O_RDWR) {
+		mode = VREAD | VWRITE;
+		flags = FREAD | FWRITE;
+	} else {
+		mode = VREAD;
+		flags = FREAD;
 	}
 
 	fflags |= O_DSYNC;
