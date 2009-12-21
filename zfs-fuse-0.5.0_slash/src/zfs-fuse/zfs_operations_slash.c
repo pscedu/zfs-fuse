@@ -610,17 +610,16 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 	ZFS_ENTER(zfsvfs);
 
 	/* Map flags */
-	int mode, flags;
+	int mode=0, flags=0;
 
-	if(fflags & O_WRONLY) {
+	if (fflags & SLF_WRITE) {
 		mode = VWRITE;
 		flags = FWRITE;
-	} else if(fflags & O_RDWR) {
-		mode = VREAD | VWRITE;
-		flags = FREAD | FWRITE;
-	} else {
-		mode = VREAD;
-		flags = FREAD;
+	}
+
+	if (fflags & SLF_READ) {
+		mode  |= VREAD;
+		flags |= FREAD;
 	}
 
 	fflags |= O_DSYNC;
