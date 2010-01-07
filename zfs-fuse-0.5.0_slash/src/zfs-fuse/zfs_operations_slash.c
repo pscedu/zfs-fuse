@@ -144,7 +144,7 @@ void zfsslash2_destroy(void *userdata)
 #endif
 }
 
-int zfsslash2_statfs(void *vfsdata, struct statvfs *stat)
+int zfsslash2_statfs(void *vfsdata, struct statvfs *stat, uint64_t ino)
 {
 	vfs_t *vfs = (vfs_t *)vfsdata;
 
