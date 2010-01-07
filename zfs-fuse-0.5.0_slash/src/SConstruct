@@ -6,9 +6,9 @@ import os, sys, re
 #   debug styles:
 #	0 = optimize and strip
 #	1 = optimize with debug info
-#	2 = no optimization
-#	3 = debug info
-#	4 = instrument functions
+#	2 = debug info
+#	3 = instrument functions
+#	4 = no optimization
 
 install_dir = ARGUMENTS.get('install_dir', '/usr/local/sbin')
 
@@ -30,9 +30,9 @@ else:
 	env.Append(CCFLAGS = ['-g'])
 	if debug == 1:
 		env.Append(CCFLAGS = ['-O2'])
-	elif debug == 3:
+	elif debug == 2:
 		env.Append(CCFLAGS = ['-DDEBUG'])
-	elif debug == 4:
+	elif debug == 3:
 		env.Append(CCFLAGS = Split('-finstrument-functions -DDEBUG'))
 
 if slashlib:
