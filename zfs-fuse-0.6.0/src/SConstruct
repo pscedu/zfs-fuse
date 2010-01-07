@@ -33,6 +33,8 @@ else:
 if slashlib:
 	env.Append(CCFLAGS = ['-DSLASHLIB'])
 	env['SLASHLIB'] = '1'
+else:
+	env['SLASHLIB'] = '0'
 
 env['CPPPATH'] = []
 
