@@ -58,10 +58,10 @@ kmem_cache_t *file_info_cache = NULL;
 #define SLASH2_SET_ATTR_SIZE    FUSE_SET_ATTR_SIZE
 
 struct fuse_dirent {
-	__uint64_t	ino;
-	__uint64_t	off;
-	__u32	namelen;
-	__u32	type;
+	uint64_t	ino;
+	uint64_t	off;
+	uint32_t	namelen;
+	uint32_t	type;
 	char name[0];
 };
 
@@ -88,28 +88,39 @@ struct srm_getattr_rep {
 
 size_t fuse_dirent_size(size_t namelen)
 {
-    return FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + namelen);
+	return FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + namelen);
 }
 
 char *fuse_add_dirent(char *buf, const char *name, const struct stat *stbuf,
 		      off_t off)
 {
-    unsigned namelen = strlen(name);
-    unsigned entlen = FUSE_NAME_OFFSET + namelen;
-    unsigned entsize = fuse_dirent_size(namelen);
-    unsigned padlen = entsize - entlen;
-    struct fuse_dirent *dirent = (struct fuse_dirent *) buf;
+	unsigned namelen = strlen(name);
+	unsigned entlen = FUSE_NAME_OFFSET + namelen;
+	unsigned entsize = fuse_dirent_size(namelen);
+	unsigned padlen = entsize - entlen;
+	struct fuse_dirent *dirent = (struct fuse_dirent *) buf;
 
-    dirent->ino = stbuf->st_ino;
-    dirent->off = off;
-    dirent->namelen = namelen;
-    dirent->type = (stbuf->st_mode & 0170000) >> 12;
-    strncpy(dirent->name, name, namelen);
+	dirent->ino = stbuf->st_ino;
+	dirent->off = off;
+	dirent->namelen = namelen;
+	dirent->type = (stbuf->st_mode & 0170000) >> 12;
+	strncpy(dirent->name, name, namelen);
+	if (padlen)
+		memset(buf + entlen, 0, padlen);
 
-    if (padlen)
-	memset(buf + entlen, 0, padlen);
+	return buf + entsize;
+}
 
-    return buf + entsize;
+size_t fuse_add_direntry(fuse_req_t req, char *buf, size_t bufsize,
+			 const char *name, const struct stat *stbuf, off_t off)
+{
+	size_t entsize;
+
+	(void) req;
+	entsize = fuse_dirent_size(strlen(name));
+	if (entsize <= bufsize && buf)
+		fuse_add_dirent(buf, name, stbuf, off);
+	return entsize;
 }
 
 int
@@ -481,12 +492,12 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 		fstat.st_ino = entry.dirent.d_ino;
 		fstat.st_mode = 0;
 
-		int dsize = fuse_add_direntry(req, NULL, 0, entry.dirent.d_name, NULL, 0);
+		int dsize = fuse_add_direntry(NULL, NULL, 0, entry.dirent.d_name, NULL, 0);
 		if(dsize > outbuf_resid)
 			break;
 
 		outbuf_resid -= dsize;
-		fuse_add_direntry(req, outbuf + outbuf_off,
+		fuse_add_direntry(NULL, outbuf + outbuf_off,
 		    dsize, entry.dirent.d_name, &fstat,
 		    entry.dirent.d_off);
 
@@ -497,8 +508,6 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 			    entry.dirent.d_ino, cred,
 			    &attr->attr, &attr->gen);
 
-			//fprintf(stderr, "rc=%d st_ino=%lu gen=%lu\n",
-			//	attr->rc, attr->attr.st_ino, attr->gen);
 			attr++;
 			nstbprefetch--;
 		}
@@ -1127,7 +1136,7 @@ zfsslash2_setattr(void *vfsdata, uint64_t ino, struct stat *attr,
 		if (vattr.va_uid > MAXUID) {
 			error = EINVAL;
 			goto out;
-		} 
+		}
 	}
 	if(to_set & FUSE_SET_ATTR_GID) {
 		vattr.va_mask |= AT_GID;
@@ -1135,7 +1144,7 @@ zfsslash2_setattr(void *vfsdata, uint64_t ino, struct stat *attr,
 		if (vattr.va_gid > MAXUID) {
 			error = EINVAL;
 			goto out;
-		} 
+		}
 	}
 	if(to_set & FUSE_SET_ATTR_SIZE) {
 		vattr.va_mask |= AT_SLASH2SIZE;
