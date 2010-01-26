@@ -58,10 +58,10 @@ kmem_cache_t *file_info_cache = NULL;
 #define SLASH2_SET_ATTR_SIZE    FUSE_SET_ATTR_SIZE
 
 struct fuse_dirent {
-	__uint64_t	ino;
-	__uint64_t	off;
-	__u32	namelen;
-	__u32	type;
+	uint64_t	ino;
+	uint64_t	off;
+	uint32_t	namelen;
+	uint32_t	type;
 	char name[0];
 };
 
