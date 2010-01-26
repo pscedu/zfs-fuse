@@ -56,6 +56,7 @@ int  do_init(void);
 void do_exit(void);
 
 #define zfs_init()	do_init()
+#define zfs_exit()	do_exit()
 
 extern void *zfsVfs;
 
