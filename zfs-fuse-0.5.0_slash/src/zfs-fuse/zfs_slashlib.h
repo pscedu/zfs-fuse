@@ -13,7 +13,7 @@ struct statvfs;
 #define ZFS_MAGIC	0x2f52f5
 
 #ifdef SLASHLIB
-typedef struct {
+typedef struct fidgen {
 	uint64_t fid;
 	uint64_t gen;
 } fidgen_t;
