@@ -1163,7 +1163,7 @@ zfsslash2_setattr(void *vfsdata, uint64_t ino, struct stat *attr,
 	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL);
 
  out:
-	if(!error)
+	if(!error && out_attr)
 		error = zfsslash2_stat(vp, out_attr, cred);
 
 	/* Do not release if vp was an opened inode */
