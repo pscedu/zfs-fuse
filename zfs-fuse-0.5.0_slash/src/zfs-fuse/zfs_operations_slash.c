@@ -517,24 +517,23 @@ out:
 int
 zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 {
-	int	i;
-	uint8_t	c;
-	char	immns_name[2];
+	int	 i;
+	uint8_t	 c;
+	vnode_t	*vp;
+	vnode_t	*dvp;
+	int	 error;
+	znode_t	*znode;
+	char	 immns_name[2];
+	cred_t	 creds = {0, 0};
 
 	ASSERT(linkvp);
-
-	cred_t creds = {0};
-	znode_t *znode;
-
-	int error = zfs_zget(zfsvfs, 3, &znode, B_TRUE);
+	error = zfs_zget(zfsvfs, 3, &znode, B_TRUE);
 	if (error)
 		return error == EEXIST ? ENOENT : error;
 
 	ASSERT(znode != NULL);
-	vnode_t *dvp = ZTOV(znode);
+	dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
-
-	vnode_t *vp = NULL;
 
 	error = VOP_LOOKUP(dvp, SL_PATH_FIDNS, &vp, NULL, 0, NULL, &creds,
 			   NULL, NULL, NULL);
@@ -542,7 +541,6 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 		VN_RELE(dvp);
 		return (error);
 	}
-
 	/* Release the root dir dvp and stash the .slfidns vp there.
 	 */
 	VN_RELE(dvp);
