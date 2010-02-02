@@ -44,6 +44,8 @@
 #include "util.h"
 #include "zfs_slashlib.h"
 
+#define FID_PATH_DEPTH		3
+
 kmem_cache_t *file_info_cache = NULL;
 
 
