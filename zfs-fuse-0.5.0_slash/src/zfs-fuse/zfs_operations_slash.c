@@ -44,7 +44,8 @@
 #include "util.h"
 #include "zfs_slashlib.h"
 
-#define FID_PATH_DEPTH		3
+/* keep the following in sync with slash_nara/include/fid.h */
+#define FID_PATH_DEPTH		3		
 
 kmem_cache_t *file_info_cache = NULL;
 
@@ -519,6 +520,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	vnode_t	*dvp;
 	int	 error;
 	znode_t	*znode;
+	char	 fidname[20];
 	char	 immns_name[2];
 	cred_t	 creds = {0, 0};
 
@@ -571,7 +573,6 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	}
 	/* Should have the immns parent vp now.
 	 */
-	char fidname[20];
 	snprintf(fidname, 20, "%016lx", (uint64_t)VTOZ(linkvp)->z_id);
 
 	ASSERT(vp);
