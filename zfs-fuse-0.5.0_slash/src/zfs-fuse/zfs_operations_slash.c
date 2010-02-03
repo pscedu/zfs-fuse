@@ -546,14 +546,16 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	dvp = vp;
 	/* Lookup our fid's parent directory in the fid namespace, closing
 	 *   parent dvp's along the way.
-	 (uint8_t)(((fid & 0x0000000000f00000ULL) >> BPHXC) >>
-				(((FP_DEPTH-1)*BPHXC) + (BPHXC*3))),
 	 */
 	immns_name[1] = '\0';
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
-
+		/*
+		 * Extract BPHXC bits at a time and convert them to a digit or a lower-case
+		 * letter to construct our pathname component.  5 means we start with 5th 
+		 * hex digit.
+		 */
 		c = (uint8_t)(((uint64_t)VTOZ(linkvp)->z_id &
-			       (0x0000000000f00000ULL >> i*(4))) >> ((5-i) * BPHXC));
+			       (0x0000000000f00000ULL >> i*BPHXC)) >> ((5-i) * BPHXC));
 		immns_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
 
 		error = VOP_LOOKUP(dvp, immns_name, &vp, NULL, 0, NULL, &creds,
