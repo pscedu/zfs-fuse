@@ -624,7 +624,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		flags = FREAD;
 	}
 
-	fflags |= O_DSYNC;
+	//fflags |= O_DSYNC;
 
 	if(fflags & O_CREAT)
 		flags |= FCREAT;
