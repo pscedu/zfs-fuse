@@ -46,6 +46,7 @@
 
 /* keep the following in sync with slash_nara/include/fid.h */
 #define FID_PATH_DEPTH		3		
+#define	BPHXC			4
 
 kmem_cache_t *file_info_cache = NULL;
 
@@ -552,7 +553,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
 
 		c = (uint8_t)(((uint64_t)VTOZ(linkvp)->z_id &
-			       (0x0000000000f00000ULL >> i*(4))) >> (((2-i)*4)+12));
+			       (0x0000000000f00000ULL >> i*(4))) >> ((5-i) * BPHXC));
 		immns_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
 
 		error = VOP_LOOKUP(dvp, immns_name, &vp, NULL, 0, NULL, &creds,
