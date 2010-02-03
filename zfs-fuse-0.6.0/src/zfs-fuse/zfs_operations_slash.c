@@ -65,12 +65,6 @@ struct fuse_dirent {
 	char name[0];
 };
 
-struct srm_getattr_rep {
-	struct stat attr;
-	uint64_t gen;
-	int rc;
-};
-
 #define SL_PATH_PREFIX	".sl"
 #define SL_PATH_FIDNS	".slfidns"
 
@@ -450,7 +444,7 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 		struct dirent64 dirent;
 	} entry;
 
-	struct stat fstat = { 0 };
+	struct stat stb, fstat = { 0 };
 	struct srm_getattr_rep *attr = attrs;
 
 	iovec_t iovec;
@@ -505,8 +499,8 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 
 		if (nstbprefetch) {
 			attr->rc = zfsslash2_getattr(vfsdata,
-			    entry.dirent.d_ino, cred,
-			    &attr->attr, &attr->gen);
+			    entry.dirent.d_ino, cred, &stb, &attr->gen);
+			slrpc_externalize(&stb, &attr->attr);
 
 			attr++;
 			nstbprefetch--;

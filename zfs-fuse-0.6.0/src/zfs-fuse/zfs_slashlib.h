@@ -17,6 +17,30 @@ typedef struct fidgen {
 	uint64_t fid;
 	uint64_t gen;
 } fidgen_t;
+
+struct srt_stat {
+	uint64_t		sst_dev;	/* ID of device containing file */
+	uint64_t		sst_ino;	/* inode number */
+	uint32_t		sst_mode;	/* file permissions */
+	int32_t			sst__pad1;
+	uint64_t		sst_nlink;	/* number of hard links */
+	uint32_t		sst_uid;	/* user ID of owner */
+	uint32_t		sst_gid;	/* group ID of owner */
+	uint64_t		sst_rdev;	/* device ID (if special file) */
+	uint64_t		sst_size;	/* total size, in bytes */
+	int64_t			sst_blksize;	/* blocksize for file system I/O */
+	int64_t			sst_blocks;	/* number of 512B blocks allocated */
+	int64_t			sst_atime;	/* time of last access */
+	int64_t			sst_mtime;	/* time of last modification */
+	int64_t			sst_ctime;	/* time of last status change */
+};
+
+struct srm_getattr_rep {
+	struct srt_stat		attr;
+	uint64_t		gen;
+	int32_t			rc;
+	uint32_t		pad;
+} __attribute__((__packed__));
 #else
 typedef void vnode_t;
 typedef struct slash_fidgen fidgen_t;
@@ -59,6 +83,8 @@ void	do_exit(void);
 
 #define zfs_init()	do_init()
 #define zfs_exit()	do_exit()
+
+void slrpc_externalize_stat(const struct stat *, struct srt_stat *);
 
 extern void *zfsVfs;
 
