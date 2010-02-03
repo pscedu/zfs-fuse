@@ -1010,7 +1010,7 @@ zfsslash2_sets2szattr(void *vfsdata, uint64_t ino, off64_t size, void *data)
 {
 	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	uint64_t real_ino = real_ino == 1 ? 3 : ino;
+	uint64_t real_ino = ino == 1 ? 3 : ino;
 	file_info_t *info = data;
 	int error=0;
 
@@ -1051,7 +1051,7 @@ zfsslash2_setattr(void *vfsdata, uint64_t ino, struct stat *attr,
 {
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	uint64_t real_ino = real_ino == 1 ? 3 : ino;
+	uint64_t real_ino = ino == 1 ? 3 : ino;
 	file_info_t *info = (file_info_t *)data;
 
 	ZFS_ENTER(zfsvfs);
