@@ -548,12 +548,12 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	 (uint8_t)(((fid & 0x0000000000f00000ULL) >> BPHXC) >>
 				(((FP_DEPTH-1)*BPHXC) + (BPHXC*3))),
 	 */
+	immns_name[1] = '\0';
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
 
 		c = (uint8_t)(((uint64_t)VTOZ(linkvp)->z_id &
 			       (0x0000000000f00000ULL >> i*(4))) >> (((2-i)*4)+12));
 		immns_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
-		immns_name[1] = '\0';
 
 		error = VOP_LOOKUP(dvp, immns_name, &vp, NULL, 0, NULL, &creds,
 				   NULL, NULL, NULL);
