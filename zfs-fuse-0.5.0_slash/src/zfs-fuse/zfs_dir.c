@@ -334,8 +334,15 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 			*zpp = VTOZ(vp);
 			return (0);
 		} else {
+#ifdef NAMESPACE_EXPERIMENTAL
+			error = zfs_match_find(zfsvfs, dzp, name, exact,
+			    update, direntflags, realpnp, &dirent);
+			if (!error)
+				zoid = dirent.d_zfs_id;
+#else
 			error = zfs_match_find(zfsvfs, dzp, name, exact,
 			    update, direntflags, realpnp, &zoid);
+#endif /* NAMESPACE_EXPERIMENTAL */
 		}
 	}
 	if (error) {
@@ -355,6 +362,10 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 		}
 		if (!(flag & ZXATTR) && update)
 			dnlc_update(ZTOV(dzp), name, ZTOV(*zpp));
+
+#ifdef NAMESPACE_EXPERIMENTAL
+		(*zpp)->z_slashid = dirent.d_slash_id;
+#endif
 	}
 
 	*dlpp = dl;
