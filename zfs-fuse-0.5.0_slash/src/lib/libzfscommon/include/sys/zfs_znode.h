@@ -149,7 +149,14 @@ typedef struct znode_phys {
 	uint64_t zp_uid;		/* 128 - file owner */
 	uint64_t zp_gid;		/* 136 - owning group */
 	uint64_t zp_zap;		/* 144 - extra attributes */
+
+#ifdef NAMESPACE_EXPERIMENTAL
+	uint64_t zp_slashid;		/* 152 - SLASH ID */
+	uint64_t zp_pad[2];		/* 160 - future */
+#else
 	uint64_t zp_pad[3];		/* 152 - future */
+#endif
+
 	zfs_acl_phys_t zp_acl;		/* 176 - 263 ACL */
 	/*
 	 * Data may pad out any remaining bytes in the znode buffer, eg:
@@ -183,11 +190,6 @@ typedef struct znode {
 	struct zfsvfs	*z_zfsvfs;
 	vnode_t		*z_vnode;
 	uint64_t	z_id;		/* object ID for this znode */
-
-#ifdef NAMESPACE_EXPERIMENTAL
-	uint64_t	z_slashid;	/* SLASH ID */
-#endif
-
 	kmutex_t	z_lock;		/* znode modification lock */
 	krwlock_t	z_map_lock;	/* page map lock */
 	krwlock_t	z_parent_lock;	/* parent lock for directories */

@@ -552,7 +552,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 		/*
 		 * Extract BPHXC bits at a time and convert them to a digit or a lower-case
 		 * letter to construct our pathname component.  5 means we start with 5th 
-		 * hex digit.
+		 * hex digit from right.
 		 */
 		c = (uint8_t)(((uint64_t)VTOZ(linkvp)->z_id &
 			       (0x0000000000f00000ULL >> i*BPHXC)) >> ((5-i) * BPHXC));
