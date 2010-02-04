@@ -49,6 +49,16 @@ typedef struct dirent {
 	char		d_name[1];	/* name of file */
 } dirent_t;
 
+#ifdef NAMESPACE_EXPERIMENTAL
+
+typedef struct slash_direntry {
+	uint64_t	sd_id;		/* native inode number or SLASH ID */
+	uint64_t	sd_flags;	/* used to distinguish different IDs and hide the entry */
+} slash_direntry_t;
+
+#endif
+
+
 #if defined(_SYSCALL32)
 
 /* kernel's view of user ILP32 dirent */
