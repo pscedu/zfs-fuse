@@ -52,8 +52,9 @@ typedef struct dirent {
 #ifdef NAMESPACE_EXPERIMENTAL
 
 typedef struct slash_direntry {
-	uint64_t	sd_id;		/* native inode number or SLASH ID */
-	uint64_t	sd_flags;	/* used to distinguish different IDs and hide the entry */
+	uint64_t	d_zfs_id;	/* ZFS native inode number */
+	uint64_t	d_slash_id;	/* SLASH ID */
+	uint64_t	d_flags;	/* SLASH flags */
 } slash_direntry_t;
 
 #endif
