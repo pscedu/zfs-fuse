@@ -61,6 +61,46 @@
  * zfs_match_find() is used by zfs_dirent_lock() to peform zap lookups
  * of names after deciding which is the appropriate lookup interface.
  */
+#ifdef NAMESPACE_EXPERIMENTAL
+
+static int
+zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
+    boolean_t update, int *deflags, pathname_t *rpnp, slash_direntry_t *zoid)
+{
+	int error;
+
+	if (zfsvfs->z_norm) {
+		matchtype_t mt = MT_FIRST;
+		boolean_t conflict = B_FALSE;
+		size_t bufsz = 0;
+		char *buf = NULL;
+
+		if (rpnp) {
+			buf = rpnp->pn_buf;
+			bufsz = rpnp->pn_bufsize;
+		}
+		if (exact)
+			mt = MT_EXACT;
+		/*
+		 * In the non-mixed case we only expect there would ever
+		 * be one match, but we need to use the normalizing lookup.
+		 */
+		error = zap_lookup_norm(zfsvfs->z_os, dzp->z_id, name, 8, 3,
+		    zoid, mt, buf, bufsz, &conflict);
+		if (!error && deflags)
+			*deflags = conflict ? ED_CASE_CONFLICT : 0;
+	} else {
+		error = zap_lookup(zfsvfs->z_os, dzp->z_id, name, 8, 3, zoid);
+	}
+
+	if (error == ENOENT && update)
+		dnlc_update(ZTOV(dzp), name, DNLC_NO_VNODE);
+
+	return (error);
+}	
+
+#else
+
 static int
 zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
     boolean_t update, int *deflags, pathname_t *rpnp, uint64_t *zoid)
@@ -97,6 +137,8 @@ zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
 
 	return (error);
 }
+
+#endif /* NAMESPACE_EXPERIMENTAL */
 
 /*
  * Lock a directory entry.  A dirlock on <dzp, name> protects that name
