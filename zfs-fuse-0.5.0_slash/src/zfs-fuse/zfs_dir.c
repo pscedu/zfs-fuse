@@ -65,7 +65,7 @@
 
 static int
 zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
-    boolean_t update, int *deflags, pathname_t *rpnp, slash_direntry_t *zoid)
+    boolean_t update, int *deflags, pathname_t *rpnp, slash_direntry_t *dirent)
 {
 	int error;
 
@@ -86,11 +86,11 @@ zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
 		 * be one match, but we need to use the normalizing lookup.
 		 */
 		error = zap_lookup_norm(zfsvfs->z_os, dzp->z_id, name, 8, 3,
-		    zoid, mt, buf, bufsz, &conflict);
+		    dirent, mt, buf, bufsz, &conflict);
 		if (!error && deflags)
 			*deflags = conflict ? ED_CASE_CONFLICT : 0;
 	} else {
-		error = zap_lookup(zfsvfs->z_os, dzp->z_id, name, 8, 3, zoid);
+		error = zap_lookup(zfsvfs->z_os, dzp->z_id, name, 8, 3, dirent);
 	}
 
 	if (error == ENOENT && update)
@@ -177,14 +177,17 @@ int
 zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
     int flag, int *direntflags, pathname_t *realpnp)
 {
-	zfsvfs_t	*zfsvfs = dzp->z_zfsvfs;
-	zfs_dirlock_t	*dl;
-	boolean_t	update;
-	boolean_t	exact;
-	uint64_t	zoid;
-	vnode_t		*vp = NULL;
-	int		error = 0;
-	int		cmpflags;
+	zfsvfs_t		*zfsvfs = dzp->z_zfsvfs;
+	zfs_dirlock_t		*dl;
+	boolean_t		update;
+	boolean_t		exact;
+	uint64_t		zoid;
+#ifdef NAMESPACE_EXPERIMENTAL
+	slash_direntry_t	dirent;
+#endif
+	vnode_t			*vp = NULL;
+	int			error = 0;
+	int			cmpflags;
 
 	*zpp = NULL;
 	*dlpp = NULL;
