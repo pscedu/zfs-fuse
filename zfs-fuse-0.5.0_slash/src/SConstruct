@@ -20,6 +20,7 @@ env['CCFLAGS'] = Split('-pipe -Wall -Werror -std=c99 -Wno-switch -Wno-unused -Wn
 
 debug = int(ARGUMENTS.get('debug', '1'))
 slashlib = int(ARGUMENTS.get('slashlib', '0'))
+namespace = int(ARGUMENTS.get('namespace', '0'))
 
 if not debug:
 	env.Append(LINKFLAGS = ['-s'])
@@ -41,6 +42,13 @@ if slashlib:
 	env['SLASHLIB'] = '1'		
 else:
 	env['SLASHLIB'] = '0'			
+
+if namespace:
+	print "enabling experimental namespace code\n";
+	env.Append(CCFLAGS = ['-DNAMESPACE_EXPERIMENTAL'])	
+	env['NAMESPACE_EXPERIMENTAL'] = '1'		
+else:
+	env['NAMESPACE_EXPERIMENTAL'] = '0'			
 
 env['CPPPATH'] = []
 

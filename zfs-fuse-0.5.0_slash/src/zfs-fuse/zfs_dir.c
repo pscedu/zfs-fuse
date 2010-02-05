@@ -364,7 +364,7 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 			dnlc_update(ZTOV(dzp), name, ZTOV(*zpp));
 
 #ifdef NAMESPACE_EXPERIMENTAL
-		(*zpp)->z_slashid = dirent.d_slash_id;
+		(*zpp)->z_fid = dirent.d_slash_id;
 #endif
 	}
 
