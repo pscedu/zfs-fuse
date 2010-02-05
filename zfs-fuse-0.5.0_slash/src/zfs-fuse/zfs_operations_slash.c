@@ -592,7 +592,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	}
 	/* Should have the immns parent vp now.
 	 */
-	snprintf(fidname, 20, "%016"PRIx64, (uint64_t)VTOZ(linkvp)->z_id);
+	snprintf(fidname, 20, "%016"PRIx64, linkid);
 
 	ASSERT(vp);
 	if (unlink)
@@ -603,7 +603,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 #ifdef DEBUG
 	fprintf(stderr, "fidname=%s parent=%ld linkvp=%ld error=%d\n",
 		fidname, (uint64_t)VTOZ(dvp)->z_id,
-		(uint64_t)VTOZ(linkvp)->z_id, error);
+		linkid, error);
 #endif
 
 	if (error)
