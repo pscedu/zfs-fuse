@@ -413,6 +413,12 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
     off_t off, void *outbuf, size_t *outbuf_len, void *attrs, int nstbprefetch,
     void *data)
 {
+	uio_t			uio;
+	int			error;
+	iovec_t			iovec;
+	struct stat		stb, fstat = { 0 };
+	struct srm_getattr_rep	*attr = attrs;
+
 	vnode_t *vp = ((file_info_t *)(uintptr_t) data)->vp;
 
 	if (ino == 1) ino = 3;
@@ -437,11 +443,7 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 		struct dirent64 dirent;
 	} entry;
 
-	struct stat stb, fstat = { 0 };
-	struct srm_getattr_rep *attr = attrs;
 
-	iovec_t iovec;
-	uio_t uio;
 	uio.uio_iov = &iovec;
 	uio.uio_iovcnt = 1;
 	uio.uio_segflg = UIO_SYSSPACE;
@@ -455,7 +457,6 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 
 	off_t next = off;
 
-	int error;
 
 
 	for(;;) {
