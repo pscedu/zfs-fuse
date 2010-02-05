@@ -419,6 +419,7 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 	off_t			next;
 	int			eofp;
 	int			error;
+	int			dsize;
 	iovec_t			iovec;
 	zfsvfs_t		*zfsvfs;
 	int			outbuf_off;
@@ -441,14 +442,13 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 	if (vp->v_type != VDIR)
 		return ENOTDIR;
 
-	vfs = (vfs_t *) vfsdata;
-	zfsvfs = vfs->vfs_data;
-
-	if(outbuf == NULL)
+	if (outbuf == NULL)
 		return EINVAL;
 
-	ZFS_ENTER(zfsvfs);
+	vfs = (vfs_t *)vfsdata;
+	zfsvfs = vfs->vfs_data;
 
+	ZFS_ENTER(zfsvfs);
 
 	uio.uio_iov = &iovec;
 	uio.uio_iovcnt = 1;
@@ -459,25 +459,25 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 	eofp = 0;
 	next = off;
 	outbuf_off = 0;
-	for(;;) {
+	for (;;) {
 		iovec.iov_base = entry.buf;
 		iovec.iov_len = sizeof(entry.buf);
 		uio.uio_resid = iovec.iov_len;
 		uio.uio_loffset = next;
 
 		error = VOP_READDIR(vp, &uio, cred, &eofp, NULL, 0);
-		if(error)
+		if (error)
 			goto out;
 
 		/* No more directory entries */
-		if(iovec.iov_base == entry.buf)
+		if (iovec.iov_base == entry.buf)
 			break;
 
 		fstat.st_ino = entry.dirent.d_ino;
 		fstat.st_mode = 0;
 
-		int dsize = fuse_dirent_size(strlen(entry.dirent.d_name));
-		if(dsize > outbuf_resid)
+		dsize = fuse_dirent_size(strlen(entry.dirent.d_name));
+		if (dsize > outbuf_resid)
 			break;
 
 		/* skip internal slash metastructure */
