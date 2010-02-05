@@ -865,19 +865,23 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
     mode_t mode, cred_t *cred, struct stat *stb, struct fidgen *fg,
     int suppress_fidlink)
 {
-	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
+	vnode_t		*vp;
+	vfs_t		*vfs;
+	znode_t		*znode;
+	int		 error;
+	zfsvfs_t	*zfsvfs;
+	uint64_t	 real_parent;
+
+	if (strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
-	vfs_t *vfs = (vfs_t *) vfsdata;
-	zfsvfs_t *zfsvfs = vfs->vfs_data;
-
-	uint64_t real_parent = (parent == 1 ? 3 : parent);
+	vfs = (vfs_t *)vfsdata;
+	zfsvfs = vfs->vfs_data;
+	real_parent = (parent == 1 ? 3 : parent);
 
 	ZFS_ENTER(zfsvfs);
 
-	znode_t *znode;
-
-	int error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
+	error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
 	if(error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
@@ -889,7 +893,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	vnode_t *dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
 
-	vnode_t *vp = NULL;
+	vp = NULL;
 
 	vattr_t vattr = { 0 };
 	vattr.va_type = VDIR;
