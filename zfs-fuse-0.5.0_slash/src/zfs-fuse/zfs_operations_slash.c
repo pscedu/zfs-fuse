@@ -618,19 +618,17 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		     mode_t createmode, const char *name, struct fidgen *fg,
 		     struct stat *stb, void **finfo)
 {
-	if(name && strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
-		return ENAMETOOLONG;
-
+	int mode, flags; /* Map flags */
 	uint64_t real_ino = ino == 1 ? 3 : ino;
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
+	if (name && strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
+		return ENAMETOOLONG;
+
 	ZFS_ENTER(zfsvfs);
 
-	/* Map flags */
-	int mode, flags;
-
-	if(fflags & O_WRONLY) {
+	if (fflags & O_WRONLY) {
 		mode = VWRITE;
 		flags = FWRITE;
 	} else if(fflags & O_RDWR) {
@@ -643,23 +641,23 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 
 	//fflags |= O_DSYNC;
 
-	if(fflags & O_CREAT)
+	if (fflags & O_CREAT)
 		flags |= FCREAT;
-	if(fflags & O_SYNC)
+	if (fflags & O_SYNC)
 		flags |= FSYNC;
-	if(fflags & O_DSYNC)
+	if (fflags & O_DSYNC)
 		flags |= FDSYNC;
-	if(fflags & O_RSYNC)
+	if (fflags & O_RSYNC)
 		flags |= FRSYNC;
-	if(fflags & O_APPEND)
+	if (fflags & O_APPEND)
 		flags |= FAPPEND;
-	if(fflags & O_LARGEFILE)
+	if (fflags & O_LARGEFILE)
 		flags |= FOFFMAX;
-	if(fflags & O_NOFOLLOW)
+	if (fflags & O_NOFOLLOW)
 		flags |= FNOFOLLOW;
-	if(fflags & O_TRUNC)
+	if (fflags & O_TRUNC)
 		flags |= FTRUNC;
-	if(fflags & O_EXCL)
+	if (fflags & O_EXCL)
 		flags |= FEXCL;
 
 	znode_t *znode;
