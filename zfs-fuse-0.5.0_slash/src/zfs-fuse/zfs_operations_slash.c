@@ -860,10 +860,17 @@ zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred,
 }
 
 
+#ifdef NAMESPACE_EXPERIMENTAL
+int
+zfsslash2_mkdir(void *vfsdata, uint64_t parent, uint64_t fid, const char *name,
+    mode_t mode, cred_t *cred, struct stat *stb, struct fidgen *fg,
+    int suppress_fidlink)
+#else
 int
 zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
     mode_t mode, cred_t *cred, struct stat *stb, struct fidgen *fg,
     int suppress_fidlink)
+#endif
 {
 	vnode_t		*vp;
 	vfs_t		*vfs;
@@ -871,6 +878,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	int		 error;
 	zfsvfs_t	*zfsvfs;
 	uint64_t	 real_parent;
+	vattr_t		 vattr = { 0 };
 
 	if (strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
@@ -895,7 +903,6 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 	vp = NULL;
 
-	vattr_t vattr = { 0 };
 	vattr.va_type = VDIR;
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
