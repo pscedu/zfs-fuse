@@ -523,15 +523,16 @@ out:
 int
 zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 {
-	int	 i;
-	uint8_t	 c;
-	vnode_t	*vp;
-	vnode_t	*dvp;
-	int	 error;
-	znode_t	*znode;
-	char	 fidname[20];
-	char	 immns_name[2];
-	cred_t	 creds = {0, 0};
+	int		i;
+	uint8_t		c;
+	vnode_t		*vp;
+	vnode_t		*dvp;
+	int		error;
+	znode_t		*znode;
+	uint64_t	linkid;
+	char		fidname[20];
+	char		immns_name[2];
+	cred_t		creds = {0, 0};
 
 	ASSERT(linkvp);
 	error = zfs_zget(zfsvfs, 3, &znode, B_TRUE);
@@ -556,6 +557,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	 *   parent dvp's along the way.
 	 */
 	immns_name[1] = '\0';
+	linkid = (uint64_t)VTOZ(linkvp)->z_id;
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
 		/*
 		 * Extract BPHXC bits at a time and convert them to a digit or a lower-case
@@ -563,8 +565,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 		 * hex digit from the right side.  If the depth is 3, then we have 0xfff or
 		 * 4095 files in a directory in the by-id namespace.
 		 */
-		c = (uint8_t)(((uint64_t)VTOZ(linkvp)->z_id &
-			       (0x0000000000f00000ULL >> i*BPHXC)) >> ((5-i) * BPHXC));
+		c = (uint8_t)((linkid & (0x0000000000f00000ULL >> i*BPHXC)) >> ((5-i) * BPHXC));
 		immns_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
 
 		error = VOP_LOOKUP(dvp, immns_name, &vp, NULL, 0, NULL, &creds,
