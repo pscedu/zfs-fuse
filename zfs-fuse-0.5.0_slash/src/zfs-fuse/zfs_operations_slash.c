@@ -414,8 +414,12 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
     void *data)
 {
 	uio_t			uio;
+	off_t			next;
 	int			error;
 	iovec_t			iovec;
+	int			eofp = 0;
+	int			outbuf_off = 0;
+	int			outbuf_resid = size;
 	struct stat		stb, fstat = { 0 };
 	struct srm_getattr_rep	*attr = attrs;
 
@@ -443,21 +447,13 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 		struct dirent64 dirent;
 	} entry;
 
-
 	uio.uio_iov = &iovec;
 	uio.uio_iovcnt = 1;
 	uio.uio_segflg = UIO_SYSSPACE;
 	uio.uio_fmode = 0;
 	uio.uio_llimit = RLIM64_INFINITY;
 
-	int eofp = 0;
-
-	int outbuf_off = 0;
-	int outbuf_resid = size;
-
-	off_t next = off;
-
-
+	next = off;
 
 	for(;;) {
 		iovec.iov_base = entry.buf;
