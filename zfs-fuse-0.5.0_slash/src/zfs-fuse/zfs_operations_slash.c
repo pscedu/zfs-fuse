@@ -512,6 +512,14 @@ out:
 	return error;
 }
 
+/*
+ * Construct the by-id namespace for our internal use.  This will add an extra link to all files AND 
+ * directories.  Normally, a user accesses a file or a directory by its name and that is done in the 
+ * by-name namespace.
+ * 
+ * Note that this function assumes that the upper layers of the by-id namespace have already been 
+ * created.  We do this when we format the file system.
+ */
 int
 zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 {
@@ -552,7 +560,8 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 		/*
 		 * Extract BPHXC bits at a time and convert them to a digit or a lower-case
 		 * letter to construct our pathname component.  5 means we start with 5th 
-		 * hex digit from right.
+		 * hex digit from the right side.  If the depth is 3, then we have 0xfff or
+		 * 4095 files in a directory in the by-id namespace.
 		 */
 		c = (uint8_t)(((uint64_t)VTOZ(linkvp)->z_id &
 			       (0x0000000000f00000ULL >> i*BPHXC)) >> ((5-i) * BPHXC));
