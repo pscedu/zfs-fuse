@@ -557,7 +557,13 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	 *   parent dvp's along the way.
 	 */
 	immns_name[1] = '\0';
+
+#ifdef NAMESPACE_EXPERIMENTAL
+	linkid = (uint64_t)VTOZ(linkvp)->z_fid;
+#else
 	linkid = (uint64_t)VTOZ(linkvp)->z_id;
+#endif
+
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
 		/*
 		 * Extract BPHXC bits at a time and convert them to a digit or a lower-case
