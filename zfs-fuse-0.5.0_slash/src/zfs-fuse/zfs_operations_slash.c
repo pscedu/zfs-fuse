@@ -413,11 +413,14 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
     off_t off, void *outbuf, size_t *outbuf_len, void *attrs, int nstbprefetch,
     void *data)
 {
+	vnode_t			*vp;
 	uio_t			uio;
+	vfs_t			*vfs;
 	off_t			next;
 	int			eofp;
 	int			error;
 	iovec_t			iovec;
+	zfsvfs_t		*zfsvfs;
 	int			outbuf_off;
 	struct srm_getattr_rep	*attr = attrs;
 	int			outbuf_resid = size;
@@ -427,7 +430,7 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 				struct dirent64 dirent;
 	} entry;
 
-	vnode_t *vp = ((file_info_t *)(uintptr_t) data)->vp;
+	vp = ((file_info_t *)(uintptr_t) data)->vp;
 
 	if (ino == 1) ino = 3;
 
@@ -435,11 +438,11 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 	ASSERT(VTOZ(vp) != NULL);
 	ASSERT(VTOZ(vp)->z_id == ino);
 
-	if(vp->v_type != VDIR)
+	if (vp->v_type != VDIR)
 		return ENOTDIR;
 
-	vfs_t *vfs = (vfs_t *) vfsdata;
-	zfsvfs_t *zfsvfs = vfs->vfs_data;
+	vfs = (vfs_t *) vfsdata;
+	zfsvfs = vfs->vfs_data;
 
 	if(outbuf == NULL)
 		return EINVAL;
