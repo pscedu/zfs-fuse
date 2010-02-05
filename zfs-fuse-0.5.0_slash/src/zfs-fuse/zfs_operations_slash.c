@@ -1501,21 +1501,25 @@ int
 zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
     const char *newname, struct fidgen *fg, cred_t *cred, struct stat *stb)
 {
-	if(strlen(newname) >= MAXNAMELEN) /* XXX off-by-one */
-		return ENAMETOOLONG;
+	vfs_t		*vfs;
+	int		 error;
+	zfsvfs_t	*zfsvfs;
+	znode_t		*s_znode;
+	znode_t		*td_znode;
 
-	vfs_t *vfs = (vfs_t *) vfsdata;
-	zfsvfs_t *zfsvfs = vfs->vfs_data;
+	if (strlen(newname) >= MAXNAMELEN) /* XXX off-by-one */
+		return ENAMETOOLONG;
 
 	if (newparent == 1) newparent = 3;
 	if (ino == 1) ino = 3;
 
+	vfs = (vfs_t *)vfsdata;
+	zfsvfs = vfs->vfs_data;
+
 	ZFS_ENTER(zfsvfs);
 
-	znode_t *td_znode, *s_znode;
-
-	int error = zfs_zget(zfsvfs, ino, &s_znode, B_FALSE);
-	if(error) {
+	error = zfs_zget(zfsvfs, ino, &s_znode, B_FALSE);
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -1525,7 +1529,7 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 	ASSERT(s_znode != NULL);
 
 	error = zfs_zget(zfsvfs, newparent, &td_znode, B_FALSE);
-	if(error) {
+	if (error) {
 		VN_RELE(ZTOV(s_znode));
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
