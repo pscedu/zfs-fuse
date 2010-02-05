@@ -914,8 +914,12 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	ASSERT(vp != NULL);
 
 	/* we only suppress fid link when called from mds_repl_scandir() */
-	if (suppress_fidlink == 0)
+	if (suppress_fidlink == 0) {
+#ifdef NAMESPACE_EXPERIMENTAL
+		VTOZ(vp)->z_fid = fid;
+#endif
 		error = zfsslash2_fidlink(zfsvfs, vp, 0);
+	}
 
 	if (fg) {
 		fg->fid = VTOZ(vp)->z_id;
