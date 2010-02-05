@@ -913,6 +913,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 	ASSERT(vp != NULL);
 
+	/* we only suppress fid link when called from mds_repl_scandir() */
 	if (suppress_fidlink == 0)
 		error = zfsslash2_fidlink(zfsvfs, vp, 0);
 
