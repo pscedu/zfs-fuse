@@ -70,7 +70,7 @@ int groupmember(gid_t gid, const cred_t *cr)
 	if(gid == cr->cr_gid)
 		return 1;
 
-#if FUSE_MINOR_VERSION <= 7
+#if 0 && FUSE_MINOR_VERSION <= 7
 	/* This whole thing is very expensive, FUSE should provide the list of groups the user belongs to.. */
 
 	char *pwd_buf = NULL;

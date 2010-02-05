@@ -500,7 +500,7 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 		if (nstbprefetch) {
 			attr->rc = zfsslash2_getattr(vfsdata,
 			    entry.dirent.d_ino, cred, &stb, &attr->gen);
-			slrpc_externalize(&stb, &attr->attr);
+			slrpc_externalize_stat(&stb, &attr->attr);
 
 			attr++;
 			nstbprefetch--;

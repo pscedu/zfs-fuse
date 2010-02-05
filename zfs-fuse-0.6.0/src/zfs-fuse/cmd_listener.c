@@ -31,11 +31,12 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <fuse/fuse.h>
 
 #include "zfs_ioctl.h"
 #include "zfsfuse_socket.h"
 #include "util.h"
+
+#include <fuse/fuse.h>
 
 #define MAX_CONNECTIONS 100
 
