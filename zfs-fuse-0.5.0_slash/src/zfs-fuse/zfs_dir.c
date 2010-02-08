@@ -757,7 +757,7 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 
 #ifdef NAMESPACE_EXPERIMENTAL
 	dirent.d_zfs_id = value;
-	dirent.d_slash_id = 0;
+	dirent.d_slash_id = zp->z_fid;
 	dirent.d_flags = 0;
 #endif
 
