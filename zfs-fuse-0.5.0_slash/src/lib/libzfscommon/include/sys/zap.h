@@ -291,6 +291,9 @@ typedef struct {
 	 * It seems to me that although the ZAP layer supports multi-value attribute,
 	 * most cases ZFS only uses the first integer.  This structure should pass
 	 * back all the values (not just one or three).
+	 *
+	 * This hack adds a burden to other users of the ZAP layer.  It is only
+	 * used by the directory handling.
 	 */
 	uint64_t za_second_integer;
 	uint64_t za_third_integer;
