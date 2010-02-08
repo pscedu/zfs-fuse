@@ -1501,7 +1501,10 @@ int
 zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
     const char *newname, struct fidgen *fg, cred_t *cred, struct stat *stb)
 {
+	vnode_t		*vp;
 	vfs_t		*vfs;
+	vnode_t		*svp;
+	vnode_t		*tdvp;
 	int		 error;
 	zfsvfs_t	*zfsvfs;
 	znode_t		*s_znode;
@@ -1510,8 +1513,10 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 	if (strlen(newname) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
-	if (newparent == 1) newparent = 3;
-	if (ino == 1) ino = 3;
+	if (ino == 1)
+		ino = 3;
+	if (newparent == 1)
+		newparent = 3;
 
 	vfs = (vfs_t *)vfsdata;
 	zfsvfs = vfs->vfs_data;
@@ -1537,26 +1542,24 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	vnode_t *svp = ZTOV(s_znode);
-	vnode_t *tdvp = ZTOV(td_znode);
+	svp = ZTOV(s_znode);
+	tdvp = ZTOV(td_znode);
 	ASSERT(svp != NULL);
 	ASSERT(tdvp != NULL);
 
 	error = VOP_LINK(tdvp, svp, (char *) newname, cred, NULL, 0);
-
-	vnode_t *vp = NULL;
-
-	if(error)
+	if (error)
 		goto out;
 
+	vp = NULL;
 	error = VOP_LOOKUP(tdvp, (char *) newname, &vp, NULL, 0, NULL, cred, NULL, NULL, NULL);
-	if(error)
+	if (error)
 		goto out;
 
 	ASSERT(vp != NULL);
 
 	fg->fid = VTOZ(vp)->z_id;
-	if(fg->fid == 3) {
+	if (fg->fid == 3) {
 		stb->st_ino = 1;
 		fg->fid = 1;
 	}
@@ -1566,7 +1569,7 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 	error = zfsslash2_stat(vp, stb, cred);
 
 out:
-	if(vp != NULL)
+	if (vp != NULL)
 		VN_RELE(vp);
 	VN_RELE(tdvp);
 	VN_RELE(svp);
