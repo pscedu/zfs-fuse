@@ -2064,7 +2064,11 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 				goto update;
 			}
 
+#ifdef NAMESPACE_EXPERIMENTAL
+			objnum = zap.za_second_integer;
+#else
 			objnum = ZFS_DIRENT_OBJ(zap.za_first_integer);
+#endif
 			/*
 			 * MacOS X can extract the object type here such as:
 			 * uint8_t type = ZFS_DIRENT_TYPE(zap.za_first_integer);
