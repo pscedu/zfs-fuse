@@ -285,6 +285,17 @@ typedef struct {
 	boolean_t za_normalization_conflict;
 	uint64_t za_num_integers;
 	uint64_t za_first_integer;	/* no sign extension for <8byte ints */
+
+#ifdef NAMESPACE_EXPERIMENTAL
+	/*
+	 * It seems to me that although the ZAP layer supports multi-value attribute,
+	 * most cases ZFS only uses the first integer.  This structure should pass
+	 * back all the values (not just one or three).
+	 */
+	uint64_t za_second_integer;
+	uint64_t za_third_integer;
+#endif
+
 	char za_name[MAXNAMELEN];
 } zap_attribute_t;
 
