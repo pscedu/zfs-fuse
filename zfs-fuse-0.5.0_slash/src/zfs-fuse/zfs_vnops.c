@@ -2049,8 +2049,13 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 					goto update;
 			}
 
+#ifdef NAMESPACE_EXPERIMENTAL
+			if (zap.za_integer_length != 8 ||
+			    zap.za_num_integers != 3) {
+#else
 			if (zap.za_integer_length != 8 ||
 			    zap.za_num_integers != 1) {
+#endif
 				cmn_err(CE_WARN, "zap_readdir: bad directory "
 				    "entry, obj = %lld, offset = %lld\n",
 				    (u_longlong_t)zp->z_id,
