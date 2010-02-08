@@ -531,8 +531,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	int		error;
 	znode_t		*znode;
 	uint64_t	linkid;
-	char		fidname[20];
-	char		immns_name[2];
+	char		id_name[20];
 	cred_t		creds = {0, 0};
 
 	ASSERT(linkvp);
@@ -557,7 +556,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	/* Lookup our fid's parent directory in the fid namespace, closing
 	 *   parent dvp's along the way.
 	 */
-	immns_name[1] = '\0';
+	id_name[1] = '\0';
 
 #ifdef NAMESPACE_EXPERIMENTAL
 	linkid = (uint64_t)VTOZ(linkvp)->z_fid;
@@ -573,15 +572,16 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 		 * 4095 files in a directory in the by-id namespace.
 		 */
 		c = (uint8_t)((linkid & (0x0000000000f00000ULL >> i*BPHXC)) >> ((5-i) * BPHXC));
-		immns_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
+		/* convert a hex digit to its corresponding ascii digit or lower case letter */
+		id_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
 
-		error = VOP_LOOKUP(dvp, immns_name, &vp, NULL, 0, NULL, &creds,
+		error = VOP_LOOKUP(dvp, id_name, &vp, NULL, 0, NULL, &creds,
 				   NULL, NULL, NULL);
 
 #ifdef DEBUG
-		fprintf(stderr, "immns_name=%s parent=%ld child=%ld "
+		fprintf(stderr, "id_name=%s parent=%ld child=%ld "
 			"error=%d\n",
-			immns_name, (uint64_t)VTOZ(dvp)->z_id,
+			id_name, (uint64_t)VTOZ(dvp)->z_id,
 			(uint64_t)VTOZ(vp)->z_id, error);
 
 #endif
@@ -591,19 +591,18 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 			return (error);
 		}
 	}
-	/* Should have the immns parent vp now.
-	 */
-	snprintf(fidname, 20, "%016"PRIx64, linkid);
-
+	/* we should have the parent vnode in the by-id namespace now */
 	ASSERT(vp);
+
+	snprintf(id_name, 20, "%016"PRIx64, linkid);
 	if (unlink)
-		error = VOP_REMOVE(vp, (char *)fidname, &creds, NULL, 0);
+		error = VOP_REMOVE(vp, (char *)id_name, &creds, NULL, 0);
 	else
-		error = VOP_LINK(vp, linkvp, (char *)fidname, &creds, NULL, FALLOWDIRLINK);
+		error = VOP_LINK(vp, linkvp, (char *)id_name, &creds, NULL, FALLOWDIRLINK);
 
 #ifdef DEBUG
-	fprintf(stderr, "fidname=%s parent=%ld linkvp=%ld error=%d\n",
-		fidname, (uint64_t)VTOZ(dvp)->z_id,
+	fprintf(stderr, "id_name=%s parent=%ld linkvp=%ld error=%d\n",
+		id_name, (uint64_t)VTOZ(dvp)->z_id,
 		linkid, error);
 #endif
 
