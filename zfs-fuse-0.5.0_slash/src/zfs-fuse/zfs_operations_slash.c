@@ -433,7 +433,8 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 
 	vp = ((file_info_t *)(uintptr_t) data)->vp;
 
-	if (ino == 1) ino = 3;
+	if (ino == 1)
+		ino = 3;
 
 	ASSERT(vp != NULL);
 	ASSERT(VTOZ(vp) != NULL);
@@ -617,13 +618,18 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		     mode_t createmode, const char *name, struct fidgen *fg,
 		     struct stat *stb, void **finfo)
 {
-	int mode, flags; /* Map flags */
-	uint64_t real_ino = ino == 1 ? 3 : ino;
-	vfs_t *vfs = (vfs_t *) vfsdata;
-	zfsvfs_t *zfsvfs = vfs->vfs_data;
+	int		mode;
+	int		error;
+	int		flags;
+	vfs_t		*vfs;
+	zfsvfs_t	*zfsvfs;
+	uint64_t	real_ino = ino == 1 ? 3 : ino;
 
 	if (name && strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
+
+	vfs = (vfs_t *)vfsdata;
+	zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
 
@@ -661,8 +667,8 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 
 	znode_t *znode;
 
-	int error = zfs_zget(zfsvfs, real_ino, &znode, B_FALSE);
-	if(error) {
+	error = zfs_zget(zfsvfs, real_ino, &znode, B_FALSE);
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
