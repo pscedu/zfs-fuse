@@ -725,6 +725,10 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	int zp_is_dir = (vp->v_type == VDIR);
 	int error;
 
+#ifdef NAMESPACE_EXPERIMENTAL
+	slash_direntry_t dirent;
+#endif
+
 	dmu_buf_will_dirty(zp->z_dbuf, tx);
 	mutex_enter(&zp->z_lock);
 
@@ -750,6 +754,13 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	mutex_exit(&dzp->z_lock);
 
 	value = zfs_dirent(zp);
+
+#ifdef NAMESPACE_EXPERIMENTAL
+	dirent.d_zfs_id = value;
+	dirent.d_slash_id = 0;
+	dirent.d_flags = 0;
+#endif
+
 	/* FALLOWDIRLINK is only set by zfsslash2_fidlink() */
 	if (flag & FALLOWDIRLINK)
 		error = zap_add_nochk(zp->z_zfsvfs->z_os, dzp->z_id, 
