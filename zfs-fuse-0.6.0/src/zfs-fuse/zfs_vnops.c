@@ -2440,7 +2440,8 @@ zfs_setattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 		return (EINVAL);
 	}
 
-	ASSERT(mask & (AT_SIZE | AT_SLASH2SIZE) != (AT_SIZE | AT_SLASH2SIZE));
+	if (mask & AT_SIZE && mask & AT_SLASH2SIZE)
+		abort();
 
 	/*
 	 * If this is an xvattr_t, then get a pointer to the structure of
