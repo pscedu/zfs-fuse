@@ -413,12 +413,22 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
     off_t off, void *outbuf, size_t *outbuf_len, void *attrs, int nstbprefetch,
     void *data)
 {
-	vnode_t		*vp;
-	vfs_t		*vfs;
-	zfsvfs_t	*zfsvfs;
+	vnode_t			*vp;
+	uio_t			 uio;
+	vfs_t			*vfs;
+	int			 eofp;
+	int			 error;
+	iovec_t			 iovec;
+	zfsvfs_t		*zfsvfs;
+	struct stat	 	 stb;
+	struct stat	 	 fstat = { 0 };
+	struct srm_getattr_rep	*attr = attrs;
+	int			 outbuf_off;
+	int			 outbuf_resid;
+
 	union {
-			 char buf[DIRENT64_RECLEN(MAXNAMELEN)]; /* off-by-one */
-			 struct dirent64 dirent;
+				 char buf[DIRENT64_RECLEN(MAXNAMELEN)]; /* off-by-one */
+				 struct dirent64 dirent;
 	} entry;
 
 	if (ino == 1)
@@ -440,27 +450,17 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 
 	ZFS_ENTER(zfsvfs);
 
-
-	struct stat stb, fstat = { 0 };
-	struct srm_getattr_rep *attr = attrs;
-
-	iovec_t iovec;
-	uio_t uio;
 	uio.uio_iov = &iovec;
 	uio.uio_iovcnt = 1;
 	uio.uio_segflg = UIO_SYSSPACE;
 	uio.uio_fmode = 0;
 	uio.uio_llimit = RLIM64_INFINITY;
 
-	int eofp = 0;
-
-	int outbuf_off = 0;
-	int outbuf_resid = size;
+	eofp = 0;
+	outbuf_off = 0;
+	outbuf_resid = size;
 
 	off_t next = off;
-
-	int error;
-
 
 	for (;;) {
 		iovec.iov_base = entry.buf;
