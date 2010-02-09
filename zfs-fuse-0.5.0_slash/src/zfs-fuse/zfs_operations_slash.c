@@ -1362,19 +1362,27 @@ int
 zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent,
     const char *name, cred_t *cred, struct stat *stb, struct fidgen *fg)
 {
-	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
+	vnode_t		*vp;
+	vnode_t		*dvp;
+	vfs_t		*vfs;
+	vattr_t		 vattr;
+	int		 error;
+	znode_t		*znode;
+	zfsvfs_t	*zfsvfs;
+	uint64_t	real_parent;
+
+	if (strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
-	vfs_t *vfs = (vfs_t *) vfsdata;
-	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	uint64_t real_parent = parent == 1 ? 3 : parent;
+	real_parent = parent == 1 ? 3 : parent;
+
+	vfs = (vfs_t *)vfsdata;
+	zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
 
-	znode_t *znode;
-
-	int error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
-	if(error) {
+	error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -1382,29 +1390,27 @@ zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent,
 	}
 
 	ASSERT(znode != NULL);
-	vnode_t *dvp = ZTOV(znode);
+	dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
 
-	vattr_t vattr;
 	vattr.va_type = VLNK;
 	vattr.va_mode = 0777;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 
 	error = VOP_SYMLINK(dvp, (char *) name, &vattr, (char *) link, cred, NULL, 0);
 
-	vnode_t *vp = NULL;
-
-	if(error)
+	vp = NULL;
+	if (error)
 		goto out;
 
 	error = VOP_LOOKUP(dvp, (char *) name, &vp, NULL, 0, NULL, cred, NULL, NULL, NULL);
-	if(error)
+	if (error)
 		goto out;
 
 	ASSERT(vp != NULL);
 
 	fg->fid = VTOZ(vp)->z_id;
-	if(fg->fid == 3) {
+	if (fg->fid == 3) {
 		fg->fid = 1;
 		stb->st_ino = 1;
 	}
@@ -1413,7 +1419,7 @@ zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent,
 	error = zfsslash2_stat(vp, stb, cred);
 
 out:
-	if(vp != NULL)
+	if (vp != NULL)
 		VN_RELE(vp);
 	VN_RELE(dvp);
 
