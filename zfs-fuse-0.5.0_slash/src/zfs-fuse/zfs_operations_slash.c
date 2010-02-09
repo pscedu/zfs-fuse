@@ -881,14 +881,14 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
     int suppress_fidlink)
 #endif
 {
-	ZFS_ENTER(zfsvfs);
-
 	if (strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 	uint64_t real_parent = (parent == 1 ? 3 : parent);
+
+	ZFS_ENTER(zfsvfs);
 
 	znode_t *znode;
 
