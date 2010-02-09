@@ -45,7 +45,7 @@
 #include "zfs_slashlib.h"
 
 /* keep the following in sync with slash_nara/include/fid.h */
-#define FID_PATH_DEPTH		3		
+#define FID_PATH_DEPTH		3
 #define	BPHXC			4
 
 kmem_cache_t *file_info_cache = NULL;
@@ -86,28 +86,28 @@ struct fuse_dirent {
 
 size_t fuse_dirent_size(size_t namelen)
 {
-    return FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + namelen);
+	return FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + namelen);
 }
 
 char *fuse_add_dirent(char *buf, const char *name, const struct stat *stbuf,
-		      off_t off)
+    off_t off)
 {
-    unsigned namelen = strlen(name);
-    unsigned entlen = FUSE_NAME_OFFSET + namelen;
-    unsigned entsize = fuse_dirent_size(namelen);
-    unsigned padlen = entsize - entlen;
-    struct fuse_dirent *dirent = (struct fuse_dirent *) buf;
+	unsigned namelen = strlen(name);
+	unsigned entlen = FUSE_NAME_OFFSET + namelen;
+	unsigned entsize = fuse_dirent_size(namelen);
+	unsigned padlen = entsize - entlen;
+	struct fuse_dirent *dirent = (struct fuse_dirent *) buf;
 
-    dirent->ino = stbuf->st_ino;
-    dirent->off = off;
-    dirent->namelen = namelen;
-    dirent->type = (stbuf->st_mode & 0170000) >> 12;
-    strncpy(dirent->name, name, namelen);
+	dirent->ino = stbuf->st_ino;
+	dirent->off = off;
+	dirent->namelen = namelen;
+	dirent->type = (stbuf->st_mode & 0170000) >> 12;
+	strncpy(dirent->name, name, namelen);
 
-    if (padlen)
-	memset(buf + entlen, 0, padlen);
+	if (padlen)
+		memset(buf + entlen, 0, padlen);
 
-    return buf + entsize;
+	return buf + entsize;
 }
 
 int
@@ -273,12 +273,6 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
 	if(vp == NULL)
 		goto out;
 
-	uint64_t ino, gen;
-
-	ino = VTOZ(vp)->z_id;
-	if(ino == 3)
-		ino = 1;
-
 	if (stb)
 		error = zfsslash2_stat(vp, stb, cred);
 
@@ -413,25 +407,7 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
     off_t off, void *outbuf, size_t *outbuf_len, void *attrs, int nstbprefetch,
     void *data)
 {
-	vnode_t			*vp;
-	uio_t			uio;
-	vfs_t			*vfs;
-	off_t			next;
-	int			eofp;
-	int			error;
-	int			dsize;
-	iovec_t			iovec;
-	zfsvfs_t		*zfsvfs;
-	int			outbuf_off;
-	struct srm_getattr_rep	*attr = attrs;
-	int			outbuf_resid = size;
-	struct stat		stb, fstat = { 0 };
-	union {
-				char buf[DIRENT64_RECLEN(MAXNAMELEN)]; /* off-by-one */
-				struct dirent64 dirent;
-	} entry;
-
-	vp = ((file_info_t *)(uintptr_t) data)->vp;
+	vnode_t *vp = ((file_info_t *)(uintptr_t) data)->vp;
 
 	if (ino == 1)
 		ino = 3;
@@ -440,26 +416,40 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 	ASSERT(VTOZ(vp) != NULL);
 	ASSERT(VTOZ(vp)->z_id == ino);
 
-	if (vp->v_type != VDIR)
+	if(vp->v_type != VDIR)
 		return ENOTDIR;
+
+	vfs_t *vfs = (vfs_t *)vfsdata;
+	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	if (outbuf == NULL)
 		return EINVAL;
 
-	vfs = (vfs_t *)vfsdata;
-	zfsvfs = vfs->vfs_data;
-
 	ZFS_ENTER(zfsvfs);
 
+	union {
+		char buf[DIRENT64_RECLEN(MAXNAMELEN)]; /* off-by-one */
+		struct dirent64 dirent;
+	} entry;
+
+	struct stat stb, fstat = { 0 };
+	struct srm_getattr_rep *attr = attrs;
+
+	iovec_t iovec;
+	uio_t uio;
 	uio.uio_iov = &iovec;
 	uio.uio_iovcnt = 1;
 	uio.uio_segflg = UIO_SYSSPACE;
 	uio.uio_fmode = 0;
 	uio.uio_llimit = RLIM64_INFINITY;
 
-	eofp = 0;
-	next = off;
-	outbuf_off = 0;
+	int eofp = 0;
+	off_t next = off;
+	int outbuf_off = 0;
+	int outbuf_resid = size;
+
+	int error;
+
 	for (;;) {
 		iovec.iov_base = entry.buf;
 		iovec.iov_len = sizeof(entry.buf);
@@ -477,7 +467,7 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 		fstat.st_ino = entry.dirent.d_ino;
 		fstat.st_mode = 0;
 
-		dsize = fuse_dirent_size(strlen(entry.dirent.d_name));
+		int dsize = fuse_dirent_size(strlen(entry.dirent.d_name));
 		if (dsize > outbuf_resid)
 			break;
 
@@ -515,11 +505,11 @@ out:
 }
 
 /*
- * Construct the by-id namespace for our internal use.  This will add an extra link to all files AND 
- * directories.  Normally, a user accesses a file or a directory by its name and that is done in the 
+ * Construct the by-id namespace for our internal use.  This will add an extra link to all files AND
+ * directories.  Normally, a user accesses a file or a directory by its name and that is done in the
  * by-name namespace.
- * 
- * Note that this function assumes that the upper layers of the by-id namespace have already been 
+ *
+ * Note that this function assumes that the upper layers of the by-id namespace have already been
  * created.  We do this when we format the file system.
  */
 int
@@ -568,11 +558,11 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
 		/*
 		 * Extract BPHXC bits at a time and convert them to a digit or a lower-case
-		 * letter to construct our pathname component.  5 means we start with 5th 
+		 * letter to construct our pathname component.  5 means we start with 5th
 		 * hex digit from the right side.  If the depth is 3, then we have 0xfff or
 		 * 4095 files in a directory in the by-id namespace.
 		 */
-		c = (uint8_t)((linkid & (0x0000000000f00000ULL >> i*BPHXC)) >> ((5-i) * BPHXC));
+		c = (uint8_t)((linkid & (UINT64_C(0x0000000000f00000) >> i*BPHXC)) >> ((5-i) * BPHXC));
 		/* convert a hex digit to its corresponding ascii digit or lower case letter */
 		id_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
 
@@ -618,20 +608,18 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		     mode_t createmode, const char *name, struct fidgen *fg,
 		     struct stat *stb, void **finfo)
 {
-	int		mode;
-	int		error;
-	int		flags;
-	vfs_t		*vfs;
-	zfsvfs_t	*zfsvfs;
-	uint64_t	real_ino = ino == 1 ? 3 : ino;
+	int mode, flags; /* Map flags */
+	uint64_t real_ino = ino == 1 ? 3 : ino;
+	vfs_t *vfs = (vfs_t *) vfsdata;
+	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	if (name && strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
-	vfs = (vfs_t *)vfsdata;
-	zfsvfs = vfs->vfs_data;
-
 	ZFS_ENTER(zfsvfs);
+
+	/* Map flags */
+	int mode, flags;
 
 	if (fflags & O_WRONLY) {
 		mode = VWRITE;
@@ -667,7 +655,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 
 	znode_t *znode;
 
-	error = zfs_zget(zfsvfs, real_ino, &znode, B_FALSE);
+	int error = zfs_zget(zfsvfs, real_ino, &znode, B_FALSE);
 	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
@@ -788,7 +776,6 @@ out:
 }
 
 
-
 int zfsslash2_readlink(void *vfsdata, uint64_t ino, char *buf, cred_t *cred)
 {
 	vfs_t *vfs = (vfs_t *) vfsdata;
@@ -892,24 +879,18 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
     int suppress_fidlink)
 #endif
 {
-	vnode_t		*vp;
-	vfs_t		*vfs;
-	znode_t		*znode;
-	int		 error;
-	zfsvfs_t	*zfsvfs;
-	uint64_t	 real_parent;
-	vattr_t		 vattr = { 0 };
+	ZFS_ENTER(zfsvfs);
 
 	if (strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
-	vfs = (vfs_t *)vfsdata;
-	zfsvfs = vfs->vfs_data;
-	real_parent = (parent == 1 ? 3 : parent);
+	vfs_t *vfs = (vfs_t *) vfsdata;
+	zfsvfs_t *zfsvfs = vfs->vfs_data;
+	uint64_t real_parent = (parent == 1 ? 3 : parent);
 
-	ZFS_ENTER(zfsvfs);
+	znode_t *znode;
 
-	error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
+	int error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
 	if(error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
@@ -921,8 +902,9 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	vnode_t *dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
 
-	vp = NULL;
+	vnode_t *vp = NULL;
 
+	vattr_t vattr = { 0 };
 	vattr.va_type = VDIR;
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
@@ -1507,13 +1489,6 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
     const char *newname, struct fidgen *fg, cred_t *cred, struct stat *stb)
 {
 	vnode_t		*vp;
-	vfs_t		*vfs;
-	vnode_t		*svp;
-	vnode_t		*tdvp;
-	int		 error;
-	zfsvfs_t	*zfsvfs;
-	znode_t		*s_znode;
-	znode_t		*td_znode;
 
 	if (strlen(newname) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
@@ -1523,12 +1498,14 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 	if (newparent == 1)
 		newparent = 3;
 
-	vfs = (vfs_t *)vfsdata;
-	zfsvfs = vfs->vfs_data;
+	vfs_t *vfs = (vfs_t *)vfsdata;
+	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
 
-	error = zfs_zget(zfsvfs, ino, &s_znode, B_FALSE);
+	znode_t *td_znode, *s_znode;
+
+	int error = zfs_zget(zfsvfs, ino, &s_znode, B_FALSE);
 	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
@@ -1547,8 +1524,8 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	svp = ZTOV(s_znode);
-	tdvp = ZTOV(td_znode);
+	vnode_t *svp = ZTOV(s_znode);
+	vnode_t *tdvp = ZTOV(td_znode);
 	ASSERT(svp != NULL);
 	ASSERT(tdvp != NULL);
 
@@ -1556,7 +1533,7 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 	if (error)
 		goto out;
 
-	vp = NULL;
+	vnode_t *vp = NULL;
 	error = VOP_LOOKUP(tdvp, (char *) newname, &vp, NULL, 0, NULL, cred, NULL, NULL, NULL);
 	if (error)
 		goto out;

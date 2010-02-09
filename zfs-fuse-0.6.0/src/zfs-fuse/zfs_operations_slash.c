@@ -44,6 +44,10 @@
 #include "util.h"
 #include "zfs_slashlib.h"
 
+/* keep the following in sync with slash_nara/include/fid.h */
+#define FID_PATH_DEPTH		3
+#define BPHXC			4
+
 kmem_cache_t *file_info_cache = NULL;
 
 
@@ -178,6 +182,16 @@ int zfsslash2_statfs(void *vfsdata, struct statvfs *stat, fuse_ino_t ino)
 	return (0);
 }
 
+void
+zfsslash2_export_statbuf(struct stat *stb)
+{
+	if (stb->st_ino == 3)
+		stb->st_ino = 1;
+	if (stb->st_nlink > 1)
+		stb->st_nlink--;	/* subtract 1 for slfidns */
+	/* XXX adjust st_nlink of files in repldir */
+}
+
 int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 {
 	ASSERT(vp != NULL);
@@ -194,10 +208,9 @@ int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 	memset(stbuf, 0, sizeof(struct stat));
 
 	stbuf->st_dev = vattr.va_fsid;
-	stbuf->st_ino = vattr.va_nodeid == 3 ? 1 : vattr.va_nodeid;
+	stbuf->st_ino = vattr.va_nodeid;
 	stbuf->st_mode = VTTOIF(vattr.va_type) | vattr.va_mode;
-	stbuf->st_nlink = MAX(1, vattr.va_nlink - 1);	/* subtract 1 for slfidns */
-	/* XXX adjust st_nlink of files in repldir */
+	stbuf->st_nlink = vattr.va_nlink;
 	stbuf->st_uid = vattr.va_uid;
 	stbuf->st_gid = vattr.va_gid;
 	stbuf->st_rdev = vattr.va_rdev;
@@ -207,6 +220,8 @@ int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 	TIMESTRUC_TO_TIME(vattr.va_atime, &stbuf->st_atime);
 	TIMESTRUC_TO_TIME(vattr.va_mtime, &stbuf->st_mtime);
 	TIMESTRUC_TO_TIME(vattr.va_ctime, &stbuf->st_ctime);
+
+	zfsslash2_export_statbuf(stbuf);
 
 	return 0;
 }
@@ -275,16 +290,13 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
 	vnode_t *vp = NULL;
 
 	error = VOP_LOOKUP(dvp, (char *) name, &vp, NULL, 0, NULL, cred, NULL, NULL, NULL);
-	if(error) {
-		if (error == ENOENT) {
-			error = 0;
-			fg->fid = 0;
-		}
+	if(error)
+		goto out;
+
+	if(vp == NULL) {
+		error = ENOENT;
 		goto out;
 	}
-
-	if(vp == NULL)
-		goto out;
 
 	if (stb)
 		error = zfsslash2_stat(vp, stb, cred);
@@ -484,6 +496,8 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 			goto next_entry;
 
 		fstat.st_ino = entry.dirent.d_ino;
+		if (fstat.st_ino == 1)
+			fstat.st_ino = 3;
 		fstat.st_mode = 0;
 
 		int dsize = fuse_add_direntry(NULL, NULL, 0, entry.dirent.d_name, NULL, 0);
@@ -499,7 +513,8 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 
 		if (nstbprefetch) {
 			attr->rc = zfsslash2_getattr(vfsdata,
-			    entry.dirent.d_ino, cred, &stb, &attr->gen);
+			    fstat.st_ino, cred, &stb, &attr->gen);
+			zfsslash2_export_statbuf(&stb);
 			slrpc_externalize_stat(&stb, &attr->attr);
 
 			attr++;
@@ -518,25 +533,36 @@ out:
 	return error;
 }
 
+/*
+ * Construct the by-id namespace for our internal use. This will add an extra link to all files AND
+ * directories. Normally, a user accesses a file or a directory by its name and that is done in the
+ * by-name namespace.
+ *
+ * Note that this function assumes that the upper layers of the by-id namespace have already been
+ * created. We do this when we format the file system.
+ */
 int
 zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 {
-	int i;
+	int		 i;
+	uint8_t		 c;
+	vnode_t		*vp = NULL;
+	vnode_t		*dvp;
+	int		 error;
+	znode_t		*znode;
+	uint64_t	 linkid;
+	char		 id_name[20];
+	cred_t		 creds = { 0, 0 };
 
 	ASSERT(linkvp);
 
-	cred_t creds = {0};
-	znode_t *znode;
-
-	int error = zfs_zget(zfsvfs, 3, &znode, B_TRUE);
+	error = zfs_zget(zfsvfs, 3, &znode, B_TRUE);
 	if (error)
 		return error == EEXIST ? ENOENT : error;
 
 	ASSERT(znode != NULL);
-	vnode_t *dvp = ZTOV(znode);
+	dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
-
-	vnode_t *vp = NULL;
 
 	error = VOP_LOOKUP(dvp, SL_PATH_FIDNS, &vp, NULL, 0, NULL, &creds,
 			   NULL, NULL, NULL);
@@ -551,25 +577,27 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	dvp = vp;
 	/* Lookup our fid's parent directory in the fid namespace, closing
 	 *   parent dvp's along the way.
-	 (uint8_t)(((fid & 0x0000000000f00000ULL) >> BPHXC) >>
-				(((FP_DEPTH-1)*BPHXC) + (BPHXC*3))),
 	 */
-	char immns_name[2];
-	uint8_t c;
-	for (i=0; i < 3; i++, VN_RELE(dvp), dvp=vp) {
+	id_name[1] = '\0';
+	linkid = (uint64_t)VTOZ(linkvp)->z_id;
+	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
+		/*
+		 * Extract BPHXC bits at a time and convert them to a digit or a lower-case
+		 * letter to construct our pathname component. 5 means we start with 5th
+		 * hex digit from the right side. If the depth is 3, then we have 0xfff or
+		 * 4095 files in a directory in the by-id namespace.
+		 */
+		c = (uint8_t)((linkid & (0x0000000000f00000ULL >> i*BPHXC)) >> ((5-i) * BPHXC));
+		/* convert a hex digit to its corresponding ascii digit or lower case letter */
+		id_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
 
-		c = (uint8_t)(((uint64_t)VTOZ(linkvp)->z_id &
-			       (0x0000000000f00000ULL >> i*(4))) >> (((2-i)*4)+12));
-		immns_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
-		immns_name[1] = '\0';
-
-		error = VOP_LOOKUP(dvp, immns_name, &vp, NULL, 0, NULL, &creds,
+		error = VOP_LOOKUP(dvp, id_name, &vp, NULL, 0, NULL, &creds,
 				   NULL, NULL, NULL);
 
 #ifdef DEBUG
-		fprintf(stderr, "immns_name=%s parent=%ld child=%ld "
+		fprintf(stderr, "id_name=%s parent=%ld child=%ld "
 			"error=%d\n",
-			immns_name, (uint64_t)VTOZ(dvp)->z_id,
+			id_name, (uint64_t)VTOZ(dvp)->z_id,
 			(uint64_t)VTOZ(vp)->z_id, error);
 
 #endif
@@ -579,21 +607,19 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 			return (error);
 		}
 	}
-	/* Should have the immns parent vp now.
-	 */
-	char fidname[20];
-	snprintf(fidname, 20, "%016lx", (uint64_t)VTOZ(linkvp)->z_id);
-
+	/* we should have the parent vnode in the by-id namespace now */
 	ASSERT(vp);
+
+	snprintf(id_name, sizeof(id_name), "%016"PRIx64, linkid);
 	if (unlink)
-		error = VOP_REMOVE(vp, (char *)fidname, &creds, NULL, 0);
+		error = VOP_REMOVE(vp, (char *)id_name, &creds, NULL, 0);
 	else
-		error = VOP_LINK(vp, linkvp, (char *)fidname, &creds, NULL, FALLOWDIRLINK);
+		error = VOP_LINK(vp, linkvp, (char *)id_name, &creds, NULL, FALLOWDIRLINK);
 
 #ifdef DEBUG
-	fprintf(stderr, "fidname=%s parent=%ld linkvp=%ld error=%d\n",
-		fidname, (uint64_t)VTOZ(dvp)->z_id,
-		(uint64_t)VTOZ(linkvp)->z_id, error);
+	fprintf(stderr, "id_name=%s parent=%ld linkvp=%ld error=%d\n",
+		id_name, (uint64_t)VTOZ(dvp)->z_id,
+		linkid, error);
 #endif
 
 	if (error)
@@ -630,7 +656,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		flags = FREAD;
 	}
 
-	fflags |= O_DSYNC;
+	//fflags |= O_DSYNC;
 
 	if(fflags & O_CREAT)
 		flags |= FCREAT;
@@ -870,6 +896,8 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
     mode_t mode, cred_t *cred, struct stat *stb, struct fidgen *fg,
     int suppress_fidlink)
 {
+	ZFS_ENTER(zfsvfs);
+
 	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
@@ -877,8 +905,6 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	uint64_t real_parent = (parent == 1 ? 3 : parent);
-
-	ZFS_ENTER(zfsvfs);
 
 	znode_t *znode;
 
@@ -907,8 +933,11 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 	ASSERT(vp != NULL);
 
-	if (suppress_fidlink == 0)
+	if (suppress_fidlink == 0) {
 		error = zfsslash2_fidlink(zfsvfs, vp, 0);
+		if (error)
+			goto out;
+	}
 
 	if (fg) {
 		fg->fid = VTOZ(vp)->z_id;
