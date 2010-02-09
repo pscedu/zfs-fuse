@@ -755,17 +755,21 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 
 	value = zfs_dirent(zp);
 
-#ifdef NAMESPACE_EXPERIMENTAL
-	dirent.d_zfs_id = value;
-	dirent.d_slash_id = zp->z_fid;
-	dirent.d_flags = 0;
-#endif
 
 	/* FALLOWDIRLINK is only set by zfsslash2_fidlink() */
-	if (flag & FALLOWDIRLINK)
+	if (flag & FALLOWDIRLINK) {
+
+#ifdef NAMESPACE_EXPERIMENTAL
+		dirent.d_zfs_id = value;
+		dirent.d_slash_id = zp->z_fid;
+		dirent.d_flags = 0;
+		error = zap_add_nochk(zp->z_zfsvfs->z_os, dzp->z_id, 
+				      dl->dl_name, 8, 3, &dirent, tx);
+#else
 		error = zap_add_nochk(zp->z_zfsvfs->z_os, dzp->z_id, 
 				      dl->dl_name, 8, 1, &value, tx);
-	else
+#endif
+	} else
 		error = zap_add(zp->z_zfsvfs->z_os, dzp->z_id, 
 				dl->dl_name, 8, 1, &value, tx);
 	ASSERT(error == 0);
