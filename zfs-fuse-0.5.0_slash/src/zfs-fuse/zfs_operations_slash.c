@@ -304,17 +304,23 @@ int
 zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred,
     struct fidgen *fg, struct stat *stb, void **finfo)
 {
-	vfs_t *vfs = (vfs_t *) vfsdata;
-	zfsvfs_t *zfsvfs = vfs->vfs_data;
+	vnode_t		*vp;
+	vfs_t		*vfs;
+	znode_t		*znode;
+	int		 error;
+	zfsvfs_t	*zfsvfs;
+	vnode_t		*old_vp;
 
-	if (ino == 1) ino = 3;
+	if (ino == 1)
+		ino = 3;
+
+	vfs = (vfs_t *)vfsdata;
+	zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
 
-	znode_t *znode;
-
-	int error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
-	if(error) {
+	error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -322,10 +328,10 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred,
 	}
 
 	ASSERT(znode != NULL);
-	vnode_t *vp = ZTOV(znode);
+	vp = ZTOV(znode);
 	ASSERT(vp != NULL);
 
-	if(vp->v_type != VDIR) {
+	if (vp->v_type != VDIR) {
 		error = ENOTDIR;
 		goto out;
 	}
@@ -335,24 +341,23 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred,
 	if (error = VOP_ACCESS(vp, VREAD | VEXEC, 0, cred, NULL))
 		goto out;
 
-	vnode_t *old_vp = vp;
+	old_vp = vp;
 
 	/* XXX: not sure about flags */
 	error = VOP_OPEN(&vp, FREAD, cred, NULL);
 
 	ASSERT(old_vp == vp);
 
-	if(!error) {
+	if (!error) {
 		/* XXX convert to the slash d_ino cache */
 		*finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
-		if(*finfo == NULL) {
+		if (*finfo == NULL) {
 			error = ENOMEM;
 			goto out;
 		}
 
 		((file_info_t *)(*finfo))->vp = vp;
 		((file_info_t *)(*finfo))->flags = FREAD;
-
 
 		if (VTOZ(vp)->z_id == 3)
 			fg->fid = 1;
@@ -363,13 +368,13 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred,
 	}
 
 	error = zfsslash2_stat(vp, stb, cred);
-	if(error)
+	if (error)
 		goto out;
 out:
-	if(error)
+	if (error)
 		VN_RELE(vp);
-	ZFS_EXIT(zfsvfs);
 
+	ZFS_EXIT(zfsvfs);
 	return error;
 }
 
