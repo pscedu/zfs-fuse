@@ -153,7 +153,7 @@ void zfsslash2_destroy(void *userdata)
 #endif
 }
 
-int zfsslash2_statfs(void *vfsdata, struct statvfs *stat, fuse_ino_t ino)
+int zfsslash2_statfs(void *vfsdata, struct statvfs *stat, uint64_t ino)
 {
 	vfs_t *vfs = (vfs_t *)vfsdata;
 
@@ -434,7 +434,8 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 {
 	vnode_t *vp = ((file_info_t *)(uintptr_t) data)->vp;
 
-	if (ino == 1) ino = 3;
+	if (ino == 1)
+		ino = 3;
 
 	ASSERT(vp != NULL);
 	ASSERT(VTOZ(vp) != NULL);
@@ -587,7 +588,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 		 * hex digit from the right side. If the depth is 3, then we have 0xfff or
 		 * 4095 files in a directory in the by-id namespace.
 		 */
-		c = (uint8_t)((linkid & (0x0000000000f00000ULL >> i*BPHXC)) >> ((5-i) * BPHXC));
+		c = (uint8_t)((linkid & (UINT64_C(0x0000000000f00000) >> i*BPHXC)) >> ((5-i) * BPHXC));
 		/* convert a hex digit to its corresponding ascii digit or lower case letter */
 		id_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
 
@@ -633,12 +634,12 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		     mode_t createmode, const char *name, struct fidgen *fg,
 		     struct stat *stb, void **finfo)
 {
-	if(name && strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
-		return ENAMETOOLONG;
-
 	uint64_t real_ino = ino == 1 ? 3 : ino;
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
+
+	if(name && strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
+		return ENAMETOOLONG;
 
 	ZFS_ENTER(zfsvfs);
 
@@ -797,7 +798,6 @@ out:
 
 	return error;
 }
-
 
 
 int zfsslash2_readlink(void *vfsdata, uint64_t ino, char *buf, cred_t *cred)
@@ -1515,11 +1515,13 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 	if(strlen(newname) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
+	if (ino == 1)
+		ino = 3;
+	if (newparent == 1)
+		newparent = 3;
+
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-
-	if (newparent == 1) newparent = 3;
-	if (ino == 1) ino = 3;
 
 	ZFS_ENTER(zfsvfs);
 
@@ -1550,9 +1552,7 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 	ASSERT(tdvp != NULL);
 
 	error = VOP_LINK(tdvp, svp, (char *) newname, cred, NULL, 0);
-
 	vnode_t *vp = NULL;
-
 	if(error)
 		goto out;
 

@@ -444,11 +444,14 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 	uio.uio_llimit = RLIM64_INFINITY;
 
 	int eofp = 0;
-	off_t next = off;
+
 	int outbuf_off = 0;
 	int outbuf_resid = size;
 
+	off_t next = off;
+
 	int error;
+
 
 	for (;;) {
 		iovec.iov_base = entry.buf;
@@ -608,7 +611,6 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		     mode_t createmode, const char *name, struct fidgen *fg,
 		     struct stat *stb, void **finfo)
 {
-	int mode, flags; /* Map flags */
 	uint64_t real_ino = ino == 1 ? 3 : ino;
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -1488,8 +1490,6 @@ int
 zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
     const char *newname, struct fidgen *fg, cred_t *cred, struct stat *stb)
 {
-	vnode_t		*vp;
-
 	if (strlen(newname) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
@@ -1530,10 +1530,10 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 	ASSERT(tdvp != NULL);
 
 	error = VOP_LINK(tdvp, svp, (char *) newname, cred, NULL, 0);
+	vnode_t *vp = NULL;
 	if (error)
 		goto out;
 
-	vnode_t *vp = NULL;
 	error = VOP_LOOKUP(tdvp, (char *) newname, &vp, NULL, 0, NULL, cred, NULL, NULL, NULL);
 	if (error)
 		goto out;
