@@ -51,6 +51,9 @@ typedef struct dirent {
 
 #ifdef NAMESPACE_EXPERIMENTAL
 
+#define	SLASH_DIR_ENT_NONE	0x00
+#define	SLASH_DIR_ENT_HIDE	0x01	/* keep but hide an entry until its log arrives */
+
 typedef struct slash_direntry {
 	uint64_t	d_zfs_id;	/* ZFS native inode number */
 	uint64_t	d_slash_id;	/* SLASH ID */
