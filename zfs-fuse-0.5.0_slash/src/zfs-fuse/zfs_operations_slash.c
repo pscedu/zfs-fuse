@@ -413,30 +413,33 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
     off_t off, void *outbuf, size_t *outbuf_len, void *attrs, int nstbprefetch,
     void *data)
 {
-	vnode_t *vp = ((file_info_t *)(uintptr_t) data)->vp;
+	vnode_t		*vp;
+	vfs_t		*vfs;
+	zfsvfs_t	*zfsvfs;
+	union {
+			 char buf[DIRENT64_RECLEN(MAXNAMELEN)]; /* off-by-one */
+			 struct dirent64 dirent;
+	} entry;
 
 	if (ino == 1)
 		ino = 3;
+	if (outbuf == NULL)
+		return EINVAL;
+
+	vp = ((file_info_t *)(uintptr_t) data)->vp;
 
 	ASSERT(vp != NULL);
 	ASSERT(VTOZ(vp) != NULL);
 	ASSERT(VTOZ(vp)->z_id == ino);
 
-	if(vp->v_type != VDIR)
+	if (vp->v_type != VDIR)
 		return ENOTDIR;
 
-	vfs_t *vfs = (vfs_t *)vfsdata;
-	zfsvfs_t *zfsvfs = vfs->vfs_data;
-
-	if (outbuf == NULL)
-		return EINVAL;
+	vfs = (vfs_t *)vfsdata;
+	zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
 
-	union {
-		char buf[DIRENT64_RECLEN(MAXNAMELEN)]; /* off-by-one */
-		struct dirent64 dirent;
-	} entry;
 
 	struct stat stb, fstat = { 0 };
 	struct srm_getattr_rep *attr = attrs;
