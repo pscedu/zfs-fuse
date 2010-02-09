@@ -622,22 +622,29 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		     mode_t createmode, const char *name, struct fidgen *fg,
 		     struct stat *stb, void **finfo)
 {
-	uint64_t real_ino = ino == 1 ? 3 : ino;
-	vfs_t *vfs = (vfs_t *) vfsdata;
-	zfsvfs_t *zfsvfs = vfs->vfs_data;
+	vfs_t		*vfs;
+	int		 mode;
+	int		 flags;
+	int		 error;
+	znode_t		*znode;
+	zfsvfs_t	*zfsvfs;
+	vnode_t		*old_vp;
+	uint64_t	 real_ino;
 
 	if (name && strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
-	ZFS_ENTER(zfsvfs);
+	real_ino = ino == 1 ? 3 : ino;
 
-	/* Map flags */
-	int mode, flags;
+	vfs = (vfs_t *)vfsdata;
+	zfsvfs = vfs->vfs_data;
+
+	ZFS_ENTER(zfsvfs);
 
 	if (fflags & O_WRONLY) {
 		mode = VWRITE;
 		flags = FWRITE;
-	} else if(fflags & O_RDWR) {
+	} else if (fflags & O_RDWR) {
 		mode = VREAD | VWRITE;
 		flags = FREAD | FWRITE;
 	} else {
@@ -666,9 +673,8 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 	if (fflags & O_EXCL)
 		flags |= FEXCL;
 
-	znode_t *znode;
 
-	int error = zfs_zget(zfsvfs, real_ino, &znode, B_FALSE);
+	error = zfs_zget(zfsvfs, real_ino, &znode, B_FALSE);
 	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
@@ -745,18 +751,16 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		goto out;
 	}
 
-	vnode_t *old_vp = vp;
-
+	old_vp = vp;
 	error = VOP_OPEN(&vp, flags, cred, NULL);
-
 	ASSERT(old_vp == vp);
 
-	if(error)
+	if (error)
 		goto out;
 
 	//if(flags & FCREAT) {
 	error = zfsslash2_stat(vp, stb, cred);
-	if(error)
+	if (error)
 		goto out;
 	//}
 	*finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
@@ -770,7 +774,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 
 	//if(flags & FCREAT) {
 	fg->fid = VTOZ(vp)->z_id;
-	if(fg->fid == 3) {
+	if (fg->fid == 3) {
 		fg->fid = 1;
 		stb->st_ino = 1;
 	}
@@ -778,7 +782,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 	fg->gen = VTOZ(vp)->z_phys->zp_gen;
 	//}
 out:
-	if(error) {
+	if (error) {
 		ASSERT(vp->v_count > 0);
 		VN_RELE(vp);
 	}
