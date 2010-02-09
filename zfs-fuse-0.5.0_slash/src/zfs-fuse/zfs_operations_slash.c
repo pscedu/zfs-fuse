@@ -462,7 +462,7 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 	outbuf_off = 0;
 	outbuf_resid = size;
 
-	off_t next = off;
+	next = off;
 
 	for (;;) {
 		iovec.iov_base = entry.buf;
