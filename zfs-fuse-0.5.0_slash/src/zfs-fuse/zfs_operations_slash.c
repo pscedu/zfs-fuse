@@ -366,10 +366,7 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino, cred_t *cred,
 
 		fg->gen = VTOZ(vp)->z_phys->zp_gen;
 	}
-
 	error = zfsslash2_stat(vp, stb, cred);
-	if (error)
-		goto out;
 out:
 	if (error)
 		VN_RELE(vp);
