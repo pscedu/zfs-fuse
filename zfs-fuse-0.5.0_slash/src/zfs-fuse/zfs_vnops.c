@@ -2065,6 +2065,7 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 			}
 
 #ifdef NAMESPACE_EXPERIMENTAL
+			/* return SLASH ID stored in the second integer */
 			objnum = zap.za_second_integer;
 #else
 			objnum = ZFS_DIRENT_OBJ(zap.za_first_integer);
