@@ -240,20 +240,25 @@ int
 zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
 		 fidgen_t *fg, cred_t *cred, struct stat *stb)
 {
-	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
+	vfs_t		*vfs;
+	vnode_t		*vp;
+	vnode_t		*dvp;
+	znode_t		*znode;
+	int		 error;
+	zfsvfs_t	*zfsvfs;
+
+	if (strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
-	vfs_t *vfs = (vfs_t *)vfsdata;
-	zfsvfs_t *zfsvfs = vfs->vfs_data;
+	if (parent == 1)
+		parent = 3;
 
-	if (parent == 1) parent = 3;
-
+	vfs = (vfs_t *)vfsdata;
+	zfsvfs = vfs->vfs_data;
 	ZFS_ENTER(zfsvfs);
 
-	znode_t *znode;
-
-	int error = zfs_zget(zfsvfs, parent, &znode, B_TRUE);
-	if(error) {
+	error = zfs_zget(zfsvfs, parent, &znode, B_TRUE);
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -261,16 +266,15 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
 	}
 
 	ASSERT(znode != NULL);
-	vnode_t *dvp = ZTOV(znode);
+	dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
 
-	vnode_t *vp = NULL;
-
+	vp = NULL;
 	error = VOP_LOOKUP(dvp, (char *) name, &vp, NULL, 0, NULL, cred, NULL, NULL, NULL);
-	if(error)
+	if (error)
 		goto out;
 
-	if(vp == NULL)
+	if (vp == NULL)
 		goto out;
 
 	if (stb)
@@ -286,7 +290,7 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
 	fg->gen = VTOZ(vp)->z_phys->zp_gen;
 
 out:
-	if(vp != NULL)
+	if (vp != NULL)
 		VN_RELE(vp);
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
