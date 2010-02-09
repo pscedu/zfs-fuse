@@ -416,8 +416,10 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 	vnode_t			*vp;
 	uio_t			 uio;
 	vfs_t			*vfs;
+	off_t			 next;
 	int			 eofp;
 	int			 error;
+	int			 dsize;
 	iovec_t			 iovec;
 	zfsvfs_t		*zfsvfs;
 	struct stat	 	 stb;
@@ -479,7 +481,7 @@ int zfsslash2_readdir(void *vfsdata, uint64_t ino, cred_t *cred, size_t size,
 		fstat.st_ino = entry.dirent.d_ino;
 		fstat.st_mode = 0;
 
-		int dsize = fuse_dirent_size(strlen(entry.dirent.d_name));
+		dsize = fuse_dirent_size(strlen(entry.dirent.d_name));
 		if (dsize > outbuf_resid)
 			break;
 
