@@ -214,7 +214,10 @@ int zfsslash2_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 	stbuf->st_uid = vattr.va_uid;
 	stbuf->st_gid = vattr.va_gid;
 	stbuf->st_rdev = vattr.va_rdev;
-	stbuf->st_size = vattr.va_s2size;
+	if (S_ISDIR(stbuf->st_mode))
+		stbuf->st_size = vattr.va_blksize * vattr.va_nblocks;
+	else
+		stbuf->st_size = vattr.va_s2size;
 	stbuf->st_blksize = vattr.va_blksize;
 	stbuf->st_blocks = vattr.va_nblocks;
 	TIMESTRUC_TO_TIME(vattr.va_atime, &stbuf->st_atime);
