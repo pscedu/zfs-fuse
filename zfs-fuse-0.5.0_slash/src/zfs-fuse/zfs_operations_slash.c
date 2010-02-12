@@ -877,7 +877,7 @@ zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred,
 int
 zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
     mode_t mode, cred_t *cred, struct stat *stb, struct fidgen *fg,
-    int suppress_fidlink)
+    int flags)
 {
 	if (strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
@@ -916,7 +916,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	ASSERT(vp != NULL);
 
 	/* we only suppress fid link when called from mds_repl_scandir() */
-	if (suppress_fidlink == 0) {
+	if (flags == 0) {
 #ifdef NAMESPACE_EXPERIMENTAL
 		VTOZ(vp)->z_fid = fid;
 #endif
