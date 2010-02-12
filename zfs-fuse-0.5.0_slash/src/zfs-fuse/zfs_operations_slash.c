@@ -870,18 +870,14 @@ zfsslash2_read(void *vfsdata, uint64_t ino, cred_t *cred,
 	return (error);
 }
 
-
-#ifdef NAMESPACE_EXPERIMENTAL
-int
-zfsslash2_mkdir(void *vfsdata, uint64_t parent, uint64_t fid, const char *name,
-    mode_t mode, cred_t *cred, struct stat *stb, struct fidgen *fg,
-    int suppress_fidlink)
-#else
+/*
+ * fg is used as an in and out parameter. If it is not FID_ANY, then
+ * the caller has passed in a pre-determined SLASH_ID for us to use.
+ */
 int
 zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
     mode_t mode, cred_t *cred, struct stat *stb, struct fidgen *fg,
     int suppress_fidlink)
-#endif
 {
 	if (strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
