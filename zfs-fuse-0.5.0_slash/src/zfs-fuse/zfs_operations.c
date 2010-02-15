@@ -418,7 +418,7 @@ static int zfsfuse_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t of
 		uio.uio_resid = iovec.iov_len;
 		uio.uio_loffset = next;
 
-		error = VOP_READDIR(vp, &uio, &cred, &eofp, NULL, 0);
+		error = VOP_READDIR(vp, &uio, &cred, &eofp, NULL, V_RDDIR_LOCAL_ID);
 		if(error)
 			goto out;
 
