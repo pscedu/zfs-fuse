@@ -909,6 +909,11 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 
+#if NAMESPACE_EXPERIMENTAL
+	if (fg)
+		vattr.va_slashid = fg->fid;
+#endif
+
 	error = VOP_MKDIR(dvp, (char *) name, &vattr, &vp, cred, NULL, 0, NULL);
 	if(error)
 		goto out;
