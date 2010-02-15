@@ -160,7 +160,7 @@ typedef struct vattr {
 	gid_t        va_gid;     /* owner group id */
 	dev_t        va_fsid;    /* file system id (dev for now) */
 #ifdef NAMESPACE_EXPERIMENTAL
-	uint64_t     va_slashid; /* SLASH ID of the new file/directory */
+	uint64_t     va_fid;     /* SLASH ID of the new file/directory */
 #endif
 	u_longlong_t va_nodeid;  /* node id */
 	nlink_t      va_nlink;   /* number of references to file */
