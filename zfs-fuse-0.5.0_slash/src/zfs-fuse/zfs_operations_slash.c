@@ -913,7 +913,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 	vattr_t vattr;
 
-	memset(&vattr, 0, sizeof(vattr_t);
+	memset(&vattr, 0, sizeof(vattr_t));
 	vattr.va_type = VDIR;
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
