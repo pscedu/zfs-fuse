@@ -131,7 +131,7 @@ zfsslash2_isreserved(uint64_t ino, const char *cpn)
 void
 zfsslash2_destroy(void *userdata)
 {
-	vfs_t *vfs = (vfs_t *)userdata;
+	vfs_t *vfs = userdata;
 
 	struct timespec req;
 	req.tv_sec = 0;
@@ -155,7 +155,7 @@ zfsslash2_destroy(void *userdata)
 int
 zfsslash2_statfs(void *vfsdata, struct statvfs *stat, uint64_t ino)
 {
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 
 	struct statvfs64 zfs_stat;
 
@@ -185,11 +185,11 @@ zfsslash2_statfs(void *vfsdata, struct statvfs *stat, uint64_t ino)
 void
 zfsslash2_export_sstb(struct srt_stat *sstb)
 {
-	EXTERNALIZE_INUM(&sstb->sstb_stb.st_ino);
+	EXTERNALIZE_INUM(&sstb->sst_ino);
 
 	/* subtract 1 for slfidns immutable namespace link */
-	if (sstb->sstb_stb.st_nlink > 1)
-		sstb->sstb_stb.st_nlink--;
+	if (sstb->sst_nlink > 1)
+		sstb->sst_nlink--;
 
 	/* XXX adjust st_nlink of files in repldir */
 }
@@ -197,10 +197,8 @@ zfsslash2_export_sstb(struct srt_stat *sstb)
 int
 zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 {
-	struct stat *stbuf = &sstb->sstb_stb;
-
 	ASSERT(vp != NULL);
-	ASSERT(stbuf != NULL);
+	ASSERT(sstb != NULL);
 
 	vattr_t vattr;
 
@@ -208,25 +206,25 @@ zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 	if (error)
 		return error;
 
-	memset(stbuf, 0, sizeof(struct stat));
+	memset(sstb, 0, sizeof(*sstb));
 
-	stbuf->st_dev = vattr.va_fsid;
-	stbuf->st_ino = vattr.va_nodeid;
-	stbuf->st_mode = VTTOIF(vattr.va_type) | vattr.va_mode;
-	stbuf->st_nlink = vattr.va_nlink;
-	stbuf->st_uid = vattr.va_uid;
-	stbuf->st_gid = vattr.va_gid;
-	stbuf->st_rdev = vattr.va_rdev;
-	if (S_ISDIR(stbuf->st_mode))
-		stbuf->st_size = vattr.va_blksize * vattr.va_nblocks;
+	sstb->sst_dev = vattr.va_fsid;
+	sstb->sst_ino = vattr.va_nodeid;
+	sstb->sst_mode = VTTOIF(vattr.va_type) | vattr.va_mode;
+	sstb->sst_nlink = vattr.va_nlink;
+	sstb->sst_uid = vattr.va_uid;
+	sstb->sst_gid = vattr.va_gid;
+	sstb->sst_rdev = vattr.va_rdev;
+	if (S_ISDIR(sstb->sst_mode))
+		sstb->sst_size = vattr.va_blksize * vattr.va_nblocks;
 	else
-		stbuf->st_size = vattr.va_s2size;
-	stbuf->st_blksize = vattr.va_blksize;
-	stbuf->st_blocks = vattr.va_nblocks;
-	TIMESTRUC_TO_TIME(vattr.va_atime, &stbuf->st_atime);
-	TIMESTRUC_TO_TIME(vattr.va_mtime, &stbuf->st_mtime);
-	TIMESTRUC_TO_TIME(vattr.va_ctime, &stbuf->st_ctime);
-	sstb->sstb_ptruncgen = vattr.va_ptruncgen;
+		sstb->sst_size = vattr.va_s2size;
+	sstb->sst_blksize = vattr.va_blksize;
+	sstb->sst_blocks = vattr.va_nblocks;
+	TIMESTRUC_TO_TIME(vattr.va_atime, &sstb->sst_atime);
+	TIMESTRUC_TO_TIME(vattr.va_mtime, &sstb->sst_mtime);
+	TIMESTRUC_TO_TIME(vattr.va_ctime, &sstb->sst_ctime);
+	sstb->sst_ptruncgen = vattr.va_ptruncgen;
 
 	zfsslash2_export_sstb(sstb);
 
@@ -239,7 +237,7 @@ zfsslash2_getattr(void *vfsdata, uint64_t ino,
     uint64_t *gen)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -277,7 +275,7 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
     struct srt_stat *sstb)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -336,7 +334,7 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino,
     struct srt_stat *sstb, void **finfo)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -409,7 +407,7 @@ zfsslash2_release(void *vfsdata, uint64_t ino,
     const struct slash_creds *slcrp, void *data)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 	file_info_t *info = data;
 
@@ -456,7 +454,7 @@ zfsslash2_readdir(void *vfsdata, uint64_t ino,
 	if (vp->v_type != VDIR)
 		return ENOTDIR;
 
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	if (outbuf == NULL)
@@ -527,7 +525,6 @@ zfsslash2_readdir(void *vfsdata, uint64_t ino,
 		if (nstbprefetch) {
 			attr->rc = zfsslash2_getattr(vfsdata,
 			    fstat.st_ino, slcrp, &sstb, &attr->gen);
-			slrpc_externalize_stat(&sstb, &attr->attr);
 
 			attr++;
 			nstbprefetch--;
@@ -646,7 +643,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
     void **finfo)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -813,7 +810,7 @@ zfsslash2_readlink(void *vfsdata, uint64_t ino, char *buf,
     const struct slash_creds *slcrp)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -878,7 +875,7 @@ zfsslash2_read(void *vfsdata, uint64_t ino,
 	ASSERT(VTOZ(vp) != NULL);
 	ASSERT(VTOZ(vp)->z_id == ino);
 
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -912,7 +909,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
     struct srt_stat *sstb, struct slash_fidgen *fg, int flags)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -984,7 +981,7 @@ zfsslash2_rmdir(void *vfsdata, uint64_t parent, const char *name,
     const struct slash_creds *slcrp)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1029,8 +1026,7 @@ zfsslash2_setattr(void *vfsdata, uint64_t ino,
     void *data)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	const struct stat *attr = &sstb_in->stb_stb;
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 	file_info_t *info = data;
 
@@ -1082,7 +1078,7 @@ zfsslash2_setattr(void *vfsdata, uint64_t ino,
 			flock64_t bf;
 
 			bf.l_whence = 0; /* beginning of file */
-			bf.l_start = attr->st_size;
+			bf.l_start = sstb_in->sst_size;
 			bf.l_type = F_WRLCK;
 			bf.l_len = (off_t) 0;
 
@@ -1091,7 +1087,7 @@ zfsslash2_setattr(void *vfsdata, uint64_t ino,
 			if (error)
 				goto out;
 
-			to_set &= ~FUSE_SET_ATTR_SIZE;
+			to_set &= ~SRM_SETATTRF_SIZE;
 			if (to_set == 0)
 				goto out;
 		}
@@ -1101,44 +1097,44 @@ zfsslash2_setattr(void *vfsdata, uint64_t ino,
 
 	vattr_t vattr = { 0 };
 
-	if (to_set & FUSE_SET_ATTR_MODE) {
+	if (to_set & SRM_SETATTRF_MODE) {
 		vattr.va_mask |= AT_MODE;
-		vattr.va_mode = attr->st_mode;
+		vattr.va_mode = sstb_in->sst_mode;
 	}
-	if (to_set & FUSE_SET_ATTR_UID) {
+	if (to_set & SRM_SETATTRF_UID) {
 		vattr.va_mask |= AT_UID;
-		vattr.va_uid = attr->st_uid;
+		vattr.va_uid = sstb_in->sst_uid;
 		if (vattr.va_uid > MAXUID) {
 			error = EINVAL;
 			goto out;
 		}
 	}
-	if (to_set & FUSE_SET_ATTR_GID) {
+	if (to_set & SRM_SETATTRF_GID) {
 		vattr.va_mask |= AT_GID;
-		vattr.va_gid = attr->st_gid;
+		vattr.va_gid = sstb_in->sst_gid;
 		if (vattr.va_gid > MAXUID) {
 			error = EINVAL;
 			goto out;
 		}
 	}
-	if (to_set & FUSE_SET_ATTR_ATIME) {
+	if (to_set & SRM_SETATTRF_ATIME) {
 		vattr.va_mask |= AT_ATIME;
-		TIME_TO_TIMESTRUC(attr->st_atime, &vattr.va_atime);
+		TIME_TO_TIMESTRUC(sstb_in->sst_atime, &vattr.va_atime);
 	}
-	if (to_set & FUSE_SET_ATTR_MTIME) {
+	if (to_set & SRM_SETATTRF_MTIME) {
 		vattr.va_mask |= AT_MTIME;
-		TIME_TO_TIMESTRUC(attr->st_mtime, &vattr.va_mtime);
+		TIME_TO_TIMESTRUC(sstb_in->sst_mtime, &vattr.va_mtime);
 	}
 	if (to_set & SRM_SETATTRF_FSIZE) {
 		vattr.va_mask |= AT_SLASH2SIZE;
-		vattr.va_s2size = attr->st_size;
+		vattr.va_s2size = sstb_in->sst_size;
 	}
 	if (to_set & SRM_SETATTRF_PTRUNCGEN) {
 		vattr.va_mask |= AT_PTRUNCGEN;
-		vattr.va_ptruncgen = sstb_in->sstb_ptruncgen;
+		vattr.va_ptruncgen = sstb_in->sst_ptruncgen;
 	}
 
-	int flags = (to_set & (FUSE_SET_ATTR_ATIME | FUSE_SET_ATTR_MTIME)) ? ATTR_UTIME : 0;
+	int flags = (to_set & (SRM_SETATTRF_ATIME | SRM_SETATTRF_MTIME)) ? ATTR_UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL);
 
  out:
@@ -1160,7 +1156,7 @@ zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name,
     const struct slash_creds *slcrp)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1223,7 +1219,7 @@ zfsslash2_write(void *vfsdata, uint64_t ino,
 	ASSERT(VTOZ(vp) != NULL);
 	ASSERT(VTOZ(vp)->z_id == ino);
 
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1261,7 +1257,7 @@ zfsslash2_mknod(void *vfsdata, uint64_t parent, const char *name,
     mode_t mode, dev_t rdev)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1337,7 +1333,7 @@ zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent,
     struct srt_stat *sstb, struct slash_fidgen *fg)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1402,7 +1398,7 @@ zfsslash2_rename(void *vfsdata, uint64_t parent, const char *name,
     const struct slash_creds *slcrp)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1457,7 +1453,7 @@ zfsslash2_fsync(void *vfsdata, uint64_t ino,
     const struct slash_creds *slcrp, int datasync, void *data)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1485,7 +1481,7 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
     const struct slash_creds *slcrp, struct srt_stat *sstb)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1557,7 +1553,7 @@ zfsslash2_access(void *vfsdata, uint64_t ino, int mask,
     const struct slash_creds *slcrp)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
