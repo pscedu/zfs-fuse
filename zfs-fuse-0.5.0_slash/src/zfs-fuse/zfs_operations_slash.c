@@ -677,7 +677,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		/*
 		 * Wish to create a file.
 		 */
-		vattr_t vattr;
+		vattr_t vattr = { 0 };
 		vattr.va_type = VREG;
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
