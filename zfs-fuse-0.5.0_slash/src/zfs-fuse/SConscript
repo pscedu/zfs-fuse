@@ -22,6 +22,8 @@ if (env['SLASHLIB']) == "1":
 	print "slashlib enabled %s\n"  % (env['SLASHLIB'])
 	objects.append('zfs_operations_slash.c')
 	objects.append('zfs_slashlib_init.c')
+	ccflags.append('-I../../../slash_nara/include')
+	ccflags.append('-I../../../psc_fsutil_libs/include')
 else:
 	print "slashlib disabled %s\n" % (env['SLASHLIB'])
 	objects.append('fuse_listener.c')
