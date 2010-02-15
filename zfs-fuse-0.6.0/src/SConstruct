@@ -31,7 +31,7 @@ else:
 		env.Append(CCFLAGS = Split('-finstrument-functions -DDEBUG'))
 
 if slashlib:
-	env.Append(CCFLAGS = ['-DSLASHLIB'])
+	env.Append(CCFLAGS = ['-DZFS_SLASHLIB'])
 	env['SLASHLIB'] = '1'
 else:
 	env['SLASHLIB'] = '0'

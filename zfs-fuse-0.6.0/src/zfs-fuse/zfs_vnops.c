@@ -2235,6 +2235,7 @@ zfs_getattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 	vap->va_nlink = MIN(links, UINT32_MAX);	/* nlink_t limit! */
 	vap->va_size = pzp->zp_size;
 	vap->va_s2size = pzp->zp_s2size;
+	vap->va_ptruncgen = pzp->zp_ptruncgen;
 	vap->va_rdev = vp->v_rdev;
 	vap->va_seq = zp->z_seq;
 
@@ -2821,6 +2822,9 @@ top:
 
 	if (mask & AT_SLASH2SIZE)
 		pzp->zp_s2size = vap->va_s2size;
+
+	if (mask & AT_PTRUNCGEN)
+		pzp->zp_ptruncgen = vap->va_ptruncgen;
 
 	/* XXX - shouldn't this be done *before* the ATIME/MTIME checks? */
 	if (mask & AT_SIZE)

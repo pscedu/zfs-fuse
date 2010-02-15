@@ -40,7 +40,7 @@
 
 #include "cmd_listener.h"
 
-#ifdef SLASHLIB
+#ifdef ZFS_SLASHLIB
 #include "zfs_slashlib.h"
 #else
 #include "fuse_listener.h"
@@ -111,7 +111,7 @@ int do_init()
 
 	listener_thread_started = B_TRUE;
 
-#ifdef SLASHLIB
+#ifdef ZFS_SLASHLIB
 	file_info_cache = kmem_cache_create("file_info_t", sizeof(file_info_t),
 	    0, NULL, NULL, NULL, NULL, NULL, 0);
 	VERIFY(file_info_cache != NULL);
@@ -129,14 +129,14 @@ void do_exit()
 			cmn_err(CE_WARN, "Error in pthread_join().");
 	}
 
-#ifndef SLASHLIB
+#ifndef ZFS_SLASHLIB
 	zfsfuse_listener_exit();
 #endif
 
 	if(ioctl_fd != -1)
 		zfsfuse_socket_close(ioctl_fd);
 
-#ifdef SLASHLIB
+#ifdef ZFS_SLASHLIB
 	if (file_info_cache)
 		kmem_cache_destroy(file_info_cache);
 #endif
@@ -150,7 +150,7 @@ void do_exit()
 
 /* big_writes added if fuse 2.8 is detected at runtime */
 /* other mount options are added if specified in the command line */
-#ifndef SLASHLIB
+#ifndef ZFS_SLASHLIB
 #define FUSE_OPTIONS "fsname=%s,allow_other,suid,dev%s" // ,big_writes"
 #endif
 
@@ -188,7 +188,7 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	fprintf(stderr, "mounting %s\n", dir);
 #endif
 
-#ifndef SLASHLIB
+#ifndef ZFS_SLASHLIB
 	char *fuse_opts;
 	if (fuse_version() <= 27) {
 	if(asprintf(&fuse_opts, FUSE_OPTIONS, spec, fuse_mount_options) == -1) {
