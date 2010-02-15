@@ -708,9 +708,16 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 		 * Wish to create a file.
 		 */
 		vattr_t vattr;
+		memset(&vattr, 0, sizeof(vattr_t));
 		vattr.va_type = VREG;
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
+
+#ifdef NAMESPACE_EXPERIMENTAL
+		if (fg)
+			vattr.va_fid = fg->fid;
+#endif
+
 		if (flags & FTRUNC) {
 			vattr.va_size = 0;
 			vattr.va_mask |= AT_SIZE;
@@ -935,7 +942,8 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 	vnode_t *vp = NULL;
 
-	vattr_t vattr = { 0 };
+	vattr_t vattr;
+	memset(&vattr, 0, sizeof(vattr_t));
 	vattr.va_type = VDIR;
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
