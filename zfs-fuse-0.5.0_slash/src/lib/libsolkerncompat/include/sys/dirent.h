@@ -54,11 +54,11 @@ typedef struct dirent {
 #define	SLASH_DENTRY_NONE		0x00
 #define	SLASH_DENTRY_HIDE		0x01	/* keep but hide an entry until its log arrives */
 
-typedef struct slash_direntry {
+typedef struct slash_dentry {
 	uint64_t	d_id;		/* ZFS native inode number */
 	uint64_t	d_fid;		/* SLASH ID */
 	uint64_t	d_flags;	/* SLASH flags */
-} slash_direntry_t;
+} slash_dentry_t;
 
 #endif
 

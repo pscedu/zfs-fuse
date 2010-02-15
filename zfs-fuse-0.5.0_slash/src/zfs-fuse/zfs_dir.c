@@ -65,7 +65,7 @@
 
 static int
 zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
-    boolean_t update, int *deflags, pathname_t *rpnp, slash_direntry_t *dirent)
+    boolean_t update, int *deflags, pathname_t *rpnp, slash_dentry_t *dirent)
 {
 	int error;
 
@@ -183,7 +183,7 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 	boolean_t		exact;
 	uint64_t		zoid;
 #ifdef NAMESPACE_EXPERIMENTAL
-	slash_direntry_t	dirent;
+	slash_dentry_t		dirent;
 #endif
 	vnode_t			*vp = NULL;
 	int			error = 0;
@@ -726,7 +726,7 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	int error;
 
 #ifdef NAMESPACE_EXPERIMENTAL
-	slash_direntry_t dirent;
+	slash_dentry_t dirent;
 #endif
 
 	dmu_buf_will_dirty(zp->z_dbuf, tx);
