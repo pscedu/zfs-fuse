@@ -195,9 +195,6 @@ int zap_lookup_norm(objset_t *ds, uint64_t zapobj, const char *name,
 #define zap_add(d, z, n, i, nu, val, tx)	\
 	__zap_add(d, z, n, i, nu, val, tx, 0)
 
-#define zap_add_nochk(d, z, n, i, nu, val, tx)        \
-        __zap_add(d, z, n, i, nu, val, tx, 1)
-	
 int __zap_add(objset_t *ds, uint64_t zapobj, const char *name,
 	      int integer_size, uint64_t num_integers,
 	      const void *val, dmu_tx_t *tx, int flags);
