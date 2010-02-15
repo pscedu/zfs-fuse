@@ -183,21 +183,21 @@ zfsslash2_statfs(void *vfsdata, struct statvfs *stat, uint64_t ino)
 }
 
 void
-zfsslash2_export_fcmhst(struct fcmh_stat *fcmhst)
+zfsslash2_export_sstb(struct srt_stat *sstb)
 {
-	EXTERNALIZE_INUM(&fcmhst->fcmhst_stb.st_ino);
+	EXTERNALIZE_INUM(&sstb->sstb_stb.st_ino);
 
 	/* subtract 1 for slfidns immutable namespace link */
-	if (fcmhst->fcmhst_stb.st_nlink > 1)
-		fcmhst->fcmhst_stb.st_nlink--;
+	if (sstb->sstb_stb.st_nlink > 1)
+		sstb->sstb_stb.st_nlink--;
 
 	/* XXX adjust st_nlink of files in repldir */
 }
 
 int
-zfsslash2_stat(vnode_t *vp, struct fcmh_stat *fcmhst, cred_t *cred)
+zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 {
-	struct stat *stbuf = &fcmhst->fcmhst_stb;
+	struct stat *stbuf = &sstb->sstb_stb;
 
 	ASSERT(vp != NULL);
 	ASSERT(stbuf != NULL);
@@ -226,16 +226,16 @@ zfsslash2_stat(vnode_t *vp, struct fcmh_stat *fcmhst, cred_t *cred)
 	TIMESTRUC_TO_TIME(vattr.va_atime, &stbuf->st_atime);
 	TIMESTRUC_TO_TIME(vattr.va_mtime, &stbuf->st_mtime);
 	TIMESTRUC_TO_TIME(vattr.va_ctime, &stbuf->st_ctime);
-	fcmhst->fcmhst_ptruncgen = vattr.va_ptruncgen;
+	sstb->sstb_ptruncgen = vattr.va_ptruncgen;
 
-	zfsslash2_export_fcmhst(fcmhst);
+	zfsslash2_export_sstb(sstb);
 
 	return 0;
 }
 
 int
 zfsslash2_getattr(void *vfsdata, uint64_t ino,
-    const struct slash_creds *slcrp, struct fcmh_stat *fcmhst,
+    const struct slash_creds *slcrp, struct srt_stat *sstb,
     uint64_t *gen)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
@@ -260,7 +260,7 @@ zfsslash2_getattr(void *vfsdata, uint64_t ino,
 	vnode_t *vp = ZTOV(znode);
 	ASSERT(vp != NULL);
 
-	error = zfsslash2_stat(vp, fcmhst, cred);
+	error = zfsslash2_stat(vp, sstb, cred);
 
 	if (gen)
 		*gen = VTOZ(vp)->z_phys->zp_gen;
@@ -274,7 +274,7 @@ zfsslash2_getattr(void *vfsdata, uint64_t ino,
 int
 zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
     struct slash_fidgen *fg, const struct slash_creds *slcrp,
-    struct fcmh_stat *fcmhst)
+    struct srt_stat *sstb)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	vfs_t *vfs = (vfs_t *)vfsdata;
@@ -312,8 +312,8 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
 		goto out;
 	}
 
-	if (fcmhst)
-		error = zfsslash2_stat(vp, fcmhst, cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, sstb, cred);
 
 	fg->fg_fid = VTOZ(vp)->z_id;
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
@@ -333,7 +333,7 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
 int
 zfsslash2_opendir(void *vfsdata, uint64_t ino,
     const struct slash_creds *slcrp, struct slash_fidgen *fg,
-    struct fcmh_stat *fcmhst, void **finfo)
+    struct srt_stat *sstb, void **finfo)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	vfs_t *vfs = (vfs_t *)vfsdata;
@@ -390,8 +390,8 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino,
 		EXTERNALIZE_INUM(&fg->fg_fid);
 	}
 
-	if (fcmhst)
-		error = zfsslash2_stat(vp, fcmhst, cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, sstb, cred);
 	if (error)
 		goto out;
 out:
@@ -469,7 +469,7 @@ zfsslash2_readdir(void *vfsdata, uint64_t ino,
 		struct dirent64 dirent;
 	} entry;
 
-	struct fcmh_stat fcmhst;
+	struct srt_stat sstb;
 	struct stat fstat = { 0 };
 	struct srm_getattr_rep *attr = attrs;
 
@@ -526,8 +526,8 @@ zfsslash2_readdir(void *vfsdata, uint64_t ino,
 
 		if (nstbprefetch) {
 			attr->rc = zfsslash2_getattr(vfsdata,
-			    fstat.st_ino, slcrp, &fcmhst, &attr->gen);
-			slrpc_externalize_stat(&fcmhst, &attr->attr);
+			    fstat.st_ino, slcrp, &sstb, &attr->gen);
+			slrpc_externalize_stat(&sstb, &attr->attr);
 
 			attr++;
 			nstbprefetch--;
@@ -642,7 +642,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 int
 zfsslash2_opencreate(void *vfsdata, uint64_t ino,
     const struct slash_creds *slcrp, int fflags, mode_t createmode,
-    const char *name, struct slash_fidgen *fg, struct fcmh_stat *fcmhst,
+    const char *name, struct slash_fidgen *fg, struct srt_stat *sstb,
     void **finfo)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
@@ -778,8 +778,8 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 	if (error)
 		goto out;
 
-	if (fcmhst)
-		error = zfsslash2_stat(vp, fcmhst, cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, sstb, cred);
 	if (error)
 		goto out;
 
@@ -909,7 +909,7 @@ zfsslash2_read(void *vfsdata, uint64_t ino,
 int
 zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
     mode_t mode, const struct slash_creds *slcrp,
-    struct fcmh_stat *fcmhst, struct slash_fidgen *fg, int flags)
+    struct srt_stat *sstb, struct slash_fidgen *fg, int flags)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	vfs_t *vfs = (vfs_t *)vfsdata;
@@ -961,8 +961,8 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 		EXTERNALIZE_INUM(&fg->fg_fid);
 	}
 
-	if (fcmhst)
-		error = zfsslash2_stat(vp, fcmhst, cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, sstb, cred);
 
 out:
 	if (vp != NULL)
@@ -1019,12 +1019,12 @@ zfsslash2_rmdir(void *vfsdata, uint64_t parent, const char *name,
 
 int
 zfsslash2_setattr(void *vfsdata, uint64_t ino,
-    const struct fcmh_stat *fcmhst_in, int to_set,
-    const struct slash_creds *slcrp, struct fcmh_stat *fcmhst_out,
+    const struct srt_stat *sstb_in, int to_set,
+    const struct slash_creds *slcrp, struct srt_stat *sstb_out,
     void *data)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	const struct stat *attr = &fcmhst_in->fcmhst_stb;
+	const struct stat *attr = &sstb_in->stb_stb;
 	vfs_t *vfs = (vfs_t *)vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 	file_info_t *info = data;
@@ -1130,15 +1130,15 @@ zfsslash2_setattr(void *vfsdata, uint64_t ino,
 	}
 	if (to_set & SRM_SETATTRF_PTRUNCGEN) {
 		vattr.va_mask |= AT_PTRUNCGEN;
-		vattr.va_ptruncgen = fcmhst_in->fcmhst_ptruncgen;
+		vattr.va_ptruncgen = sstb_in->sstb_ptruncgen;
 	}
 
 	int flags = (to_set & (FUSE_SET_ATTR_ATIME | FUSE_SET_ATTR_MTIME)) ? ATTR_UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL);
 
  out:
-	if (!error && fcmhst_out)
-		error = zfsslash2_stat(vp, fcmhst_out, cred);
+	if (!error && sstb_out)
+		error = zfsslash2_stat(vp, sstb_out, cred);
 
 	/* Do not release if vp was an opened inode */
 	if (release)
@@ -1329,7 +1329,7 @@ out:
 int
 zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent,
     const char *name, const struct slash_creds *slcrp,
-    struct fcmh_stat *fcmhst, struct slash_fidgen *fg)
+    struct srt_stat *sstb, struct slash_fidgen *fg)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	vfs_t *vfs = (vfs_t *)vfsdata;
@@ -1378,7 +1378,7 @@ zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent,
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
 	EXTERNALIZE_INUM(&fg->fg_fid);
 
-	error = zfsslash2_stat(vp, fcmhst, cred);
+	error = zfsslash2_stat(vp, sstb, cred);
 
  out:
 	if (vp != NULL)
@@ -1477,7 +1477,7 @@ zfsslash2_fsync(void *vfsdata, uint64_t ino,
 int
 zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
     const char *newname, struct slash_fidgen *fg,
-    const struct slash_creds *slcrp, struct fcmh_stat *fcmhst)
+    const struct slash_creds *slcrp, struct srt_stat *sstb)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	vfs_t *vfs = (vfs_t *)vfsdata;
@@ -1532,8 +1532,8 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
 	EXTERNALIZE_INUM(&fg->fg_fid);
 
-	if (fcmhst)
-		error = zfsslash2_stat(vp, fcmhst, cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, sstb, cred);
 
  out:
 	if (vp != NULL)
