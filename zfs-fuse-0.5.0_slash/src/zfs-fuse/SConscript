@@ -22,8 +22,6 @@ if (env['SLASHLIB']) == "1":
 	print "slashlib enabled %s\n"  % (env['SLASHLIB'])
 	objects.append('zfs_operations_slash.c')
 	objects.append('zfs_slashlib_init.c')
-	ccflags.append('-I../../../slash_nara/include')
-	ccflags.append('-I../../../psc_fsutil_libs/include')
 else:
 	print "slashlib disabled %s\n" % (env['SLASHLIB'])
 	objects.append('fuse_listener.c')
@@ -43,6 +41,8 @@ ccflags = Split('-D_KERNEL')
 libs = Split('rt pthread fuse dl z aio')
 
 if (env['SLASHLIB']) == "1":
+	ccflags.append('-I../../../slash_nara/include')
+	ccflags.append('-I../../../psc_fsutil_libs/include')
 	env.StaticLibrary('libzfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
 else:
 	env.Program('zfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
