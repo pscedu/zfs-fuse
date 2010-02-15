@@ -1322,6 +1322,9 @@ top:
 			return (error);
 		}
 		zfs_mknode(dzp, vap, tx, cr, 0, &zp, 0, aclp, &fuidp);
+#if NAMESPACE_EXPERIMENTAL
+		zp->z_fid = vap->va_fid;
+#endif
 		(void) zfs_link_create(dl, zp, tx, ZNEW);
 		txtype = zfs_log_create_txtype(Z_FILE, vsecp, vap);
 		if (flag & FIGNORECASE)

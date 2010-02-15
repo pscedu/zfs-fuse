@@ -681,6 +681,11 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino, cred_t *cred, int fflags,
 		vattr.va_type = VREG;
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
+
+#if NAMESPACE_EXPERIMENTAL
+		if (fg)
+			vattr.va_fid = fg->fid;
+#endif
 		if (flags & FTRUNC) {
 			vattr.va_size = 0; //XXX fixme, don't wipe out the metadata at the beginning
 			vattr.va_mask |= AT_SIZE;
