@@ -648,9 +648,6 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 
 	ZFS_ENTER(zfsvfs);
 
-	if (strlen(name) > MAXNAMELEN)
-		return ENAMETOOLONG;
-
 	INTERNALIZE_INUM(&ino);
 
 	/* Map flags */
@@ -703,6 +700,11 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 	ASSERT(vp != NULL);
 
 	if (flags & FCREAT) {
+		if (strlen(name) > MAXNAMELEN) {
+			error = ENAMETOOLONG;
+			goto out;
+		}
+
 		enum vcexcl excl;
 		/*
 		 * Wish to create a file.
