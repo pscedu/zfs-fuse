@@ -338,7 +338,7 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 			error = zfs_match_find(zfsvfs, dzp, name, exact,
 			    update, direntflags, realpnp, &dirent);
 			if (!error)
-				zoid = dirent.d_zfs_id;
+				zoid = dirent.d_id;
 #else
 			error = zfs_match_find(zfsvfs, dzp, name, exact,
 			    update, direntflags, realpnp, &zoid);
@@ -364,7 +364,7 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 			dnlc_update(ZTOV(dzp), name, ZTOV(*zpp));
 
 #ifdef NAMESPACE_EXPERIMENTAL
-		(*zpp)->z_fid = dirent.d_slash_id;
+		(*zpp)->z_fid = dirent.d_fid;
 #endif
 	}
 
@@ -755,20 +755,20 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 
 	value = zfs_dirent(zp);
 
+#ifdef NAMESPACE_EXPERIMENTAL
+	/* 
+	 * In the new directory format, each entry has a tuple of three values.
+	 * For local files, the SLASH ID will be zero.
+	 */
+	dirent.d_id = value;
+	dirent.d_fid = zp->z_fid;
+	dirent.d_flags = SLASH_DENTRY_NONE;
+#endif
 
 	/* FALLOWDIRLINK is only set by zfsslash2_fidlink() */
 	if (flag & FALLOWDIRLINK) {
-
-#ifdef NAMESPACE_EXPERIMENTAL
-		dirent.d_zfs_id = value;
-		dirent.d_slash_id = zp->z_fid;
-		dirent.d_flags = SLASH_DIR_ENT_NONE;
-		error = zap_add_nochk(zp->z_zfsvfs->z_os, dzp->z_id, 
-				      dl->dl_name, 8, 3, &dirent, tx);
-#else
 		error = zap_add_nochk(zp->z_zfsvfs->z_os, dzp->z_id, 
 				      dl->dl_name, 8, 1, &value, tx);
-#endif
 	} else
 		error = zap_add(zp->z_zfsvfs->z_os, dzp->z_id, 
 				dl->dl_name, 8, 1, &value, tx);
