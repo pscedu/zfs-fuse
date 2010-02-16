@@ -338,7 +338,7 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 			error = zfs_match_find(zfsvfs, dzp, name, exact,
 			    update, direntflags, realpnp, &dirent);
 			if (!error)
-				zoid = dirent.d_id;
+				zoid = ZFS_DIRENT_OBJ(dirent.d_id);
 #else
 			error = zfs_match_find(zfsvfs, dzp, name, exact,
 			    update, direntflags, realpnp, &zoid);
