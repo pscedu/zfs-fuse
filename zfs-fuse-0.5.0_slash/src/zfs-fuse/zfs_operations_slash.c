@@ -358,7 +358,8 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino,
 		fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
 	}
 
-	error = zfsslash2_stat(vp, sstb, cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, sstb, cred);
 
 out:
 	if(error)
@@ -757,7 +758,8 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 		goto out;
 
 	//if(flags & FCREAT) {
-	error = zfsslash2_stat(vp, sstb, cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, sstb, cred);
 	if(error)
 		goto out;
 	//}
@@ -1427,7 +1429,8 @@ zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent,
 	}
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
 
-	error = zfsslash2_stat(vp, sstb, cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, sstb, cred);
 
 out:
 	if(vp != NULL)
@@ -1588,7 +1591,8 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
 
-	error = zfsslash2_stat(vp, sstb, cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, sstb, cred);
 
 out:
 	if (vp != NULL)
