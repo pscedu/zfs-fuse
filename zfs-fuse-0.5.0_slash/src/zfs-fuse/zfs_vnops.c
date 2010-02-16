@@ -2071,13 +2071,15 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 			}
 
 #ifdef NAMESPACE_EXPERIMENTAL
-			if ((flags & V_RDDIR_LOCAL_ID) == 0)
+			if (flags & V_RDDIR_LOCAL_ID)
+				objnum = ZFS_DIRENT_OBJ(zap.za_first_integer);
+			else {
 				/* return SLASH ID stored in the second integer */
 				objnum = zap.za_second_integer;
-			else
+			}
+#else
+			objnum = ZFS_DIRENT_OBJ(zap.za_first_integer);
 #endif
-				objnum = ZFS_DIRENT_OBJ(zap.za_first_integer);
-
 			/*
 			 * MacOS X can extract the object type here such as:
 			 * uint8_t type = ZFS_DIRENT_TYPE(zap.za_first_integer);
