@@ -11,13 +11,19 @@ core=unlimited
 
 while getopts "c:" c; do
 	case $c in
-		c) core=$OPTARG;;
-		*) usage;;
+	c) core=$OPTARG;;
+	*) usage;;
 	esac
 done
+
+shift $(($OPTIND - 1))
+
+if [ $# -ne 0 ]; then
+	usage
+fi
 
 dir=$(dirname $0)
 
 ulimit -c $core
 
-$dir/zfs-fuse --no-daemon
+exec $dir/zfs-fuse --no-daemon
