@@ -2057,7 +2057,7 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 
 #ifdef NAMESPACE_EXPERIMENTAL
 			if (zap.za_integer_length != 8 ||
-			    zap.za_num_integers != 3) {
+			    zap.za_num_integers != 2) {
 #else
 			if (zap.za_integer_length != 8 ||
 			    zap.za_num_integers != 1) {

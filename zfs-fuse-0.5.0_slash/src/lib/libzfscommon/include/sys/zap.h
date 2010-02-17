@@ -293,7 +293,6 @@ typedef struct {
 	 * used by the directory handling.
 	 */
 	uint64_t za_second_integer;
-	uint64_t za_third_integer;
 #endif
 
 	char za_name[MAXNAMELEN];
