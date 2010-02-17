@@ -46,6 +46,11 @@
 
 kmem_cache_t *file_info_cache = NULL;
 
+/* flags for zfsslash2_fidlink() */
+#define	FIDLINK_OPEN		1
+#define	FIDLINK_CREATE		2
+#define	FIDLINK_REMOVE		3
+
 #define SL_PATH_PREFIX	".sl"
 #define SL_PATH_FIDNS	".slfidns"
 
@@ -521,7 +526,7 @@ out:
  * created.  We do this when we format the file system.
  */
 int
-zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
+zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int flags)
 {
 	int		i;
 	uint8_t		c;
@@ -594,10 +599,17 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	ASSERT(vp);
 
 	snprintf(id_name, 20, "%016"PRIx64, linkid);
-	if (unlink)
-		error = VOP_REMOVE(vp, (char *)id_name, &creds, NULL, 0);
-	else
+	
+	switch (flags) {
+	    case FIDLINK_OPEN:
+		break;
+	    case FIDLINK_CREATE:
 		error = VOP_LINK(vp, linkvp, (char *)id_name, &creds, NULL, FALLOWDIRLINK);
+		break;
+	    case FIDLINK_REMOVE:
+		error = VOP_REMOVE(vp, (char *)id_name, &creds, NULL, 0);
+		break;
+	}
 
 #ifdef DEBUG
 	fprintf(stderr, "id_name=%s parent=%ld linkvp=%ld error=%d\n",
@@ -712,7 +724,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 		VN_RELE(vp);
 		vp = new_vp;
 
-		if ((error = zfsslash2_fidlink(zfsvfs, vp, 0)))
+		if ((error = zfsslash2_fidlink(zfsvfs, vp, FIDLINK_CREATE)))
 			goto out;
 	} else {
 		/*
@@ -948,7 +960,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 	/* we only suppress fid link when called from mds_repl_scandir() */
 	if (flags == 0) {
-		error = zfsslash2_fidlink(zfsvfs, vp, 0);
+		error = zfsslash2_fidlink(zfsvfs, vp, FIDLINK_CREATE);
 	}
 
 	if (fg) {
@@ -1235,8 +1247,7 @@ zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name,
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
 		return error == EEXIST ? ENOENT : error;
-	}
-
+	} 
 	ASSERT(znode != NULL);
 	vnode_t *dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
@@ -1253,7 +1264,7 @@ zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name,
 		goto out;
 	}
 
-	error = zfsslash2_fidlink(zfsvfs, vp, 1);
+	error = zfsslash2_fidlink(zfsvfs, vp, FIDLINK_REMOVE);
 	VN_RELE(vp);
  out:
 	VN_RELE(dvp);
