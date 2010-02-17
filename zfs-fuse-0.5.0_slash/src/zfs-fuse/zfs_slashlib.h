@@ -41,7 +41,7 @@ int	zfsslash2_readlink(void *, uint64_t, char *, const struct slash_creds *);
 int	zfsslash2_release(void *, uint64_t, const struct slash_creds *, void *);
 int	zfsslash2_rename(void *, uint64_t, const char *, uint64_t, const char *, const struct slash_creds *);
 int	zfsslash2_rmdir(void *, uint64_t, const char *, const struct slash_creds *);
-int	zfsslash2_setattr(void *, uint64_t, struct srt_stat *, int, const struct slash_creds *, struct srt_stat *, void *);
+int	zfsslash2_setattr(void *, uint64_t, const struct srt_stat *, int, const struct slash_creds *, struct srt_stat *, void *);
 int	zfsslash2_statfs(void *, struct statvfs *, uint64_t);
 int	zfsslash2_symlink(void *, const char *, uint64_t, const char *, const struct slash_creds *, struct srt_stat *, struct slash_fidgen *);
 int	zfsslash2_unlink(void *, uint64_t, const char *, const struct slash_creds *);
