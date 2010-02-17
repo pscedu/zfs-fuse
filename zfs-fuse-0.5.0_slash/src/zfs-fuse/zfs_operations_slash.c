@@ -636,6 +636,9 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
     struct srt_stat *sstb, void **finfo)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
+
+	int error;
+	vnode_t *vp;
 	uint64_t real_ino = ino == 1 ? 3 : ino;
 	vfs_t *vfs = (vfs_t *) vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -682,7 +685,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 
 	znode_t *znode;
 
-	int error = zfs_zget(zfsvfs, real_ino, &znode, B_FALSE);
+	error = zfs_zget(zfsvfs, real_ino, &znode, B_FALSE);
 	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
@@ -691,7 +694,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 	}
 
 	ASSERT(znode != NULL);
-	vnode_t *vp = ZTOV(znode);
+	vp = ZTOV(znode);
 	ASSERT(vp != NULL);
 
 	if (flags & FCREAT) {
