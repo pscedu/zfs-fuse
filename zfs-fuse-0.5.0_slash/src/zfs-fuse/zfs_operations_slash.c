@@ -538,7 +538,6 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 	char		id_name[20];
 	cred_t		creds = {0, 0};
 
-	ASSERT(*linkvp);
 	error = zfs_zget(zfsvfs, 3, &znode, B_TRUE);
 	if (error)
 		return error == EEXIST ? ENOENT : error;
@@ -557,16 +556,23 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 	 */
 	VN_RELE(dvp);
 	dvp = vp;
+
+	if (flags != FIDLINK_OPEN) {
+		ASSERT(*linkvp);
+#ifdef NAMESPACE_EXPERIMENTAL
+		slashid = (uint64_t)VTOZ(*linkvp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
+#else
+		slashid = (uint64_t)VTOZ(*linkvp)->z_id;
+#endif
+	} else {
+		ASSERT(!(*linkvp));
+		slashid = linkid;
+	}
+
 	/* Lookup our fid's parent directory in the fid namespace, closing
 	 *   parent dvp's along the way.
 	 */
 	id_name[1] = '\0';
-
-#ifdef NAMESPACE_EXPERIMENTAL
-	slashid = (uint64_t)VTOZ(*linkvp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
-#else
-	slashid = (uint64_t)VTOZ(*linkvp)->z_id;
-#endif
 
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
 		/*
