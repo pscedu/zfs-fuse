@@ -47,7 +47,7 @@
 kmem_cache_t *file_info_cache = NULL;
 
 /* flags for zfsslash2_fidlink() */
-#define	FIDLINK_OPEN		1
+#define	FIDLINK_LOOKUP		1
 #define	FIDLINK_CREATE		2
 #define	FIDLINK_REMOVE		3
 
@@ -557,7 +557,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 	VN_RELE(dvp);
 	dvp = vp;
 
-	if (flags != FIDLINK_OPEN) {
+	if (flags != FIDLINK_LOOKUP) {
 		ASSERT(*linkvp);
 #ifdef NAMESPACE_EXPERIMENTAL
 		slashid = (uint64_t)VTOZ(*linkvp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
@@ -607,7 +607,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 	snprintf(id_name, 20, "%016"PRIx64, slashid);
 	
 	switch (flags) {
-	    case FIDLINK_OPEN:
+	    case FIDLINK_LOOKUP:
 		break;
 	    case FIDLINK_CREATE:
 		error = VOP_LINK(vp, *linkvp, (char *)id_name, &creds, NULL, FALLOWDIRLINK);
@@ -936,7 +936,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 #ifdef NAMESPACE_EXPERIMENTAL
 	if (fg) {
-		error = zfsslash2_fidlink(zfsvfs, &dvp, fg->fg_fid, FIDLINK_OPEN);
+		error = zfsslash2_fidlink(zfsvfs, &dvp, fg->fg_fid, FIDLINK_LOOKUP);
 	} else {
 		error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
 		if (!error)
