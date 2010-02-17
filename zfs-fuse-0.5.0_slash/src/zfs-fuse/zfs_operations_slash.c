@@ -773,11 +773,16 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 	((file_info_t *)(*finfo))->flags = flags;
 
 	//if(flags & FCREAT) {
+
+#ifdef NAMESPACE_EXPERIMENTAL
+	fg->fg_fid = VTOZ(vp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
+#else
 	fg->fg_fid = VTOZ(vp)->z_id;
 	if(fg->fg_fid == 3) {
 		fg->fg_fid = 1;
 		sstb->sst_ino = 1;
 	}
+#endif
 
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
 	//}
@@ -947,9 +952,13 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	}
 
 	if (fg) {
+#ifdef NAMESPACE_EXPERIMENTAL
+		fg->fg_fid = VTOZ(vp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
+#else
 		fg->fg_fid = VTOZ(vp)->z_id;
 		if (fg->fg_fid == 3)
 			fg->fg_fid = 1;
+#endif
 		fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
 	}
 
