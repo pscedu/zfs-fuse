@@ -526,7 +526,7 @@ out:
  * created.  We do this when we format the file system.
  */
 int
-zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, uint64_t linkid, int flags)
+zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags)
 {
 	int		i;
 	uint8_t		c;
@@ -538,7 +538,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, uint64_t linkid, int flags)
 	char		id_name[20];
 	cred_t		creds = {0, 0};
 
-	ASSERT(linkvp);
+	ASSERT(*linkvp);
 	error = zfs_zget(zfsvfs, 3, &znode, B_TRUE);
 	if (error)
 		return error == EEXIST ? ENOENT : error;
@@ -563,9 +563,9 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, uint64_t linkid, int flags)
 	id_name[1] = '\0';
 
 #ifdef NAMESPACE_EXPERIMENTAL
-	slashid = (uint64_t)VTOZ(linkvp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
+	slashid = (uint64_t)VTOZ(*linkvp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
 #else
-	slashid = (uint64_t)VTOZ(linkvp)->z_id;
+	slashid = (uint64_t)VTOZ(*linkvp)->z_id;
 #endif
 
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
@@ -604,7 +604,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, uint64_t linkid, int flags)
 	    case FIDLINK_OPEN:
 		break;
 	    case FIDLINK_CREATE:
-		error = VOP_LINK(vp, linkvp, (char *)id_name, &creds, NULL, FALLOWDIRLINK);
+		error = VOP_LINK(vp, *linkvp, (char *)id_name, &creds, NULL, FALLOWDIRLINK);
 		break;
 	    case FIDLINK_REMOVE:
 		error = VOP_REMOVE(vp, (char *)id_name, &creds, NULL, 0);
@@ -724,7 +724,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 		VN_RELE(vp);
 		vp = new_vp;
 
-		if ((error = zfsslash2_fidlink(zfsvfs, vp, FID_ANY, FIDLINK_CREATE)))
+		if ((error = zfsslash2_fidlink(zfsvfs, &vp, FID_ANY, FIDLINK_CREATE)))
 			goto out;
 	} else {
 		/*
@@ -960,7 +960,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 	/* we only suppress fid link when called from mds_repl_scandir() */
 	if (flags == 0) {
-		error = zfsslash2_fidlink(zfsvfs, vp, FID_ANY, FIDLINK_CREATE);
+		error = zfsslash2_fidlink(zfsvfs, &vp, FID_ANY, FIDLINK_CREATE);
 	}
 
 	if (fg) {
@@ -1264,7 +1264,7 @@ zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name,
 		goto out;
 	}
 
-	error = zfsslash2_fidlink(zfsvfs, vp, FID_ANY, FIDLINK_REMOVE);
+	error = zfsslash2_fidlink(zfsvfs, &vp, FID_ANY, FIDLINK_REMOVE);
 	VN_RELE(vp);
  out:
 	VN_RELE(dvp);
