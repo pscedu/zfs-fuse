@@ -534,7 +534,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int flags)
 	vnode_t		*dvp;
 	int		error;
 	znode_t		*znode;
-	uint64_t	linkid;
+	uint64_t	slashid;
 	char		id_name[20];
 	cred_t		creds = {0, 0};
 
@@ -563,9 +563,9 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int flags)
 	id_name[1] = '\0';
 
 #ifdef NAMESPACE_EXPERIMENTAL
-	linkid = (uint64_t)VTOZ(linkvp)->z_fid;
+	slashid = (uint64_t)VTOZ(linkvp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
 #else
-	linkid = (uint64_t)VTOZ(linkvp)->z_id;
+	slashid = (uint64_t)VTOZ(linkvp)->z_id;
 #endif
 
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
@@ -575,7 +575,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int flags)
 		 * hex digit from the right side.  If the depth is 3, then we have 0xfff or
 		 * 4095 files in a directory in the by-id namespace.
 		 */
-		c = (uint8_t)((linkid & (UINT64_C(0x0000000000f00000) >> i*BPHXC)) >> ((5-i) * BPHXC));
+		c = (uint8_t)((slashid & (UINT64_C(0x0000000000f00000) >> i*BPHXC)) >> ((5-i) * BPHXC));
 		/* convert a hex digit to its corresponding ascii digit or lower case letter */
 		id_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
 
@@ -598,7 +598,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int flags)
 	/* we should have the parent vnode in the by-id namespace now */
 	ASSERT(vp);
 
-	snprintf(id_name, 20, "%016"PRIx64, linkid);
+	snprintf(id_name, 20, "%016"PRIx64, slashid);
 	
 	switch (flags) {
 	    case FIDLINK_OPEN:
@@ -614,7 +614,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int flags)
 #ifdef DEBUG
 	fprintf(stderr, "id_name=%s parent=%ld linkvp=%ld error=%d\n",
 		id_name, (uint64_t)VTOZ(dvp)->z_id,
-		linkid, error);
+		slashid, error);
 #endif
 
 	if (error)
