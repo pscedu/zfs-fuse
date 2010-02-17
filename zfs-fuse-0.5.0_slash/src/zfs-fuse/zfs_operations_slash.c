@@ -930,7 +930,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 
-#if NAMESPACE_EXPERIMENTAL
+#ifdef NAMESPACE_EXPERIMENTAL
 	if (fg)
 		vattr.va_fid = fg->fg_fid;
 #endif
