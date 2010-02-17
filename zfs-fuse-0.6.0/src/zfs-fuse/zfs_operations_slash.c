@@ -50,20 +50,30 @@
 kmem_cache_t *file_info_cache = NULL;
 cred_t zrootcreds = { 0, 0 };
 
+/* flags for zfsslash2_fidlink() */
+#define	FIDLINK_LOOKUP	1
+#define	FIDLINK_CREATE	2
+#define	FIDLINK_REMOVE	3
+
 #define SL_PATH_PREFIX	".sl"
 #define SL_PATH_FIDNS	".slfidns"
 
-#define INTERNALIZE_INUM(ip)					\
+#ifdef NAMESPACE_EXPERIMENTAL
+# define INTERNALIZE_INUM(ip)	do { } while (0)
+# define EXTERNALIZE_INUM(ip)	do { } while (0)
+#else
+# define INTERNALIZE_INUM(ip)					\
 	do {							\
 		if (*(ip) == 1)					\
 			*(ip) = 3;				\
 	} while (0)
 
-#define EXTERNALIZE_INUM(ip)					\
+# define EXTERNALIZE_INUM(ip)					\
 	do {							\
 		if (*(ip) == 3)					\
 			*(ip) = 1;				\
 	} while (0)
+#endif
 
 #define ZFS_CONVERT_CREDS(cred, slcrp)				\
 	cred_t _credentials = { (slcrp)->uid, (slcrp)->gid };	\
@@ -390,9 +400,8 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino,
 
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
-	if (error)
-		goto out;
-out:
+
+ out:
 	if (error)
 		VN_RELE(vp);
 	ZFS_EXIT(zfsvfs);
@@ -551,18 +560,16 @@ zfsslash2_readdir(void *vfsdata, uint64_t ino,
  * created. We do this when we format the file system.
  */
 int
-zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
+zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags)
 {
 	int		 i;
 	uint8_t		 c;
-	vnode_t		*vp = NULL;
+	vnode_t		*vp;
 	vnode_t		*dvp;
 	int		 error;
 	znode_t		*znode;
-	uint64_t	 linkid;
+	uint64_t	 slashid;
 	char		 id_name[20];
-
-	ASSERT(linkvp);
 
 	error = zfs_zget(zfsvfs, 3, &znode, B_TRUE);
 	if (error)
@@ -583,11 +590,23 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	 */
 	VN_RELE(dvp);
 	dvp = vp;
+
+	if (flags != FIDLINK_LOOKUP) {
+		ASSERT(*linkvp);
+#ifdef NAMESPACE_EXPERIMENTAL
+		slashid = (uint64_t)VTOZ(*linkvp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
+#else
+		slashid = (uint64_t)VTOZ(*linkvp)->z_id;
+#endif
+	} else {
+		ASSERT(!(*linkvp));
+		slashid = linkid;
+	}
+
 	/* Lookup our fid's parent directory in the fid namespace, closing
 	 *   parent dvp's along the way.
 	 */
 	id_name[1] = '\0';
-	linkid = (uint64_t)VTOZ(linkvp)->z_id;
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
 		/*
 		 * Extract BPHXC bits at a time and convert them to a digit or a lower-case
@@ -595,7 +614,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 		 * hex digit from the right side. If the depth is 3, then we have 0xfff or
 		 * 4095 files in a directory in the by-id namespace.
 		 */
-		c = (uint8_t)((linkid & (UINT64_C(0x0000000000f00000) >> i*BPHXC)) >> ((5-i) * BPHXC));
+		c = (uint8_t)((slashid & (UINT64_C(0x0000000000f00000) >> i*BPHXC)) >> ((5-i) * BPHXC));
 		/* convert a hex digit to its corresponding ascii digit or lower case letter */
 		id_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
 
@@ -618,16 +637,23 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int unlink)
 	/* we should have the parent vnode in the by-id namespace now */
 	ASSERT(vp);
 
-	snprintf(id_name, sizeof(id_name), "%016"PRIx64, linkid);
-	if (unlink)
+	snprintf(id_name, sizeof(id_name), "%016"PRIx64, slashid);
+
+	switch (flags) {
+	case FIDLINK_LOOKUP:
+		break;
+	case FIDLINK_CREATE:
+		error = VOP_LINK(vp, *linkvp, (char *)id_name, &zrootcreds, NULL, FALLOWDIRLINK);
+		break;
+	case FIDLINK_REMOVE:
 		error = VOP_REMOVE(vp, (char *)id_name, &zrootcreds, NULL, 0);
-	else
-		error = VOP_LINK(vp, linkvp, (char *)id_name, &zrootcreds, NULL, FALLOWDIRLINK);
+		break;
+	}
 
 #ifdef DEBUG
 	fprintf(stderr, "id_name=%s parent=%ld linkvp=%ld error=%d\n",
 		id_name, (uint64_t)VTOZ(dvp)->z_id,
-		linkid, error);
+		slashid, error);
 #endif
 
 	if (error)
@@ -647,6 +673,9 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
+
+	if (name && strlen(name) > MAXNAMELEN)
+		return ENAMETOOLONG;
 
 	INTERNALIZE_INUM(&ino);
 
@@ -717,7 +746,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 
 #ifdef NAMESPACE_EXPERIMENTAL
 		if (fg)
-			vattr.va_fid = fg->fid;
+			vattr.va_fid = fg->fg_fid;
 #endif
 
 		if (flags & FTRUNC) {
@@ -739,7 +768,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 		VN_RELE(vp);
 		vp = new_vp;
 
-		if ((error = zfsslash2_fidlink(zfsvfs, vp, 0)))
+		if ((error = zfsslash2_fidlink(zfsvfs, &vp, FID_ANY, FIDLINK_CREATE)))
 			goto out;
 	} else {
 		/*
@@ -798,7 +827,11 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 	((file_info_t *)(*finfo))->vp = vp;
 	((file_info_t *)(*finfo))->flags = flags;
 
+#ifdef NAMESPACE_EXPERIMENTAL
+	fg->fg_fid = VTOZ(vp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
+#else
 	fg->fg_fid = VTOZ(vp)->z_id;
+#endif
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
 	EXTERNALIZE_INUM(&fg->fg_fid);
 
@@ -911,7 +944,10 @@ zfsslash2_read(void *vfsdata, uint64_t ino,
 	return (error);
 }
 
-
+/*
+ * fg is used as an in and out parameter.  If it is not FID_ANY, then
+ * the caller has passed in a pre-determined SLASH_ID for us to use.
+ */
 int
 zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
     mode_t mode, const struct slash_creds *slcrp,
@@ -950,9 +986,9 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 
-#if NAMESPACE_EXPERIMENTAL
+#ifdef NAMESPACE_EXPERIMENTAL
 	if (fg)
-		vattr.va_fid = fg->fid;
+		vattr.va_fid = fg->fg_fid;
 #endif
 
 	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL);
@@ -962,13 +998,17 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	ASSERT(vp != NULL);
 
 	if (flags == 0) {
-		error = zfsslash2_fidlink(zfsvfs, vp, 0);
+		error = zfsslash2_fidlink(zfsvfs, &vp, FID_ANY, FIDLINK_CREATE);
 		if (error)
 			goto out;
 	}
 
 	if (fg) {
+#ifdef NAMESPACE_EXPERIMENTAL
+		fg->fg_fid = VTOZ(vp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
+#else
 		fg->fg_fid = VTOZ(vp)->z_id;
+#endif
 		fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
 		EXTERNALIZE_INUM(&fg->fg_fid);
 	}
@@ -976,7 +1016,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
 
-out:
+ out:
 	if (vp != NULL)
 		VN_RELE(vp);
 	VN_RELE(dvp);
@@ -1202,7 +1242,7 @@ zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name,
 		goto out;
 	}
 
-	error = zfsslash2_fidlink(zfsvfs, vp, 1);
+	error = zfsslash2_fidlink(zfsvfs, &vp, FID_ANY, FIDLINK_REMOVE);
 	VN_RELE(vp);
  out:
 	VN_RELE(dvp);
@@ -1272,10 +1312,10 @@ zfsslash2_mknod(void *vfsdata, uint64_t parent, const char *name,
 
 	ZFS_ENTER(zfsvfs);
 
+	znode_t *znode;
+
 	if (strlen(name) > MAXNAMELEN)
 		return ENAMETOOLONG;
-
-	znode_t *znode;
 
 	INTERNALIZE_INUM(&parent);
 
@@ -1322,9 +1362,10 @@ zfsslash2_mknod(void *vfsdata, uint64_t parent, const char *name,
 	e.generation = VTOZ(vp)->z_phys->zp_gen;
 	EXTERNALIZE_INUM(&e.ino);
 
-	error = zfsslash2_stat(vp, &e.attr, &cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, &e.attr, &cred);
 
-out:
+ out:
 	if (vp != NULL)
 		VN_RELE(vp);
 	ZFS_EXIT(zfsvfs);
@@ -1389,7 +1430,8 @@ zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent,
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
 	EXTERNALIZE_INUM(&fg->fg_fid);
 
-	error = zfsslash2_stat(vp, sstb, cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, sstb, cred);
 
  out:
 	if (vp != NULL)

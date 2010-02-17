@@ -42,9 +42,13 @@
 #include <time.h>
 
 #include "util.h"
+
+#include "fid.h"
+#include "slashrpc.h"
 #include "zfs_slashlib.h"
 
 kmem_cache_t *file_info_cache = NULL;
+cred_t zrootcreds = { 0, 0 };
 
 /* flags for zfsslash2_fidlink() */
 #define	FIDLINK_LOOKUP		1
@@ -54,13 +58,24 @@ kmem_cache_t *file_info_cache = NULL;
 #define SL_PATH_PREFIX	".sl"
 #define SL_PATH_FIDNS	".slfidns"
 
-#define TRANSLATE_INUM(ip)					\
+#ifdef NAMESPACE_EXPERIMENTAL
+# define INTERNALIZE_INUM(ip)	do { } while (0)
+# define EXTERNALIZE_INUM(ip)	do { } while (0)
+#else
+# define INTERNALIZE_INUM(ip)					\
 	do {							\
 		if (*(ip) == 1)					\
 			*(ip) = 3;				\
 	} while (0)
 
-#define ZFS_CONVERT_CREDS(cred, slcrp)                          \
+# define EXTERNALIZE_INUM(ip)					\
+	do {							\
+		if (*(ip) == 3)					\
+			*(ip) = 1;				\
+	} while (0)
+#endif
+
+#define ZFS_CONVERT_CREDS(cred, slcrp)				\
 	cred_t _credentials = { (slcrp)->uid, (slcrp)->gid };   \
 	cred_t *cred = &_credentials
 
@@ -96,7 +111,6 @@ char *fuse_add_dirent(char *buf, const char *name, const struct stat *stbuf,
 	dirent->namelen = namelen;
 	dirent->type = (stbuf->st_mode & 0170000) >> 12;
 	strncpy(dirent->name, name, namelen);
-
 	if (padlen)
 		memset(buf + entlen, 0, padlen);
 
@@ -112,9 +126,10 @@ zfsslash2_isreserved(uint64_t ino, const char *cpn)
 	return (0);
 }
 
-void zfsslash2_destroy(void *userdata)
+void
+zfsslash2_destroy(void *userdata)
 {
-	vfs_t *vfs = (vfs_t *) userdata;
+	vfs_t *vfs = userdata;
 
 	struct timespec req;
 	req.tv_sec = 0;
@@ -135,14 +150,15 @@ void zfsslash2_destroy(void *userdata)
 #endif
 }
 
-int zfsslash2_statfs(void *vfsdata, struct statvfs *stat, uint64_t ino)
+int
+zfsslash2_statfs(void *vfsdata, struct statvfs *stat, uint64_t ino)
 {
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 
 	struct statvfs64 zfs_stat;
 
 	int ret = VFS_STATVFS(vfs, &zfs_stat);
-	if(ret != 0)
+	if (ret != 0)
 		return (ret);
 
 	/* There's a bug somewhere in FUSE, in the kernel or in df(1) where
@@ -163,7 +179,20 @@ int zfsslash2_statfs(void *vfsdata, struct statvfs *stat, uint64_t ino)
 	return (0);
 }
 
-int zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
+void
+zfsslash2_export_sstb(struct srt_stat *sstb)
+{
+	EXTERNALIZE_INUM(&sstb->sst_ino);
+
+	/* subtract 1 for slfidns immutable namespace link */
+	if (sstb->sst_nlink > 1)
+		sstb->sst_nlink--;
+
+	/* XXX adjust st_nlink of files in repldir */
+}
+
+int
+zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 {
 	ASSERT(vp != NULL);
 	ASSERT(sstb != NULL);
@@ -173,16 +202,15 @@ int zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 	vattr.va_mask = AT_STAT | AT_NBLOCKS | AT_BLKSIZE | AT_SLASH2SIZE;
 
 	int error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);
-	if(error)
+	if (error)
 		return error;
 
 	memset(sstb, 0, sizeof(*sstb));
 
 	sstb->sst_dev = vattr.va_fsid;
-	sstb->sst_ino = vattr.va_nodeid == 3 ? 1 : vattr.va_nodeid;
+	sstb->sst_ino = vattr.va_nodeid;
 	sstb->sst_mode = VTTOIF(vattr.va_type) | vattr.va_mode;
-	sstb->sst_nlink = MAX(1, vattr.va_nlink - 1);	/* subtract 1 for slfidns */
-	/* XXX adjust sst_nlink of files in repldir */
+	sstb->sst_nlink = vattr.va_nlink;
 	sstb->sst_uid = vattr.va_uid;
 	sstb->sst_gid = vattr.va_gid;
 	sstb->sst_rdev = vattr.va_rdev;
@@ -196,6 +224,8 @@ int zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 	TIMESTRUC_TO_TIME(vattr.va_mtime, &sstb->sst_mtime);
 	TIMESTRUC_TO_TIME(vattr.va_ctime, &sstb->sst_ctime);
 
+	zfsslash2_export_sstb(sstb);
+
 	return 0;
 }
 
@@ -205,16 +235,17 @@ zfsslash2_getattr(void *vfsdata, uint64_t ino,
     uint64_t *gen)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	uint64_t real_ino = ino == 1 ? 3 : ino;
 
 	ZFS_ENTER(zfsvfs);
 
 	znode_t *znode;
 
-	int error = zfs_zget(zfsvfs, real_ino, &znode, B_TRUE);
-	if(error) {
+	INTERNALIZE_INUM(&ino);
+
+	int error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -242,21 +273,20 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
     struct srt_stat *sstb)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-
-	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
-		return ENAMETOOLONG;
-
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
-	if (parent == 1) parent = 3;
-
 	ZFS_ENTER(zfsvfs);
+
+	if (strlen(name) > MAXNAMELEN)
+		return ENAMETOOLONG;
+
+	INTERNALIZE_INUM(&parent);
 
 	znode_t *znode;
 
 	int error = zfs_zget(zfsvfs, parent, &znode, B_TRUE);
-	if(error) {
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -270,26 +300,21 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
 	vnode_t *vp = NULL;
 
 	error = VOP_LOOKUP(dvp, (char *) name, &vp, NULL, 0, NULL, cred, NULL, NULL, NULL);
-	if(error)
+	if (error)
 		goto out;
 
-	if(vp == NULL)
+	if (vp == NULL)
 		goto out;
 
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
 
-	if (VTOZ(vp)->z_id == 3) {
-		if (sstb)
-			sstb->sst_ino = 1;
-		fg->fg_fid = 1;
-	} else
-		fg->fg_fid = VTOZ(vp)->z_id;
-
+	fg->fg_fid = VTOZ(vp)->z_id;
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
+	EXTERNALIZE_INUM(&fg->fg_fid);
 
-out:
-	if(vp != NULL)
+ out:
+	if (vp != NULL)
 		VN_RELE(vp);
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
@@ -301,21 +326,21 @@ out:
  */
 int
 zfsslash2_opendir(void *vfsdata, uint64_t ino,
-    const struct slash_creds *slcrp,
-    struct slash_fidgen *fg, struct srt_stat *sstb, void **finfo)
+    const struct slash_creds *slcrp, struct slash_fidgen *fg,
+    struct srt_stat *sstb, void **finfo)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-
-	if (ino == 1) ino = 3;
 
 	ZFS_ENTER(zfsvfs);
 
 	znode_t *znode;
 
+	INTERNALIZE_INUM(&ino);
+
 	int error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
-	if(error) {
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -326,7 +351,7 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino,
 	vnode_t *vp = ZTOV(znode);
 	ASSERT(vp != NULL);
 
-	if(vp->v_type != VDIR) {
+	if (vp->v_type != VDIR) {
 		error = ENOTDIR;
 		goto out;
 	}
@@ -343,10 +368,10 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino,
 
 	ASSERT(old_vp == vp);
 
-	if(!error) {
+	if (!error) {
 		/* XXX convert to the slash d_ino cache */
 		*finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
-		if(*finfo == NULL) {
+		if (*finfo == NULL) {
 			error = ENOMEM;
 			goto out;
 		}
@@ -354,20 +379,16 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino,
 		((file_info_t *)(*finfo))->vp = vp;
 		((file_info_t *)(*finfo))->flags = FREAD;
 
-
-		if (VTOZ(vp)->z_id == 3)
-			fg->fg_fid = 1;
-		else
-			fg->fg_fid = VTOZ(vp)->z_id;
-
+		fg->fg_fid = VTOZ(vp)->z_id;
 		fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
+		EXTERNALIZE_INUM(&fg->fg_fid);
 	}
 
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
 
-out:
-	if(error)
+ out:
+	if (error)
 		VN_RELE(vp);
 	ZFS_EXIT(zfsvfs);
 
@@ -381,13 +402,13 @@ zfsslash2_release(void *vfsdata, uint64_t ino,
     const struct slash_creds *slcrp, void *data)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	file_info_t *info = (file_info_t *)data;
-
-	if (ino == 1) ino = 3;
+	file_info_t *info = data;
 
 	ZFS_ENTER(zfsvfs);
+
+	INTERNALIZE_INUM(&ino);
 
 	ASSERT(info->vp != NULL);
 	ASSERT(VTOZ(info->vp) != NULL);
@@ -410,7 +431,6 @@ zfsslash2_release(void *vfsdata, uint64_t ino,
 }
 
 
-/* XXX caller will have to free outbuf */
 int
 zfsslash2_readdir(void *vfsdata, uint64_t ino,
     const struct slash_creds *slcrp, size_t size, off_t off,
@@ -418,19 +438,18 @@ zfsslash2_readdir(void *vfsdata, uint64_t ino,
     void *data)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vnode_t *vp = ((file_info_t *)(uintptr_t) data)->vp;
+	vnode_t *vp = ((file_info_t *)data)->vp;
 
-	if (ino == 1)
-		ino = 3;
+	INTERNALIZE_INUM(&ino);
 
 	ASSERT(vp != NULL);
 	ASSERT(VTOZ(vp) != NULL);
 	ASSERT(VTOZ(vp)->z_id == ino);
 
-	if(vp->v_type != VDIR)
+	if (vp->v_type != VDIR)
 		return ENOTDIR;
 
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	if (outbuf == NULL)
@@ -439,7 +458,7 @@ zfsslash2_readdir(void *vfsdata, uint64_t ino,
 	ZFS_ENTER(zfsvfs);
 
 	union {
-		char buf[DIRENT64_RECLEN(MAXNAMELEN)]; /* off-by-one */
+		char buf[DIRENT64_RECLEN(MAXNAMELEN + 1)];
 		struct dirent64 dirent;
 	} entry;
 
@@ -480,6 +499,7 @@ zfsslash2_readdir(void *vfsdata, uint64_t ino,
 			break;
 
 		fstat.st_ino = entry.dirent.d_ino;
+		EXTERNALIZE_INUM(&fstat.st_ino);
 		fstat.st_mode = 0;
 
 		int dsize = fuse_dirent_size(strlen(entry.dirent.d_name));
@@ -508,7 +528,7 @@ zfsslash2_readdir(void *vfsdata, uint64_t ino,
 		next = entry.dirent.d_off;
 	}
 
-out:
+ out:
 	ZFS_EXIT(zfsvfs);
 	/* XXX caller does free..
 	 */
@@ -536,7 +556,6 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 	znode_t		*znode;
 	uint64_t	slashid;
 	char		id_name[20];
-	cred_t		creds = {0, 0};
 
 	error = zfs_zget(zfsvfs, 3, &znode, B_TRUE);
 	if (error)
@@ -546,7 +565,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 	dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
 
-	error = VOP_LOOKUP(dvp, SL_PATH_FIDNS, &vp, NULL, 0, NULL, &creds,
+	error = VOP_LOOKUP(dvp, SL_PATH_FIDNS, &vp, NULL, 0, NULL, &zrootcreds,
 			   NULL, NULL, NULL);
 	if (error) {
 		VN_RELE(dvp);
@@ -585,7 +604,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 		/* convert a hex digit to its corresponding ascii digit or lower case letter */
 		id_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
 
-		error = VOP_LOOKUP(dvp, id_name, &vp, NULL, 0, NULL, &creds,
+		error = VOP_LOOKUP(dvp, id_name, &vp, NULL, 0, NULL, &zrootcreds,
 				   NULL, NULL, NULL);
 
 #ifdef DEBUG
@@ -604,16 +623,16 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 	/* we should have the parent vnode in the by-id namespace now */
 	ASSERT(vp);
 
-	snprintf(id_name, 20, "%016"PRIx64, slashid);
-	
+	snprintf(id_name, sizeof(id_name), "%016"PRIx64, slashid);
+
 	switch (flags) {
 	    case FIDLINK_LOOKUP:
 		break;
 	    case FIDLINK_CREATE:
-		error = VOP_LINK(vp, *linkvp, (char *)id_name, &creds, NULL, FALLOWDIRLINK);
+		error = VOP_LINK(vp, *linkvp, (char *)id_name, &zrootcreds, NULL, FALLOWDIRLINK);
 		break;
 	    case FIDLINK_REMOVE:
-		error = VOP_REMOVE(vp, (char *)id_name, &creds, NULL, 0);
+		error = VOP_REMOVE(vp, (char *)id_name, &zrootcreds, NULL, 0);
 		break;
 	}
 
@@ -631,22 +650,23 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 
 int
 zfsslash2_opencreate(void *vfsdata, uint64_t ino,
-    const struct slash_creds *slcrp, int fflags,
-    mode_t createmode, const char *name, struct slash_fidgen *fg,
-    struct srt_stat *sstb, void **finfo)
+    const struct slash_creds *slcrp, int fflags, mode_t createmode,
+    const char *name, struct slash_fidgen *fg, struct srt_stat *sstb,
+    void **finfo)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 
 	int error;
 	vnode_t *vp;
-	uint64_t real_ino = ino == 1 ? 3 : ino;
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
-	if (name && strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
+	ZFS_ENTER(zfsvfs);
+
+	if (name && strlen(name) > MAXNAMELEN)
 		return ENAMETOOLONG;
 
-	ZFS_ENTER(zfsvfs);
+	INTERNALIZE_INUM(&ino);
 
 	/* Map flags */
 	int mode, flags;
@@ -654,7 +674,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 	if (fflags & O_WRONLY) {
 		mode = VWRITE;
 		flags = FWRITE;
-	} else if(fflags & O_RDWR) {
+	} else if (fflags & O_RDWR) {
 		mode = VREAD | VWRITE;
 		flags = FREAD | FWRITE;
 	} else {
@@ -688,14 +708,14 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 #ifdef NAMESPACE_EXPERIMENTAL
 	error = zfsslash2_fidlink(zfsvfs, &vp, fg->fg_fid, FIDLINK_LOOKUP);
 #else
-	error = zfs_zget(zfsvfs, real_ino, &znode, B_FALSE);
+	error = zfs_zget(zfsvfs, ino, &znode, B_FALSE);
 	if (!error) {
 		ASSERT(znode != NULL);
 		vp = ZTOV(znode);
 		ASSERT(vp != NULL);
 	}
 #endif
-	if(error) {
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -715,12 +735,12 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
 
-#if NAMESPACE_EXPERIMENTAL
+#ifdef NAMESPACE_EXPERIMENTAL
 		if (fg)
 			vattr.va_fid = fg->fg_fid;
 #endif
 		if (flags & FTRUNC) {
-			vattr.va_size = 0; //XXX fixme, don't wipe out the metadata at the beginning
+			vattr.va_size = 0;
 			vattr.va_mask |= AT_SIZE;
 		}
 		if (flags & FEXCL)
@@ -732,7 +752,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 		/* FIXME: check filesystem boundaries */
 		error = VOP_CREATE(vp, (char *) name, &vattr, excl, mode, &new_vp, cred, 0, NULL, NULL);
 
-		if(error)
+		if (error)
 			goto out;
 
 		VN_RELE(vp);
@@ -780,15 +800,13 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 
 	ASSERT(old_vp == vp);
 
-	if(error)
+	if (error)
 		goto out;
 
-	//if(flags & FCREAT) {
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
-	if(error)
+	if (error)
 		goto out;
-	//}
 	*finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
 	if (*finfo == NULL) {
 		error = ENOMEM;
@@ -798,22 +816,16 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 	((file_info_t *)(*finfo))->vp = vp;
 	((file_info_t *)(*finfo))->flags = flags;
 
-	//if(flags & FCREAT) {
-
 #ifdef NAMESPACE_EXPERIMENTAL
 	fg->fg_fid = VTOZ(vp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
 #else
 	fg->fg_fid = VTOZ(vp)->z_id;
-	if(fg->fg_fid == 3) {
-		fg->fg_fid = 1;
-		sstb->sst_ino = 1;
-	}
 #endif
-
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
-	//}
-out:
-	if(error) {
+	EXTERNALIZE_INUM(&fg->fg_fid);
+
+ out:
+	if (error) {
 		ASSERT(vp->v_count > 0);
 		VN_RELE(vp);
 	}
@@ -829,16 +841,17 @@ zfsslash2_readlink(void *vfsdata, uint64_t ino, char *buf,
     const struct slash_creds *slcrp)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	uint64_t real_ino = ino == 1 ? 3 : ino;
 
 	ZFS_ENTER(zfsvfs);
 
 	znode_t *znode;
 
-	int error = zfs_zget(zfsvfs, real_ino, &znode, B_FALSE);
-	if(error) {
+	INTERNALIZE_INUM(&ino);
+
+	int error = zfs_zget(zfsvfs, ino, &znode, B_FALSE);
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -866,7 +879,7 @@ zfsslash2_readlink(void *vfsdata, uint64_t ino, char *buf,
 	VN_RELE(vp);
 	ZFS_EXIT(zfsvfs);
 
-	if(!error) {
+	if (!error) {
 		VERIFY(uio.uio_loffset <= PATH_MAX);
 		buf[sizeof(buf) - 1] = '\0';
 	}
@@ -879,19 +892,21 @@ zfsslash2_readlink(void *vfsdata, uint64_t ino, char *buf,
  * Returns errno on failure, 0 on success.
  */
 int
-zfsslash2_read(void *vfsdata, uint64_t ino, const struct slash_creds *slcrp,
-    void *buf, size_t size, size_t *nb, off_t off, void *data)
+zfsslash2_read(void *vfsdata, uint64_t ino,
+    const struct slash_creds *slcrp, void *buf, size_t size, size_t *nb,
+    off_t off, void *data)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	file_info_t *info = (file_info_t *)(uintptr_t) data;
-	uint64_t real_ino = ino == 1 ? 3 : ino;
+	file_info_t *info = data;
 	vnode_t *vp = info->vp;
+
+	INTERNALIZE_INUM(&ino);
 
 	ASSERT(vp != NULL);
 	ASSERT(VTOZ(vp) != NULL);
-	ASSERT(VTOZ(vp)->z_id == real_ino);
+	ASSERT(VTOZ(vp)->z_id == ino);
 
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -931,34 +946,36 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 	int error;
 	vnode_t *dvp;
-	if (strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
-		return ENAMETOOLONG;
 
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	uint64_t real_parent = (parent == 1 ? 3 : parent);
 
 	ZFS_ENTER(zfsvfs);
 
 	znode_t *znode;
 
+	if (strlen(name) > MAXNAMELEN)
+		return ENAMETOOLONG;
+
+	INTERNALIZE_INUM(&parent);
+
 #ifdef NAMESPACE_EXPERIMENTAL
 	if (fg) {
 		error = zfsslash2_fidlink(zfsvfs, &dvp, fg->fg_fid, FIDLINK_LOOKUP);
 	} else {
-		error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
+		error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
 		if (!error)
 			dvp = ZTOV(znode);
 	}
-	if(error) {
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
 		return error == EEXIST ? ENOENT : error;
 	}
 #else
-	error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
-	if(error) {
+	error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -985,7 +1002,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 #endif
 
 	error = VOP_MKDIR(dvp, (char *) name, &vattr, &vp, cred, NULL, 0, NULL);
-	if(error)
+	if (error)
 		goto out;
 
 	ASSERT(vp != NULL);
@@ -1000,20 +1017,16 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 		fg->fg_fid = VTOZ(vp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
 #else
 		fg->fg_fid = VTOZ(vp)->z_id;
-		if (fg->fg_fid == 3)
-			fg->fg_fid = 1;
 #endif
 		fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
+		EXTERNALIZE_INUM(&fg->fg_fid);
 	}
 
-	if (sstb) {
+	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
-		if (sstb->sst_ino == 3)
-			sstb->sst_ino = 1;
-	}
 
-out:
-	if(vp != NULL)
+ out:
+	if (vp != NULL)
 		VN_RELE(vp);
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
@@ -1027,20 +1040,20 @@ zfsslash2_rmdir(void *vfsdata, uint64_t parent, const char *name,
     const struct slash_creds *slcrp)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-
-	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
-		return ENAMETOOLONG;
-
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	uint64_t real_parent = (parent == 1 ? 3 : parent);
 
 	ZFS_ENTER(zfsvfs);
 
 	znode_t *znode;
 
-	int error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
-	if(error) {
+	if (strlen(name) > MAXNAMELEN)
+		return ENAMETOOLONG;
+
+	INTERNALIZE_INUM(&parent);
+
+	int error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -1056,7 +1069,7 @@ zfsslash2_rmdir(void *vfsdata, uint64_t parent, const char *name,
 	error = VOP_RMDIR(dvp, (char *) name, NULL, cred, NULL, 0);
 
 	/* Linux uses ENOTEMPTY when trying to remove a non-empty directory */
-	if(error == EEXIST)
+	if (error == EEXIST)
 		error = ENOTEMPTY;
 
 	VN_RELE(dvp);
@@ -1066,102 +1079,30 @@ zfsslash2_rmdir(void *vfsdata, uint64_t parent, const char *name,
 }
 
 int
-zfsslash2_gets2szattr(void *vfsdata, uint64_t ino, off64_t *sizep, void *data)
-{
-	vfs_t *vfs = vfsdata;
-	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	file_info_t *info = data;
-	vattr_t vattr;
-	cred_t cred;
-	vnode_t *vp;
-	int error = 0;
-
-	ZFS_ENTER(zfsvfs);
-
-	TRANSLATE_INUM(&ino);
-
-	vp = info->vp;
-
-	/* Sanity check */
-	if (vp->v_type != VREG) {
-		error = EINVAL;
-		goto out;
-	}
-
-	vattr.va_mask = AT_SLASH2SIZE;
-	error = VOP_GETATTR(vp, &vattr, 0, &cred, NULL);
-	if (error == 0)
-		*sizep = vattr.va_s2size;
-
- out:
-	ZFS_EXIT(zfsvfs);
-	return (error);
-}
-
-int
-zfsslash2_sets2szattr(void *vfsdata, uint64_t ino, off64_t size, void *data)
-{
-	vfs_t *vfs = vfsdata;
-	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	uint64_t real_ino = ino == 1 ? 3 : ino;
-	file_info_t *info = data;
-	int error=0;
-
-	ZFS_ENTER(zfsvfs);
-
-	vnode_t *vp;
-
-	vp = info->vp;
-
-	/* Check if file is opened for writing */
-	if((info->flags & FWRITE) == 0) {
-		error = EBADF;
-		goto out;
-	}
-	/* Sanity check */
-	if(vp->v_type != VREG) {
-		error = EINVAL;
-		goto out;
-	}
-
-	vattr_t vattr = { 0 };
-	cred_t cred = { 0 };
-
-	vattr.va_mask |= AT_SLASH2SIZE;
-	vattr.va_s2size = size;
-
-	error = VOP_SETATTR(vp, &vattr, 0, &cred, NULL);
-
- out:
-	ZFS_EXIT(zfsvfs);
-
-	return error;
-}
-
-int
-zfsslash2_setattr(void *vfsdata, uint64_t ino, struct srt_stat *sstb_in,
-    int to_set, const struct slash_creds *slcrp,
-    struct srt_stat *sstb_out, void *data)
+zfsslash2_setattr(void *vfsdata, uint64_t ino,
+    const struct srt_stat *sstb_in, int to_set,
+    const struct slash_creds *slcrp, struct srt_stat *sstb_out,
+    void *data)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	uint64_t real_ino = ino == 1 ? 3 : ino;
-	file_info_t *info = (file_info_t *)data;
+	file_info_t *info = data;
 
 	ZFS_ENTER(zfsvfs);
 
 	vnode_t *vp;
 	boolean_t release;
 
-
 	int error;
+
+	INTERNALIZE_INUM(&ino);
 
 	if (!info) {
 		znode_t *znode;
 
-		error = zfs_zget(zfsvfs, real_ino, &znode, B_TRUE);
-		if(error) {
+		error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
+		if (error) {
 			ZFS_EXIT(zfsvfs);
 			/* If the inode we are trying to get was recently deleted
 			   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -1181,14 +1122,14 @@ zfsslash2_setattr(void *vfsdata, uint64_t ino, struct srt_stat *sstb_in,
 		 * (Solaris calls VOP_SPACE instead of VOP_SETATTR on
 		 * ftruncate).
 		 */
-		if(to_set & SRM_SETATTRF_SIZE) {
+		if (to_set & SRM_SETATTRF_SIZE) {
 			/* Check if file is opened for writing */
-			if((info->flags & FWRITE) == 0) {
+			if ((info->flags & FWRITE) == 0) {
 				error = EBADF;
 				goto out;
 			}
 			/* Sanity check */
-			if(vp->v_type != VREG) {
+			if (vp->v_type != VREG) {
 				error = EINVAL;
 				goto out;
 			}
@@ -1202,11 +1143,11 @@ zfsslash2_setattr(void *vfsdata, uint64_t ino, struct srt_stat *sstb_in,
 
 			/* FIXME: check locks */
 			error = VOP_SPACE(vp, F_FREESP, &bf, info->flags, 0, cred, NULL);
-			if(error)
+			if (error)
 				goto out;
 
 			to_set &= ~SRM_SETATTRF_SIZE;
-			if(to_set == 0)
+			if (to_set == 0)
 				goto out;
 		}
 	}
@@ -1215,40 +1156,40 @@ zfsslash2_setattr(void *vfsdata, uint64_t ino, struct srt_stat *sstb_in,
 
 	vattr_t vattr = { 0 };
 
-	if(to_set & SRM_SETATTRF_MODE) {
+	if (to_set & SRM_SETATTRF_MODE) {
 		vattr.va_mask |= AT_MODE;
 		vattr.va_mode = sstb_in->sst_mode;
 	}
-	if(to_set & SRM_SETATTRF_UID) {
+	if (to_set & SRM_SETATTRF_UID) {
 		vattr.va_mask |= AT_UID;
 		vattr.va_uid = sstb_in->sst_uid;
 	}
-	if(to_set & SRM_SETATTRF_GID) {
+	if (to_set & SRM_SETATTRF_GID) {
 		vattr.va_mask |= AT_GID;
 		vattr.va_gid = sstb_in->sst_gid;
 	}
-	if(to_set & SRM_SETATTRF_FSIZE) {
-		vattr.va_mask |= AT_SLASH2SIZE;
-		vattr.va_s2size = sstb_in->sst_size;
-	}
-	if(to_set & SRM_SETATTRF_ATIME) {
+	if (to_set & SRM_SETATTRF_ATIME) {
 		vattr.va_mask |= AT_ATIME;
 		TIME_TO_TIMESTRUC(sstb_in->sst_atime, &vattr.va_atime);
 	}
-	if(to_set & SRM_SETATTRF_MTIME) {
+	if (to_set & SRM_SETATTRF_MTIME) {
 		vattr.va_mask |= AT_MTIME;
 		TIME_TO_TIMESTRUC(sstb_in->sst_mtime, &vattr.va_mtime);
+	}
+	if (to_set & SRM_SETATTRF_FSIZE) {
+		vattr.va_mask |= AT_SLASH2SIZE;
+		vattr.va_s2size = sstb_in->sst_size;
 	}
 
 	int flags = (to_set & (SRM_SETATTRF_ATIME | SRM_SETATTRF_MTIME)) ? ATTR_UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL);
 
  out:
-	if(!error && sstb_out)
+	if (!error && sstb_out)
 		error = zfsslash2_stat(vp, sstb_out, cred);
 
 	/* Do not release if vp was an opened inode */
-	if(release)
+	if (release)
 		VN_RELE(vp);
 
 	ZFS_EXIT(zfsvfs);
@@ -1262,24 +1203,25 @@ zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name,
     const struct slash_creds *slcrp)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	uint64_t real_parent = (parent == 1 ? 3 : parent);
-
-	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
-		return ENAMETOOLONG;
 
 	ZFS_ENTER(zfsvfs);
 
 	znode_t *znode;
 
-	int error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
-	if(error) {
+	if (strlen(name) > MAXNAMELEN)
+		return ENAMETOOLONG;
+
+	INTERNALIZE_INUM(&parent);
+
+	int error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
 		return error == EEXIST ? ENOENT : error;
-	} 
+	}
 	ASSERT(znode != NULL);
 	vnode_t *dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
@@ -1309,19 +1251,21 @@ zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name,
  * Returns errno on failure, 0 on success.
  */
 int
-zfsslash2_write(void *vfsdata, uint64_t ino, const struct slash_creds *slcrp,
-    const void *buf, size_t size, size_t *nb, off_t off, void *data)
+zfsslash2_write(void *vfsdata, uint64_t ino,
+    const struct slash_creds *slcrp, const void *buf, size_t size,
+    size_t *nb, off_t off, void *data)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	file_info_t *info = (file_info_t *)(uintptr_t) data;
-	uint64_t real_ino = ino == 1 ? 3 : ino;
+	file_info_t *info = data;
+
+	INTERNALIZE_INUM(&ino);
 
 	vnode_t *vp = info->vp;
 	ASSERT(vp != NULL);
 	ASSERT(VTOZ(vp) != NULL);
-	ASSERT(VTOZ(vp)->z_id == real_ino);
+	ASSERT(VTOZ(vp)->z_id == ino);
 
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1343,7 +1287,7 @@ zfsslash2_write(void *vfsdata, uint64_t ino, const struct slash_creds *slcrp,
 
 	ZFS_EXIT(zfsvfs);
 
-	if(!error) {
+	if (!error) {
 		/* When not using direct_io, we must always write 'size' bytes */
 		VERIFY(uio.uio_resid == 0);
 		*nb = size - uio.uio_resid;
@@ -1354,20 +1298,25 @@ zfsslash2_write(void *vfsdata, uint64_t ino, const struct slash_creds *slcrp,
 
 
 #if 0
-int zfsslash2_mknod(void *vfsdata, uint64_t parent, const char *name, mode_t mode, dev_t rdev)
+int
+zfsslash2_mknod(void *vfsdata, uint64_t parent, const char *name,
+    mode_t mode, dev_t rdev)
 {
-	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
-		return ENAMETOOLONG;
-
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	ZFS_CONVERT_CREDS(cred, slcrp);
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
 
 	znode_t *znode;
 
+	if (strlen(name) > MAXNAMELEN)
+		return ENAMETOOLONG;
+
+	INTERNALIZE_INUM(&parent);
+
 	int error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
-	if(error) {
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -1383,7 +1332,7 @@ int zfsslash2_mknod(void *vfsdata, uint64_t parent, const char *name, mode_t mod
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 
-	if(mode & (S_IFCHR | S_IFBLK)) {
+	if (mode & (S_IFCHR | S_IFBLK)) {
 		vattr.va_rdev = rdev;
 		vattr.va_mask |= AT_RDEV;
 	}
@@ -1395,7 +1344,7 @@ int zfsslash2_mknod(void *vfsdata, uint64_t parent, const char *name, mode_t mod
 
 	VN_RELE(dvp);
 
-	if(error)
+	if (error)
 		goto out;
 
 	ASSERT(vp != NULL);
@@ -1406,19 +1355,18 @@ int zfsslash2_mknod(void *vfsdata, uint64_t parent, const char *name, mode_t mod
 	e.entry_timeout = 0.0;
 
 	e.ino = VTOZ(vp)->z_id;
-	if(e.ino == 3)
-		e.ino = 1;
-
 	e.generation = VTOZ(vp)->z_phys->zp_gen;
+	EXTERNALIZE_INUM(&e.ino);
 
-	error = zfsslash2_stat(vp, &e.attr, &cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, &e.attr, &cred);
 
-out:
-	if(vp != NULL)
+ out:
+	if (vp != NULL)
 		VN_RELE(vp);
 	ZFS_EXIT(zfsvfs);
 
-	if(!error)
+	if (!error)
 		fuse_reply_entry(req, &e);
 
 	return error;
@@ -1432,20 +1380,20 @@ zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent,
     struct srt_stat *sstb, struct slash_fidgen *fg)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-
-	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
-		return ENAMETOOLONG;
-
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-	uint64_t real_parent = parent == 1 ? 3 : parent;
 
 	ZFS_ENTER(zfsvfs);
 
 	znode_t *znode;
 
-	int error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
-	if(error) {
+	if (strlen(name) > MAXNAMELEN)
+		return ENAMETOOLONG;
+
+	INTERNALIZE_INUM(&parent);
+
+	int error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -1465,27 +1413,24 @@ zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent,
 
 	vnode_t *vp = NULL;
 
-	if(error)
+	if (error)
 		goto out;
 
 	error = VOP_LOOKUP(dvp, (char *) name, &vp, NULL, 0, NULL, cred, NULL, NULL, NULL);
-	if(error)
+	if (error)
 		goto out;
 
 	ASSERT(vp != NULL);
 
 	fg->fg_fid = VTOZ(vp)->z_id;
-	if(fg->fg_fid == 3) {
-		fg->fg_fid = 1;
-		sstb->sst_ino = 1;
-	}
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
+	EXTERNALIZE_INUM(&fg->fg_fid);
 
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
 
-out:
-	if(vp != NULL)
+ out:
+	if (vp != NULL)
 		VN_RELE(vp);
 	VN_RELE(dvp);
 
@@ -1497,26 +1442,26 @@ out:
 
 int
 zfsslash2_rename(void *vfsdata, uint64_t parent, const char *name,
-    uint64_t newparent, const char *newname, const struct slash_creds *slcrp)
+    uint64_t newparent, const char *newname,
+    const struct slash_creds *slcrp)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-
-	if(strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
-		return ENAMETOOLONG;
-	if(strlen(newname) >= MAXNAMELEN) /* XXX off-by-one */
-		return ENAMETOOLONG;
-
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-
-	if (parent == 1) parent = 3;
 
 	ZFS_ENTER(zfsvfs);
 
 	znode_t *p_znode, *np_znode;
 
+	if (strlen(name) > MAXNAMELEN)
+		return ENAMETOOLONG;
+	if (strlen(newname) > MAXNAMELEN)
+		return ENAMETOOLONG;
+
+	INTERNALIZE_INUM(&parent);
+
 	int error = zfs_zget(zfsvfs, parent, &p_znode, B_FALSE);
-	if(error) {
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -1526,7 +1471,7 @@ zfsslash2_rename(void *vfsdata, uint64_t parent, const char *name,
 	ASSERT(p_znode != NULL);
 
 	error = zfs_zget(zfsvfs, newparent, &np_znode, B_FALSE);
-	if(error) {
+	if (error) {
 		VN_RELE(ZTOV(p_znode));
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
@@ -1556,14 +1501,14 @@ zfsslash2_fsync(void *vfsdata, uint64_t ino,
     const struct slash_creds *slcrp, int datasync, void *data)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-
-	if (ino == 1) ino = 3;
 
 	ZFS_ENTER(zfsvfs);
 
-	file_info_t *info = (file_info_t *)(uintptr_t) data;
+	INTERNALIZE_INUM(&ino);
+
+	file_info_t *info = data;
 	ASSERT(info->vp != NULL);
 	ASSERT(VTOZ(info->vp) != NULL);
 	ASSERT(VTOZ(info->vp)->z_id == ino);
@@ -1584,21 +1529,18 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
     const struct slash_creds *slcrp, struct srt_stat *sstb)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-
-	if (strlen(newname) >= MAXNAMELEN) /* XXX off-by-one */
-		return ENAMETOOLONG;
-
-	if (ino == 1)
-		ino = 3;
-	if (newparent == 1)
-		newparent = 3;
-
-	vfs_t *vfs = (vfs_t *)vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
 
 	znode_t *td_znode, *s_znode;
+
+	if (strlen(newname) > MAXNAMELEN)
+		return ENAMETOOLONG;
+
+	INTERNALIZE_INUM(&ino);
+	INTERNALIZE_INUM(&newparent);
 
 	int error = zfs_zget(zfsvfs, ino, &s_znode, B_FALSE);
 	if (error) {
@@ -1636,17 +1578,13 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 	ASSERT(vp != NULL);
 
 	fg->fg_fid = VTOZ(vp)->z_id;
-	if (fg->fg_fid == 3) {
-		sstb->sst_ino = 1;
-		fg->fg_fid = 1;
-	}
-
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
+	EXTERNALIZE_INUM(&fg->fg_fid);
 
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
 
-out:
+ out:
 	if (vp != NULL)
 		VN_RELE(vp);
 	VN_RELE(tdvp);
@@ -1663,17 +1601,17 @@ zfsslash2_access(void *vfsdata, uint64_t ino, int mask,
     const struct slash_creds *slcrp)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	vfs_t *vfs = (vfs_t *) vfsdata;
+	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
-
-	if (ino == 1) ino = 3;
 
 	ZFS_ENTER(zfsvfs);
 
 	znode_t *znode;
 
+	INTERNALIZE_INUM(&ino);
+
 	int error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
-	if(error) {
+	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -1686,11 +1624,11 @@ zfsslash2_access(void *vfsdata, uint64_t ino, int mask,
 
 
 	int mode = 0;
-	if(mask & R_OK)
+	if (mask & R_OK)
 		mode |= VREAD;
-	if(mask & W_OK)
+	if (mask & W_OK)
 		mode |= VWRITE;
-	if(mask & X_OK)
+	if (mask & X_OK)
 		mode |= VEXEC;
 
 	error = VOP_ACCESS(vp, mode, 0, cred, NULL);
