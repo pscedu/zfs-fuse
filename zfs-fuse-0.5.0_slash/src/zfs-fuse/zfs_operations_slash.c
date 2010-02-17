@@ -922,7 +922,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	ZFS_CONVERT_CREDS(cred, slcrp);
 
 	int error;
-	vnode_t dvp;
+	vnode_t *dvp;
 	if (strlen(name) >= MAXNAMELEN) /* XXX off-by-one */
 		return ENAMETOOLONG;
 
@@ -934,6 +934,21 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 	znode_t *znode;
 
+#ifdef NAMESPACE_EXPERIMENTAL
+	if (fg) {
+		error = zfsslash2_fidlink(zfsvfs, &dvp, fg->fg_fid, FIDLINK_OPEN);
+	} else {
+		error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
+		if (!error)
+			dvp = ZTOV(znode);
+	}
+	if(error) {
+		ZFS_EXIT(zfsvfs);
+		/* If the inode we are trying to get was recently deleted
+		   dnode_hold_impl will return EEXIST instead of ENOENT */
+		return error == EEXIST ? ENOENT : error;
+	}
+#else
 	error = zfs_zget(zfsvfs, real_parent, &znode, B_FALSE);
 	if(error) {
 		ZFS_EXIT(zfsvfs);
@@ -945,6 +960,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	ASSERT(znode != NULL);
 	dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
+#endif
 
 	vnode_t *vp = NULL;
 
