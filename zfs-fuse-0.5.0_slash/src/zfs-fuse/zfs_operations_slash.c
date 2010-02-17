@@ -685,6 +685,15 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 
 	znode_t *znode;
 
+#ifdef NAMESPACE_EXPERIMENTAL
+	error = zfsslash2_fidlink(zfsvfs, &dvp, fg->fg_fid, FIDLINK_LOOKUP);
+	if(error) {
+		ZFS_EXIT(zfsvfs);
+		/* If the inode we are trying to get was recently deleted
+		   dnode_hold_impl will return EEXIST instead of ENOENT */
+		return error == EEXIST ? ENOENT : error;
+	}
+#else
 	error = zfs_zget(zfsvfs, real_ino, &znode, B_FALSE);
 	if (error) {
 		ZFS_EXIT(zfsvfs);
@@ -696,6 +705,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 	ASSERT(znode != NULL);
 	vp = ZTOV(znode);
 	ASSERT(vp != NULL);
+#endif
 
 	if (flags & FCREAT) {
 		enum vcexcl excl;
