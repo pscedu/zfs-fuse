@@ -526,7 +526,7 @@ out:
  * created.  We do this when we format the file system.
  */
 int
-zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, int flags)
+zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t *linkvp, uint64_t linkid, int flags)
 {
 	int		i;
 	uint8_t		c;
@@ -724,7 +724,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 		VN_RELE(vp);
 		vp = new_vp;
 
-		if ((error = zfsslash2_fidlink(zfsvfs, vp, FIDLINK_CREATE)))
+		if ((error = zfsslash2_fidlink(zfsvfs, vp, FID_ANY, FIDLINK_CREATE)))
 			goto out;
 	} else {
 		/*
@@ -960,7 +960,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 	/* we only suppress fid link when called from mds_repl_scandir() */
 	if (flags == 0) {
-		error = zfsslash2_fidlink(zfsvfs, vp, FIDLINK_CREATE);
+		error = zfsslash2_fidlink(zfsvfs, vp, FID_ANY, FIDLINK_CREATE);
 	}
 
 	if (fg) {
@@ -1264,7 +1264,7 @@ zfsslash2_unlink(void *vfsdata, uint64_t parent, const char *name,
 		goto out;
 	}
 
-	error = zfsslash2_fidlink(zfsvfs, vp, FIDLINK_REMOVE);
+	error = zfsslash2_fidlink(zfsvfs, vp, FID_ANY, FIDLINK_REMOVE);
 	VN_RELE(vp);
  out:
 	VN_RELE(dvp);
