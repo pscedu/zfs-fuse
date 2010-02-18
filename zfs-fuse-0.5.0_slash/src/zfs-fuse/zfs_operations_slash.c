@@ -58,13 +58,13 @@ cred_t zrootcreds = { 0, 0 };
 #define SL_PATH_PREFIX	".sl"
 #define SL_PATH_FIDNS	".slfidns"
 
-# define INTERNALIZE_INUM(ip)					\
+#define INTERNALIZE_INUM(ip)					\
 	do {							\
 		if (*(ip) == 1)					\
 			*(ip) = 3;				\
 	} while (0)
 
-# define EXTERNALIZE_INUM(ip)					\
+#define EXTERNALIZE_INUM(ip)					\
 	do {							\
 		if (*(ip) == 3)					\
 			*(ip) = 1;				\
