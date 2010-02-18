@@ -632,6 +632,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 		break;
 	    default:
 		error = EINVAL;
+		break;
 	}
 
 #ifdef DEBUG
