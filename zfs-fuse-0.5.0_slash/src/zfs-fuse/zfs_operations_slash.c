@@ -265,7 +265,7 @@ zfsslash2_getattr(void *vfsdata, uint64_t ino,
 int
 zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
     struct slash_fidgen *fg, const struct slash_creds *slcrp,
-    struct srt_stat *sstb)
+    struct srt_stat *sstb, int flags)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	vfs_t *vfs = vfsdata;
