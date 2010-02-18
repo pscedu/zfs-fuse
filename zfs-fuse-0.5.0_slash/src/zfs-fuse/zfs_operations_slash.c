@@ -58,10 +58,6 @@ cred_t zrootcreds = { 0, 0 };
 #define SL_PATH_PREFIX	".sl"
 #define SL_PATH_FIDNS	".slfidns"
 
-#ifdef NAMESPACE_EXPERIMENTAL
-# define INTERNALIZE_INUM(ip)	do { } while (0)
-# define EXTERNALIZE_INUM(ip)	do { } while (0)
-#else
 # define INTERNALIZE_INUM(ip)					\
 	do {							\
 		if (*(ip) == 1)					\
@@ -73,7 +69,6 @@ cred_t zrootcreds = { 0, 0 };
 		if (*(ip) == 3)					\
 			*(ip) = 1;				\
 	} while (0)
-#endif
 
 #define ZFS_CONVERT_CREDS(cred, slcrp)				\
 	cred_t _credentials = { (slcrp)->uid, (slcrp)->gid };   \
