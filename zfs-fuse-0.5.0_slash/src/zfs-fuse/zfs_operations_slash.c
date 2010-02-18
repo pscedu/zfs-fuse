@@ -622,6 +622,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 
 	switch (flags) {
 	    case FIDLINK_LOOKUP:
+		*linkvp = vp;
 		break;
 	    case FIDLINK_CREATE:
 		error = VOP_LINK(vp, *linkvp, (char *)id_name, &zrootcreds, NULL, FALLOWDIRLINK);
@@ -629,6 +630,8 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 	    case FIDLINK_REMOVE:
 		error = VOP_REMOVE(vp, (char *)id_name, &zrootcreds, NULL, 0);
 		break;
+	    default:
+		error = EINVAL;
 	}
 
 #ifdef DEBUG
