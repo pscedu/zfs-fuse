@@ -956,6 +956,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 #ifdef NAMESPACE_EXPERIMENTAL
 	if (fg) {
+		dvp = NULL;
 		error = zfsslash2_fidlink(zfsvfs, &dvp, fg->fg_fid, FIDLINK_LOOKUP);
 	} else {
 		error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
