@@ -656,6 +656,9 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 	return (error);
 }
 
+/*
+ * Note that ino is the target inode if this is an open, otherwise it is the inode of the parent.
+ */
 int
 zfsslash2_opencreate(void *vfsdata, uint64_t ino,
     const struct slash_creds *slcrp, int fflags, mode_t createmode,
@@ -715,7 +718,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 
 #ifdef NAMESPACE_EXPERIMENTAL
 	vp = NULL;
-	error = zfsslash2_fidlink(zfsvfs, &vp, fg->fg_fid, FIDLINK_LOOKUP);
+	error = zfsslash2_fidlink(zfsvfs, &vp, ino, FIDLINK_LOOKUP);
 #else
 	error = zfs_zget(zfsvfs, ino, &znode, B_FALSE);
 	if (!error) {
@@ -964,9 +967,12 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	INTERNALIZE_INUM(&parent);
 
 #ifdef NAMESPACE_EXPERIMENTAL
-	if (fg && fg->fg_fid != SLASH_ROOT_ID) {
-		dvp = NULL;
-		error = zfsslash2_fidlink(zfsvfs, &dvp, fg->fg_fid, FIDLINK_LOOKUP);
+	if (flags == MDSIO_REMOTE) {
+		ASSERT(fg != NULL);
+		if (fg->fg_fid != SLASH_ROOT_ID) {
+			dvp = NULL;
+			error = zfsslash2_fidlink(zfsvfs, &dvp, parent, FIDLINK_LOOKUP);
+		}
 	} else {
 		error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
 		if (!error)
