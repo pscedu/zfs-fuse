@@ -46,6 +46,7 @@
 #include "fid.h"
 #include "slashrpc.h"
 #include "zfs_slashlib.h"
+#include "slashd/mdsio.h"
 
 kmem_cache_t *file_info_cache = NULL;
 cred_t zrootcreds = { 0, 0 };
@@ -507,7 +508,11 @@ zfsslash2_readdir(void *vfsdata, uint64_t ino,
 		if (iovec.iov_base == entry.buf)
 			break;
 
-		/* skip internal slash metastructure */
+		/*
+		 * Skip internal SLASH meta-structure.
+		 * This check should be pushed out to mount_slash once
+		 * we move the fuse dirent packing there.
+		 */
 		if (zfsslash2_isreserved(ino, entry.dirent.d_name))
 			goto next_entry;
 

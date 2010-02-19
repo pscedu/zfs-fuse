@@ -46,13 +46,10 @@
 #include "fid.h"
 #include "slashrpc.h"
 #include "zfs_slashlib.h"
+#include "slashd/mdsio.h"
 
 kmem_cache_t *file_info_cache = NULL;
 cred_t zrootcreds = { 0, 0 };
-
-/* keep the following two defs in sync with their counterparts in slashd/mdsio.h */
-#define	MDSIO_LOCAL	0
-#define	MDSIO_REMOTE	1
 
 /* flags for zfsslash2_fidlink() */
 #define	FIDLINK_LOOKUP		1
@@ -73,6 +70,20 @@ cred_t zrootcreds = { 0, 0 };
 		if (*(ip) == 3)					\
 			*(ip) = 1;				\
 	} while (0)
+
+static __inline slfid_t
+get_vnode_fid(vnode_t *vp)
+{
+	slfid_t fid;
+
+#ifdef NAMESPACE_EXPERIMENTAL
+	fid = VTOZ(vp)->z_id;
+#else
+	fid = VTOZ(vp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
+	EXTERNALIZE_INUM(&fid);
+#endif
+	return (fid);
+}
 
 #define ZFS_CONVERT_CREDS(cred, slcrp)				\
 	cred_t _credentials = { (slcrp)->uid, (slcrp)->gid };   \
@@ -308,15 +319,8 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
 
-	if (flags == MDSIO_REMOTE) {
-		fg->fg_fid = VTOZ(vp)->z_fid;
-		fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
-	} else { 
-		ASSERT(flags == MDSIO_LOCAL);
-		fg->fg_fid = VTOZ(vp)->z_id;
-		fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
-		EXTERNALIZE_INUM(&fg->fg_fid);
-	}
+	fg->fg_fid = get_vnode_fid(vp);
+	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
 
  out:
 	if (vp != NULL)
@@ -384,9 +388,8 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino,
 		((file_info_t *)(*finfo))->vp = vp;
 		((file_info_t *)(*finfo))->flags = FREAD;
 
-		fg->fg_fid = VTOZ(vp)->z_id;
+		fg->fg_fid = get_vnode_fid(vp);
 		fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
-		EXTERNALIZE_INUM(&fg->fg_fid);
 	}
 
 	if (sstb)
@@ -583,11 +586,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 
 	if (flags != FIDLINK_LOOKUP) {
 		ASSERT(*linkvp);
-#ifdef NAMESPACE_EXPERIMENTAL
-		slashid = (uint64_t)VTOZ(*linkvp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
-#else
-		slashid = (uint64_t)VTOZ(*linkvp)->z_id;
-#endif
+		slashid = get_vnode_fid(*linkvp);
 	} else {
 		ASSERT(!(*linkvp));
 		slashid = linkid;
@@ -826,13 +825,8 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 	((file_info_t *)(*finfo))->vp = vp;
 	((file_info_t *)(*finfo))->flags = flags;
 
-#ifdef NAMESPACE_EXPERIMENTAL
-	fg->fg_fid = VTOZ(vp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
-#else
-	fg->fg_fid = VTOZ(vp)->z_id;
-#endif
+	fg->fg_fid = get_vnode_fid(vp);
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
-	EXTERNALIZE_INUM(&fg->fg_fid);
 
  out:
 	if (error) {
@@ -1024,13 +1018,8 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	}
 
 	if (fg) {
-#ifdef NAMESPACE_EXPERIMENTAL
-		fg->fg_fid = VTOZ(vp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
-#else
-		fg->fg_fid = VTOZ(vp)->z_id;
-#endif
+		fg->fg_fid = get_vnode_fid(vp);
 		fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
-		EXTERNALIZE_INUM(&fg->fg_fid);
 	}
 
 	if (sstb)
@@ -1433,9 +1422,8 @@ zfsslash2_symlink(void *vfsdata, const char *link, uint64_t parent,
 
 	ASSERT(vp != NULL);
 
-	fg->fg_fid = VTOZ(vp)->z_id;
+	fg->fg_fid = get_vnode_fid(vp);
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
-	EXTERNALIZE_INUM(&fg->fg_fid);
 
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
@@ -1588,9 +1576,8 @@ zfsslash2_link(void *vfsdata, uint64_t ino, uint64_t newparent,
 
 	ASSERT(vp != NULL);
 
-	fg->fg_fid = VTOZ(vp)->z_id;
+	fg->fg_fid = get_vnode_fid(vp);
 	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
-	EXTERNALIZE_INUM(&fg->fg_fid);
 
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
