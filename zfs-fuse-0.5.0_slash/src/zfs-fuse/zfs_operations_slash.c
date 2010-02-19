@@ -705,6 +705,7 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 	znode_t *znode;
 
 #ifdef NAMESPACE_EXPERIMENTAL
+	vp = NULL;
 	error = zfsslash2_fidlink(zfsvfs, &vp, fg->fg_fid, FIDLINK_LOOKUP);
 #else
 	error = zfs_zget(zfsvfs, ino, &znode, B_FALSE);
