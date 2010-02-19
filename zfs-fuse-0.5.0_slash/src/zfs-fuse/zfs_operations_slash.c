@@ -77,9 +77,9 @@ get_vnode_fid(vnode_t *vp)
 	slfid_t fid;
 
 #ifdef NAMESPACE_EXPERIMENTAL
-	fid = VTOZ(vp)->z_id;
+	fid = VTOZ(vp)->z_fid;
 #else
-	fid = VTOZ(vp)->z_fid & ((1ULL << SLASH_ID_FID_BITS) - 1);
+	fid = VTOZ(vp)->z_id & ((1ULL << SLASH_ID_FID_BITS) - 1);
 	EXTERNALIZE_INUM(&fid);
 #endif
 	return (fid);
