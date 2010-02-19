@@ -964,7 +964,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	INTERNALIZE_INUM(&parent);
 
 #ifdef NAMESPACE_EXPERIMENTAL
-	if (fg && fg->fg_id != SLASH_ROOT_ID) {
+	if (fg && fg->fg_fid != SLASH_ROOT_ID) {
 		dvp = NULL;
 		error = zfsslash2_fidlink(zfsvfs, &dvp, fg->fg_fid, FIDLINK_LOOKUP);
 	} else {
@@ -1012,8 +1012,8 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 
 	ASSERT(vp != NULL);
 
-	/* we only suppress fid link when called from mds_repl_scandir() */
-	if (flags == 0) {
+	/* no need to create fid link for local files used internally */
+	if (flags == MDSIO_REMOTE) {
 		error = zfsslash2_fidlink(zfsvfs, &vp, FID_ANY, FIDLINK_CREATE);
 	}
 
