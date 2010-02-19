@@ -50,6 +50,10 @@
 kmem_cache_t *file_info_cache = NULL;
 cred_t zrootcreds = { 0, 0 };
 
+/* keep the following two defs in sync with their counterparts in slashd/mdsio.h */
+#define	MDSIO_LOCAL	0
+#define	MDSIO_REMOTE	1
+
 /* flags for zfsslash2_fidlink() */
 #define	FIDLINK_LOOKUP		1
 #define	FIDLINK_CREATE		2
@@ -304,9 +308,15 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
 
-	fg->fg_fid = VTOZ(vp)->z_id;
-	fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
-	EXTERNALIZE_INUM(&fg->fg_fid);
+	if (flags == MDSIO_REMOTE) {
+		fg->fg_fid = VTOZ(vp)->z_fid;
+		fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
+	} else { 
+		ASSERT(flags == MDSIO_LOCAL);
+		fg->fg_fid = VTOZ(vp)->z_id;
+		fg->fg_gen = VTOZ(vp)->z_phys->zp_gen;
+		EXTERNALIZE_INUM(&fg->fg_fid);
+	}
 
  out:
 	if (vp != NULL)
