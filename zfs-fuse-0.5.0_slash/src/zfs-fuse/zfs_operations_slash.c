@@ -970,7 +970,7 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 	INTERNALIZE_INUM(&parent);
 
 #ifdef NAMESPACE_EXPERIMENTAL
-	if (fg) {
+	if (fg && fg->fg_id != SLASH_ROOT_ID) {
 		dvp = NULL;
 		error = zfsslash2_fidlink(zfsvfs, &dvp, fg->fg_fid, FIDLINK_LOOKUP);
 	} else {
