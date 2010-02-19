@@ -720,8 +720,14 @@ zfsslash2_opencreate(void *vfsdata, uint64_t ino,
 	znode_t *znode;
 
 #ifdef NAMESPACE_EXPERIMENTAL
-	vp = NULL;
-	error = zfsslash2_fidlink(zfsvfs, &vp, ino, FIDLINK_LOOKUP);
+	if (ino != SLASH_ROOT_ID) {
+		vp = NULL;
+		error = zfsslash2_fidlink(zfsvfs, &vp, ino, FIDLINK_LOOKUP);
+	} else {
+		error = zfs_zget(zfsvfs, ZFS_ROOT_ID, &znode, B_FALSE);
+		if (!error)
+			vp = ZTOV(znode);
+	}
 #else
 	error = zfs_zget(zfsvfs, ino, &znode, B_FALSE);
 	if (!error) {
