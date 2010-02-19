@@ -59,6 +59,9 @@ cred_t zrootcreds = { 0, 0 };
 #define SL_PATH_PREFIX	".sl"
 #define SL_PATH_FIDNS	".slfidns"
 
+#define	ZFS_ROOT_ID	3
+#define	FUSE_ROOT_ID	1		/* see fuse-2.8.3 */
+
 #define INTERNALIZE_INUM(ip)					\
 	do {							\
 		if (*(ip) == 1)					\
@@ -972,6 +975,10 @@ zfsslash2_mkdir(void *vfsdata, uint64_t parent, const char *name,
 		if (fg->fg_fid != SLASH_ROOT_ID) {
 			dvp = NULL;
 			error = zfsslash2_fidlink(zfsvfs, &dvp, parent, FIDLINK_LOOKUP);
+		} else {
+			error = zfs_zget(zfsvfs, ZFS_ROOT_ID, &znode, B_FALSE);
+			if (!error)
+				dvp = ZTOV(znode);
 		}
 	} else {
 		error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
