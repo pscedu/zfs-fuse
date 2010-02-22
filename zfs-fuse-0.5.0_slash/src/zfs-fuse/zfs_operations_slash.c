@@ -105,6 +105,8 @@ struct fuse_dirent {
 	char name[0];
 };
 
+int zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags);
+
 size_t fuse_dirent_size(size_t namelen)
 {
 	return FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + namelen);
@@ -341,6 +343,8 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino,
     const struct slash_creds *slcrp, struct slash_fidgen *fg,
     struct srt_stat *sstb, void **finfo, int flags)
 {
+	int error;
+	vnode_t *vp;
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	vfs_t *vfs = vfsdata;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -351,7 +355,29 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino,
 
 	INTERNALIZE_INUM(&ino);
 
-	int error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
+#ifdef NAMESPACE_EXPERIMENTAL
+	if (flags == MDSIO_REMOTE) {
+		if (ino != SLASH_ROOT_ID) {
+			vp = NULL;
+			error = zfsslash2_fidlink(zfsvfs, &vp, ino, FIDLINK_LOOKUP);
+		} else {
+			error = zfs_zget(zfsvfs, ZFS_ROOT_ID, &znode, B_FALSE);
+			if (!error)
+				vp = ZTOV(znode);
+		}
+	} else {
+		error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
+		if (!error)
+			vp = ZTOV(znode);
+	}
+	if (error) {
+		ZFS_EXIT(zfsvfs);
+		/* If the inode we are trying to get was recently deleted
+		   dnode_hold_impl will return EEXIST instead of ENOENT */
+		return error == EEXIST ? ENOENT : error;
+	}
+#else
+	error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
 	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
@@ -360,8 +386,9 @@ zfsslash2_opendir(void *vfsdata, uint64_t ino,
 	}
 
 	ASSERT(znode != NULL);
-	vnode_t *vp = ZTOV(znode);
+	vp = ZTOV(znode);
 	ASSERT(vp != NULL);
+#endif
 
 	if (vp->v_type != VDIR) {
 		error = ENOTDIR;
