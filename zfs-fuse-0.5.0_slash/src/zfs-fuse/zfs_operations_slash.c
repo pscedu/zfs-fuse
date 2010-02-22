@@ -339,7 +339,7 @@ zfsslash2_lookup(void *vfsdata, uint64_t parent, const char *name,
 int
 zfsslash2_opendir(void *vfsdata, uint64_t ino,
     const struct slash_creds *slcrp, struct slash_fidgen *fg,
-    struct srt_stat *sstb, void **finfo)
+    struct srt_stat *sstb, void **finfo, int flags)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	vfs_t *vfs = vfsdata;
