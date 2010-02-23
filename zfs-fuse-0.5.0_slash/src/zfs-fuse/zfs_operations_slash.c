@@ -50,7 +50,7 @@
 
 kmem_cache_t	*file_info_cache;
 cred_t		 zrootcreds;
-zfs_t		*zfsVfs;
+vfs_t		*zfsVfs;
 
 /* flags for zfsslash2_fidlink() */
 #define FIDLINK_LOOKUP	1
@@ -347,7 +347,7 @@ zfsslash2_opendir(uint64_t ino, const struct slash_creds *slcrp,
 	INTERNALIZE_INUM(&ino);
 
 #ifdef NAMESPACE_EXPERIMENTAL
-	if (ino != SLASH_ROOT_ID) {
+	if (ino != ZFS_ROOT_ID) {
 		vp = NULL;
 		error = zfsslash2_fidlink(zfsvfs, &vp, ino, FIDLINK_LOOKUP);
 	} else {
@@ -711,7 +711,7 @@ zfsslash2_opencreate(uint64_t ino, const struct slash_creds *slcrp,
 	znode_t *znode;
 
 #ifdef NAMESPACE_EXPERIMENTAL
-	if (ino != SLASH_ROOT_ID) {
+	if (ino != ZFS_ROOT_ID) {
 		vp = NULL;
 		error = zfsslash2_fidlink(zfsvfs, &vp, ino, FIDLINK_LOOKUP);
 	} else {
@@ -967,7 +967,7 @@ zfsslash2_mkdir(uint64_t parent, const char *name, mode_t mode,
 
 #ifdef NAMESPACE_EXPERIMENTAL
 	ASSERT(fg != NULL);
-	if (fg->fg_fid != SLASH_ROOT_ID) {
+	if (fg->fg_fid != ZFS_ROOT_ID) {
 		dvp = NULL;
 		error = zfsslash2_fidlink(zfsvfs, &dvp, parent, FIDLINK_LOOKUP);
 	} else {
