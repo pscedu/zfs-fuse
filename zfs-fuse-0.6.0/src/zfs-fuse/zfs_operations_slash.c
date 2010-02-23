@@ -83,7 +83,7 @@ get_vnode_fid(vnode_t *vp)
 #ifdef NAMESPACE_EXPERIMENTAL
 	fid = VTOZ(vp)->z_fid;
 #else
-	fid = VTOZ(vp)->z_id & ((1ULL << SLASH_ID_FID_BITS) - 1);
+	fid = VTOZ(vp)->z_id;
 	EXTERNALIZE_INUM(&fid);
 #endif
 	return (fid);
@@ -934,7 +934,7 @@ zfsslash2_read(const struct slash_creds *slcrp, void *buf, size_t size,
 int
 zfsslash2_mkdir(uint64_t parent, const char *name, mode_t mode,
     const struct slash_creds *slcrp, struct srt_stat *sstb,
-    struct slash_fidgen *fg, int flags)
+    struct slash_fidgen *fg)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -979,11 +979,9 @@ zfsslash2_mkdir(uint64_t parent, const char *name, mode_t mode,
 
 	ASSERT(vp != NULL);
 
-	if (flags == 0) {
-		error = zfsslash2_fidlink(zfsvfs, &vp, FID_ANY, FIDLINK_CREATE);
-		if (error)
-			goto out;
-	}
+	error = zfsslash2_fidlink(zfsvfs, &vp, FID_ANY, FIDLINK_CREATE);
+	if (error)
+		goto out;
 
 	if (fg) {
 		fg->fg_fid = get_vnode_fid(vp);

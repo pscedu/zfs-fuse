@@ -83,7 +83,7 @@ get_vnode_fid(vnode_t *vp)
 #ifdef NAMESPACE_EXPERIMENTAL
 	fid = VTOZ(vp)->z_fid;
 #else
-	fid = VTOZ(vp)->z_id & ((1ULL << SLASH_ID_FID_BITS) - 1);
+	fid = VTOZ(vp)->z_id;
 	EXTERNALIZE_INUM(&fid);
 #endif
 	return (fid);
@@ -279,7 +279,7 @@ zfsslash2_getattr(uint64_t ino, const struct slash_creds *slcrp,
 int
 zfsslash2_lookup(uint64_t parent, const char *name,
     struct slash_fidgen *fg, const struct slash_creds *slcrp,
-    struct srt_stat *sstb, int flags)
+    struct srt_stat *sstb)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -333,8 +333,7 @@ zfsslash2_lookup(uint64_t parent, const char *name,
  */
 int
 zfsslash2_opendir(uint64_t ino, const struct slash_creds *slcrp,
-    struct slash_fidgen *fg, struct srt_stat *sstb, void **finfo,
-    int flags)
+    struct slash_fidgen *fg, struct srt_stat *sstb, void **finfo)
 {
 	int error;
 	vnode_t *vp;
@@ -348,17 +347,11 @@ zfsslash2_opendir(uint64_t ino, const struct slash_creds *slcrp,
 	INTERNALIZE_INUM(&ino);
 
 #ifdef NAMESPACE_EXPERIMENTAL
-	if (flags == MDSIO_REMOTE) {
-		if (ino != SLASH_ROOT_ID) {
-			vp = NULL;
-			error = zfsslash2_fidlink(zfsvfs, &vp, ino, FIDLINK_LOOKUP);
-		} else {
-			error = zfs_zget(zfsvfs, ZFS_ROOT_ID, &znode, B_FALSE);
-			if (!error)
-				vp = ZTOV(znode);
-		}
+	if (ino != SLASH_ROOT_ID) {
+		vp = NULL;
+		error = zfsslash2_fidlink(zfsvfs, &vp, ino, FIDLINK_LOOKUP);
 	} else {
-		error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
+		error = zfs_zget(zfsvfs, ZFS_ROOT_ID, &znode, B_FALSE);
 		if (!error)
 			vp = ZTOV(znode);
 	}
@@ -954,7 +947,7 @@ zfsslash2_read(const struct slash_creds *slcrp, void *buf, size_t size,
 int
 zfsslash2_mkdir(uint64_t parent, const char *name, mode_t mode,
     const struct slash_creds *slcrp, struct srt_stat *sstb,
-    struct slash_fidgen *fg, int flags)
+    struct slash_fidgen *fg)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 
@@ -973,18 +966,12 @@ zfsslash2_mkdir(uint64_t parent, const char *name, mode_t mode,
 	INTERNALIZE_INUM(&parent);
 
 #ifdef NAMESPACE_EXPERIMENTAL
-	if (flags == MDSIO_REMOTE) {
-		ASSERT(fg != NULL);
-		if (fg->fg_fid != SLASH_ROOT_ID) {
-			dvp = NULL;
-			error = zfsslash2_fidlink(zfsvfs, &dvp, parent, FIDLINK_LOOKUP);
-		} else {
-			error = zfs_zget(zfsvfs, ZFS_ROOT_ID, &znode, B_FALSE);
-			if (!error)
-				dvp = ZTOV(znode);
-		}
+	ASSERT(fg != NULL);
+	if (fg->fg_fid != SLASH_ROOT_ID) {
+		dvp = NULL;
+		error = zfsslash2_fidlink(zfsvfs, &dvp, parent, FIDLINK_LOOKUP);
 	} else {
-		error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
+		error = zfs_zget(zfsvfs, ZFS_ROOT_ID, &znode, B_FALSE);
 		if (!error)
 			dvp = ZTOV(znode);
 	}
@@ -1027,10 +1014,7 @@ zfsslash2_mkdir(uint64_t parent, const char *name, mode_t mode,
 
 	ASSERT(vp != NULL);
 
-	/* no need to create fid link for local files used internally */
-	if (flags == MDSIO_REMOTE) {
-		error = zfsslash2_fidlink(zfsvfs, &vp, FID_ANY, FIDLINK_CREATE);
-	}
+	error = zfsslash2_fidlink(zfsvfs, &vp, FID_ANY, FIDLINK_CREATE);
 
 	if (fg) {
 		fg->fg_fid = get_vnode_fid(vp);
