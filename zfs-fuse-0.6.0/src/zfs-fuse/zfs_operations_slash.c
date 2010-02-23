@@ -148,7 +148,7 @@ int zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int f
 int
 zfsslash2_isreserved(uint64_t ino, const char *cpn)
 {
-	if (ino == 3 && strncmp(cpn, SL_PATH_PREFIX,
+	if (ino == 1 && strncmp(cpn, SL_PATH_PREFIX,
 	    strlen(SL_PATH_PREFIX)) == 0)
 		return (1);
 	return (0);
