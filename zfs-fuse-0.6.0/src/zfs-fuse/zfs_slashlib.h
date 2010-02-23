@@ -24,7 +24,7 @@ int	zfsslash2_fsync(const struct slash_creds *, int, void *);
 int	zfsslash2_getattr(uint64_t, const struct slash_creds *, struct srt_stat *, uint64_t *);
 int	zfsslash2_link(uint64_t, uint64_t, const char *, struct slash_fidgen *, const struct slash_creds *, struct srt_stat *);
 int	zfsslash2_lookup(uint64_t, const char *, struct slash_fidgen *, const struct slash_creds *, struct srt_stat *);
-int	zfsslash2_mkdir(uint64_t, const char *, mode_t, const struct slash_creds *, struct srt_stat *, struct slash_fidgen *, int);
+int	zfsslash2_mkdir(uint64_t, const char *, mode_t, const struct slash_creds *, struct srt_stat *, struct slash_fidgen *);
 int	zfsslash2_mknod(uint64_t, const char *, mode_t, dev_t);
 int	zfsslash2_opencreate(uint64_t, const struct slash_creds *, int, mode_t, const char *, struct slash_fidgen *, struct srt_stat *, void **);
 int	zfsslash2_opendir(uint64_t, const struct slash_creds *, struct slash_fidgen *, struct srt_stat *, void **);
