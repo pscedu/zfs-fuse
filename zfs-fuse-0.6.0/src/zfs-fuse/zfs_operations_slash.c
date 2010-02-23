@@ -48,8 +48,9 @@
 #include "zfs_slashlib.h"
 #include "slashd/mdsio.h"
 
-kmem_cache_t *file_info_cache = NULL;
-cred_t zrootcreds = { 0, 0 };
+kmem_cache_t	*file_info_cache;
+cred_t		 zrootcreds;
+vfs_t		*zfsVfs;
 
 /* flags for zfsslash2_fidlink() */
 #define FIDLINK_LOOKUP	1
@@ -527,8 +528,8 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		outbuf_off += dsize;
 
 		if (nstbprefetch) {
-			attr->rc = zfsslash2_getattr(vfsdata,
-			    fstat.st_ino, slcrp, &sstb, &attr->gen);
+			attr->rc = zfsslash2_getattr(fstat.st_ino,
+			    slcrp, &sstb, &attr->gen);
 
 			attr++;
 			nstbprefetch--;
@@ -539,8 +540,6 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 
  out:
 	ZFS_EXIT(zfsvfs);
-	/* XXX caller does free..
-	 */
 	*outbuf_len = outbuf_off;
 
 	return error;
