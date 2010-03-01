@@ -85,12 +85,12 @@ zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
 		 * In the non-mixed case we only expect there would ever
 		 * be one match, but we need to use the normalizing lookup.
 		 */
-		error = zap_lookup_norm(zfsvfs->z_os, dzp->z_id, name, 8, 3,
+		error = zap_lookup_norm(zfsvfs->z_os, dzp->z_id, name, 8, 2,
 		    dirent, mt, buf, bufsz, &conflict);
 		if (!error && deflags)
 			*deflags = conflict ? ED_CASE_CONFLICT : 0;
 	} else {
-		error = zap_lookup(zfsvfs->z_os, dzp->z_id, name, 8, 3, dirent);
+		error = zap_lookup(zfsvfs->z_os, dzp->z_id, name, 8, 2, dirent);
 	}
 
 	if (error == ENOENT && update)
