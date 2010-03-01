@@ -12,13 +12,6 @@
 
 struct statvfs;
 
-/*
- * To save space, a SLASH ID consists of three parts: 4 bits for flags, 10 bits
- * for site ID, and 50 bits for a sequence number.
- *
- * SLASH ID should be used externally by a client or a peer MDS to identify a
- * file.  The ZFS inode number should ony be used internally.
- */
 #ifdef SLASHLIB
 typedef struct file_info {
 	vnode_t *vp;
