@@ -563,7 +563,7 @@ zfsslash2_fidlink(zfsvfs_t *zfsvfs, vnode_t **linkvp, uint64_t linkid, int flags
 	uint64_t	 slashid;
 	char		 id_name[20];
 
-	error = zfs_zget(zfsvfs, 3, &znode, B_TRUE);
+	error = zfs_zget(zfsvfs, ZFS_ROOT_ID, &znode, B_TRUE);
 	if (error)
 		return error == EEXIST ? ENOENT : error;
 
