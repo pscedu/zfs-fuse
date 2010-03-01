@@ -51,9 +51,6 @@ typedef struct dirent {
 
 #ifdef NAMESPACE_EXPERIMENTAL
 
-#define	SLASH_DENTRY_NONE		0x00
-#define	SLASH_DENTRY_HIDE		0x01	/* keep but hide an entry until its log arrives */
-
 typedef struct slash_dentry {
 	uint64_t	d_id;		/* ZFS native inode number */
 	uint64_t	d_fid;		/* SLASH ID and flags */
