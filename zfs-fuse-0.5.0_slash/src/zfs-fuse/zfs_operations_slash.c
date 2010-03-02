@@ -86,9 +86,9 @@ get_vnode_fids(vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
 		fgp->fg_fid = VTOZ(vp)->z_fid;
 #else
 		fgp->fg_fid = VTOZ(vp)->z_id;
+		EXTERNALIZE_INUM(&fgp->fg_fid);
 #endif
 		fgp->fg_gen = VTOZ(vp)->z_phys->zp_gen;
-		EXTERNALIZE_INUM(&fgp->fg_fid);
 	}
 	if (mfp)
 		*mfp = VTOZ(vp)->z_id;
