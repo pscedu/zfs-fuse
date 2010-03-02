@@ -146,7 +146,7 @@ zfsslash2_hide(vnode_t *vp, const char *cpn)
 		return (1);
 #endif
 
-	if (VTOZ(vp)->z_id == 1 &&
+	if (VTOZ(vp)->z_id == ZFS_ROOT_ID &&
 	    strncmp(cpn, SL_PATH_PREFIX,
 	    strlen(SL_PATH_PREFIX)) == 0)
 		return (1);
