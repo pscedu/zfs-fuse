@@ -965,23 +965,6 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 
 	INTERNALIZE_INUM(&parent);
 
-#ifdef NAMESPACE_EXPERIMENTAL
-	ASSERT(fg != NULL);
-	if (fg->fg_fid != ZFS_ROOT_ID) {
-		dvp = NULL;
-		error = zfsslash2_fidlink(&dvp, parent, FIDLINK_LOOKUP);
-	} else {
-		error = zfs_zget(zfsvfs, ZFS_ROOT_ID, &znode, B_FALSE);
-		if (!error)
-			dvp = ZTOV(znode);
-	}
-	if (error) {
-		ZFS_EXIT(zfsvfs);
-		/* If the inode we are trying to get was recently deleted
-		   dnode_hold_impl will return EEXIST instead of ENOENT */
-		return error == EEXIST ? ENOENT : error;
-	}
-#else
 	error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
 	if (error) {
 		ZFS_EXIT(zfsvfs);
@@ -993,7 +976,6 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	ASSERT(znode != NULL);
 	dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
-#endif
 
 	vnode_t *vp = NULL;
 
