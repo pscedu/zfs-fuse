@@ -142,7 +142,7 @@ static __inline int
 zfsslash2_hide(vnode_t *vp, const char *cpn)
 {
 #ifdef NAMESPACE_EXPERIMENTAL
-	if (FID_GET_FLAGS(VTOZ(vp)->z_fid) & SLFIDF_DENTRY_HIDE)
+	if (FID_GET_FLAGS(VTOZ(vp)->z_fid) & SLFIDF_HIDE_DENTRY)
 		return (1);
 #endif
 
@@ -740,23 +740,13 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 	znode_t *znode;
 
-#ifdef NAMESPACE_EXPERIMENTAL
-	if (ino != ZFS_ROOT_ID) {
-		vp = NULL;
-		error = zfsslash2_fidlink(&vp, ino, FIDLINK_LOOKUP);
-	} else {
-		error = zfs_zget(zfsvfs, ZFS_ROOT_ID, &znode, B_FALSE);
-		if (!error)
-			vp = ZTOV(znode);
-	}
-#else
 	error = zfs_zget(zfsvfs, ino, &znode, B_FALSE);
 	if (!error) {
 		ASSERT(znode != NULL);
 		vp = ZTOV(znode);
 		ASSERT(vp != NULL);
 	}
-#endif
+
 	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
