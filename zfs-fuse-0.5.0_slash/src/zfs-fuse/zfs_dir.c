@@ -764,7 +764,7 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	if (zp->zfid)
 		dirent.d_fid = zp->z_fid;
 	else
-		dirent.d_fid = SLFIDF_LOCAL_DENTRY << (10 + 50);
+		FID_SET_FLAGS(dirent.d_fid, SLFIDF_LOCAL_DENTRY);
 
 	/* FALLOWDIRLINK is only set by zfsslash2_fidlink() */
 	error = __zap_add(zp->z_zfsvfs->z_os, dzp->z_id, 
