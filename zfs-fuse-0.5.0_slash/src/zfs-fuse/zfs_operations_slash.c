@@ -562,6 +562,24 @@ zfsslash2_fidlink(vnode_t **linkvp, slfid_t fid, int flags)
 	dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
 
+	if (flags != FIDLINK_LOOKUP) {
+		struct slash_fidgen tfg;
+
+		ASSERT(*linkvp);
+		get_vnode_fids(*linkvp, &tfg, NULL);
+		slashid = tfg.fg_fid;
+	} else {
+		ASSERT(!(*linkvp));
+		slashid = fid;
+		/*
+		 * Map the root of slash2 to the root of the underlying ZFS.
+		 */
+		if (slashid == 1) {
+			*linkvp = dvp;
+			return 0;
+		}
+	}
+
 	error = VOP_LOOKUP(dvp, SL_PATH_FIDNS, &vp, NULL, 0, NULL, &zrootcreds,
 	    NULL, NULL, NULL);
 	if (error) {
@@ -574,16 +592,6 @@ zfsslash2_fidlink(vnode_t **linkvp, slfid_t fid, int flags)
 	VN_RELE(dvp);
 	dvp = vp;
 
-	if (flags != FIDLINK_LOOKUP) {
-		struct slash_fidgen tfg;
-
-		ASSERT(*linkvp);
-		get_vnode_fids(*linkvp, &tfg, NULL);
-		slashid = tfg.fg_fid;
-	} else {
-		ASSERT(!(*linkvp));
-		slashid = fid;
-	}
 
 	/* Lookup our fid's parent directory in the fid namespace, closing
 	 *   parent dvp's along the way.
