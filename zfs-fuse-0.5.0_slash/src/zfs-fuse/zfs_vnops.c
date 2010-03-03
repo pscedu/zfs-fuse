@@ -1756,7 +1756,7 @@ top:
 	/*
 	 * Now put new name in parent dir.
 	 */
-#if NAMESPACE_EXPERIMENTAL
+#ifdef NAMESPACE_EXPERIMENTAL
 	zp->z_fid = vap->va_fid;
 #endif
 	(void) zfs_link_create(dl, zp, tx, ZNEW);
