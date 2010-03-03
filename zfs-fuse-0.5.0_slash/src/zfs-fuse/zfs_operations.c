@@ -526,6 +526,7 @@ static int zfsfuse_opencreate(fuse_req_t req, fuse_ino_t ino, struct fuse_file_i
 		 * Wish to create a file.
 		 */
 		vattr_t vattr;
+		memset(&vattr, 0, sizeof(vattr_t));
 		vattr.va_type = VREG;
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
@@ -796,7 +797,8 @@ static int zfsfuse_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name, mo
 
 	vnode_t *vp = NULL;
 
-	vattr_t vattr = { 0 };
+	vattr_t vattr;
+	memset(&vattr, 0, sizeof(vattr_t));
 	vattr.va_type = VDIR;
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
