@@ -761,7 +761,10 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	 * For local files, the SLASH ID will be zero.
 	 */
 	dirent.d_id = value;
-	dirent.d_fid = zp->z_fid;
+	if (zp->zfid)
+		dirent.d_fid = zp->z_fid;
+	else
+		dirent.d_fid = SLFIDF_LOCAL_DENTRY << (10 + 50);
 
 	/* FALLOWDIRLINK is only set by zfsslash2_fidlink() */
 	error = __zap_add(zp->z_zfsvfs->z_os, dzp->z_id, 
