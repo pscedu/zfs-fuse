@@ -761,7 +761,7 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	 * For local files, the SLASH ID will be zero.
 	 */
 	dirent.d_id = value;
-	if (zp->zfid)
+	if (zp->z_fid)
 		dirent.d_fid = zp->z_fid;
 	else
 		FID_SET_FLAGS(dirent.d_fid, SLFIDF_LOCAL_DENTRY);
