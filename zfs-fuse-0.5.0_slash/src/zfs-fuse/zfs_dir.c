@@ -342,7 +342,7 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 #else
 			error = zfs_match_find(zfsvfs, dzp, name, exact,
 			    update, direntflags, realpnp, &zoid);
-#endif /* NAMESPACE_EXPERIMENTAL */
+#endif
 		}
 	}
 	if (error) {
