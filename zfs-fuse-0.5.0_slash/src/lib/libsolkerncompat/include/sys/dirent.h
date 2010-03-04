@@ -51,22 +51,7 @@ typedef struct dirent {
 
 #ifdef NAMESPACE_EXPERIMENTAL
 
-/* The following is copied over from include/fid.h to make compiler happy */
-
-#define SLASH_ID_FLAG_BITS      4
-#define SLASH_ID_SITE_BITS      10
-#define SLASH_ID_FID_BITS       50
-
-#define SLFIDF_HIDE_DENTRY      (uint64_t)(1 << 0)        /* keep but hide an entry until its log arrives */
-#define SLFIDF_LOCAL_DENTRY     (uint64_t)(1 << 1)        /* don't expose to external nodes */
-
-#define FID_GET_FLAGS(fid)      ((fid) >> (SLASH_ID_SITE_BITS + SLASH_ID_FID_BITS))
-#define FID_GET_SITEID(fid)     (((fid) >> SLASH_ID_FID_BITS) &         \
-                                    ~(~UINT64_C(0) << SLASH_ID_SITE_BITS))
-#define FID_GET_INUM(fid)       ((fid) & ~(~UINT64_C(0) << (SLASH_ID_FID_BITS)))
-
-#define FID_SET_FLAGS(fid, fl)  ((fid) |= ((fl) << (SLASH_ID_SITE_BITS + SLASH_ID_FID_BITS)))
-
+#include "fid.h"
 
 typedef struct slash_dentry {
 	uint64_t	d_id;		/* ZFS native inode number */

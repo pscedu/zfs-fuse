@@ -41,9 +41,6 @@ ccflags = Split('-D_KERNEL')
 libs = Split('rt pthread fuse dl z aio')
 
 if (env['SLASHLIB']) == "1":
-	ccflags.append('-I../../../psc_fsutil_libs/include')
-	ccflags.append('-I../../../slash_nara/include')
-	ccflags.append('-I../../../slash_nara')
 	env.StaticLibrary('libzfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
 else:
 	env.Program('zfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
