@@ -79,7 +79,7 @@ vfs_t		*zfsVfs;
  *	generation of a SLASH file from the vnode.
  */
 void
-get_vnode_fids(vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
+get_vnode_fids(const vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
 {
 	if (fgp) {
 #ifdef NAMESPACE_EXPERIMENTAL
@@ -135,8 +135,6 @@ char *fuse_add_dirent(char *buf, const char *name, const struct stat *stbuf,
 
 	return buf + entsize;
 }
-
-int zfsslash2_fidlink(vnode_t **, slfid_t, int);
 
 static __inline int
 zfsslash2_hide(vnode_t *vp, const char *cpn)
@@ -202,21 +200,11 @@ zfsslash2_statfs(struct statvfs *stat)
 	return (0);
 }
 
-void
-zfsslash2_export_sstb(struct srt_stat *sstb)
-{
-	EXTERNALIZE_INUM(&sstb->sst_ino);
-
-	/* subtract 1 for slfidns immutable namespace link */
-	if (sstb->sst_nlink > 1)
-		sstb->sst_nlink--;
-
-	/* XXX adjust st_nlink of files in repldir */
-}
-
 int
 zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 {
+	struct slash_fidgen fg;
+
 	ASSERT(vp != NULL);
 	ASSERT(sstb != NULL);
 
@@ -227,10 +215,11 @@ zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 	if (error)
 		return error;
 
-	memset(sstb, 0, sizeof(*sstb));
+	get_vnode_fids(vp, &fg, NULL);
 
+	memset(sstb, 0, sizeof(*sstb));
 	sstb->sst_dev = vattr.va_fsid;
-	sstb->sst_ino = vattr.va_nodeid;
+	sstb->sst_ino = fg.fg_fid;
 	sstb->sst_mode = VTTOIF(vattr.va_type) | vattr.va_mode;
 	sstb->sst_nlink = vattr.va_nlink;
 	sstb->sst_uid = vattr.va_uid;
@@ -246,7 +235,11 @@ zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 	TIMESTRUC_TO_TIME(vattr.va_mtime, &sstb->sst_mtime);
 	TIMESTRUC_TO_TIME(vattr.va_ctime, &sstb->sst_ctime);
 
-	zfsslash2_export_sstb(sstb);
+	/* subtract 1 for immutable namespace link */
+	if (sstb->sst_nlink > 1)
+		sstb->sst_nlink--;
+
+	/* XXX adjust st_nlink of files in repldir */
 
 	return 0;
 }
@@ -386,22 +379,22 @@ zfsslash2_opendir(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 	ASSERT(old_vp == vp);
 
-	if (!error) {
-		/* XXX convert to the slash d_ino cache */
-		*finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
-		if (*finfo == NULL) {
-			error = ENOMEM;
-			goto out;
-		}
+	if (error)
+		goto out;
 
-		((file_info_t *)(*finfo))->vp = vp;
-		((file_info_t *)(*finfo))->flags = FREAD;
-
-		get_vnode_fids(vp, fg, NULL);
+	/* XXX convert to the slash d_ino cache */
+	*finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
+	if (*finfo == NULL) {
+		error = ENOMEM;
+		goto out;
 	}
+
+	((file_info_t *)(*finfo))->vp = vp;
+	((file_info_t *)(*finfo))->flags = FREAD;
 
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
+	get_vnode_fids(vp, fg, NULL);
 
  out:
 	if (error)
@@ -463,7 +456,6 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		struct dirent64 dirent;
 	} entry;
 
-	struct srt_stat sstb;
 	struct stat fstat = { 0 };
 	struct srm_getattr_rep *attr = attrs;
 
@@ -499,6 +491,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 			break;
 
 		fstat.st_ino = entry.dirent.d_ino;
+		/* XXXXX this is wrong, it needs to be the fid */
 		EXTERNALIZE_INUM(&fstat.st_ino);
 		fstat.st_mode = 0;
 
@@ -516,8 +509,8 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 
 			if (nstbprefetch) {
 				attr->rc = zfsslash2_getattr(
-				    entry.dirent.d_ino, slcrp, &sstb,
-				    &attr->gen);
+				    entry.dirent.d_ino, slcrp,
+				    &attr->attr, &attr->gen);
 
 				attr++;
 				nstbprefetch--;
@@ -596,6 +589,7 @@ zfsslash2_fidlink(vnode_t **linkvp, slfid_t fid, int flags)
 	/* Lookup our fid's parent directory in the fid namespace, closing
 	 *   parent dvp's along the way.
 	 */
+	/* XXX use fid_makepath */
 	id_name[1] = '\0';
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
 		/*
@@ -667,10 +661,14 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
 	error = zfsslash2_fidlink(&vp, fid, FIDLINK_LOOKUP);
 	if (error)
 		return (error);
+	error = zfsslash2_stat(vp, sstb, cred);
+	if (error)
+		goto out;
 	get_vnode_fids(vp, &fg, mfp);
 	if (genp)
 		*genp = fg.fg_gen;
-	error = zfsslash2_stat(vp, sstb, cred);
+
+ out:
 	VN_RELE(vp);
 	return (error);
 }
