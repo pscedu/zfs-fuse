@@ -568,6 +568,13 @@ zfsslash2_fidlink(vnode_t **linkvp, slfid_t fid, int flags)
 		 * Map the root of slash2 to the root of the underlying ZFS.
 		 */
 		if (slashid == 1) {
+#ifdef NAMESPACE_EXPERIMENTAL
+			/*
+			 * The root does not exist in any directory, so we have to
+			 * assign its SLASH ID explicitly.
+			 */
+			VTOZ(dvp)->z_fid = 1;
+#endif
 			*linkvp = dvp;
 			return 0;
 		}
