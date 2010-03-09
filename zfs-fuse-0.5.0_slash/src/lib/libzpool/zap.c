@@ -1038,15 +1038,11 @@ again:
 		if (zeh.zeh_num_integers == 0) {
 			za->za_first_integer = 0;
 		} else {
-#ifdef NAMESPACE_EXPERIMENTAL
 			/*
 			 * I assume that there are 3 64-bit integers laid out
 			 * contiguously after the first one.
 			 */
 			err = zap_entry_read(&zeh, 8, 3, &za->za_first_integer);
-#else
-			err = zap_entry_read(&zeh, 8, 1, &za->za_first_integer);
-#endif
 			ASSERT(err == 0 || err == EOVERFLOW);
 		}
 		err = zap_entry_read_name(&zeh,

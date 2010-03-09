@@ -283,7 +283,6 @@ typedef struct {
 	uint64_t za_num_integers;
 	uint64_t za_first_integer;	/* no sign extension for <8byte ints */
 
-#ifdef NAMESPACE_EXPERIMENTAL
 	/*
 	 * It seems to me that although the ZAP layer supports multi-value attribute,
 	 * most cases ZFS only uses the first integer.  This structure should pass
@@ -293,7 +292,6 @@ typedef struct {
 	 * used by the directory handling.
 	 */
 	uint64_t za_second_integer;
-#endif
 
 	char za_name[MAXNAMELEN];
 } zap_attribute_t;

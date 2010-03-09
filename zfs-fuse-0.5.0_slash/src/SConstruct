@@ -20,7 +20,6 @@ env['CCFLAGS'] = Split('-pipe -Wall -Werror -std=c99 -Wno-switch -Wno-unused -Wn
 
 debug = int(ARGUMENTS.get('debug', '1'))
 slashlib = int(ARGUMENTS.get('slashlib', '0'))
-namespace = int(ARGUMENTS.get('namespace', '0'))
 
 if not debug:
 	env.Append(LINKFLAGS = ['-s'])
@@ -36,24 +35,16 @@ else:
 	elif debug == 3:
 		env.Append(CCFLAGS = Split('-finstrument-functions -DDEBUG'))
 
+env.Append(CCFLAGS = ['-I../../../psc_fsutil_libs/include'])
+env.Append(CCFLAGS = ['-I../../../slash_nara/include'])
+env.Append(CCFLAGS = ['-I../../../slash_nara'])
+
 if slashlib:
 	print "enabling slashlib target\n";
-	env.Append(CCFLAGS = ['-DSLASHLIB'])	
-	env['SLASHLIB'] = '1'		
+	env.Append(CCFLAGS = ['-DSLASHLIB'])
+	env['SLASHLIB'] = '1'
 else:
-	env['SLASHLIB'] = '0'			
-
-if namespace:
-	print "enabling experimental namespace code\n";
-	env.Append(CCFLAGS = ['-DNAMESPACE_EXPERIMENTAL'])	
-	env['NAMESPACE_EXPERIMENTAL'] = '1'		
-else:
-	env['NAMESPACE_EXPERIMENTAL'] = '0'			
-
-if namespace or slashlib:
-	env.Append(CCFLAGS = ['-I../../../psc_fsutil_libs/include'])
-	env.Append(CCFLAGS = ['-I../../../slash_nara/include'])
-	env.Append(CCFLAGS = ['-I../../../slash_nara']) 
+	env['SLASHLIB'] = '0'
 
 env['CPPPATH'] = []
 

@@ -183,11 +183,7 @@ typedef struct znode {
 	struct zfsvfs	*z_zfsvfs;
 	vnode_t		*z_vnode;
 	uint64_t	z_id;		/* object ID for this znode */
-
-#ifdef NAMESPACE_EXPERIMENTAL
 	uint64_t	z_fid;		/* SLASH ID */
-#endif
-
 	kmutex_t	z_lock;		/* znode modification lock */
 	krwlock_t	z_map_lock;	/* page map lock */
 	krwlock_t	z_parent_lock;	/* parent lock for directories */

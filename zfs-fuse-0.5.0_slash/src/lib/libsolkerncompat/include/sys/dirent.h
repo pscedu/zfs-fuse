@@ -49,17 +49,12 @@ typedef struct dirent {
 	char		d_name[1];	/* name of file */
 } dirent_t;
 
-#ifdef NAMESPACE_EXPERIMENTAL
-
 #include "fid.h"
 
 typedef struct slash_dentry {
 	uint64_t	d_id;		/* ZFS native inode number */
 	uint64_t	d_fid;		/* SLASH ID and flags */
 } slash_dentry_t;
-
-#endif
-
 
 #if defined(_SYSCALL32)
 

@@ -61,8 +61,6 @@
  * zfs_match_find() is used by zfs_dirent_lock() to peform zap lookups
  * of names after deciding which is the appropriate lookup interface.
  */
-#ifdef NAMESPACE_EXPERIMENTAL
-
 static int
 zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
     boolean_t update, int *deflags, pathname_t *rpnp, slash_dentry_t *dirent)
@@ -98,47 +96,6 @@ zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
 
 	return (error);
 }	
-
-#else
-
-static int
-zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
-    boolean_t update, int *deflags, pathname_t *rpnp, uint64_t *zoid)
-{
-	int error;
-
-	if (zfsvfs->z_norm) {
-		matchtype_t mt = MT_FIRST;
-		boolean_t conflict = B_FALSE;
-		size_t bufsz = 0;
-		char *buf = NULL;
-
-		if (rpnp) {
-			buf = rpnp->pn_buf;
-			bufsz = rpnp->pn_bufsize;
-		}
-		if (exact)
-			mt = MT_EXACT;
-		/*
-		 * In the non-mixed case we only expect there would ever
-		 * be one match, but we need to use the normalizing lookup.
-		 */
-		error = zap_lookup_norm(zfsvfs->z_os, dzp->z_id, name, 8, 1,
-		    zoid, mt, buf, bufsz, &conflict);
-		if (!error && deflags)
-			*deflags = conflict ? ED_CASE_CONFLICT : 0;
-	} else {
-		error = zap_lookup(zfsvfs->z_os, dzp->z_id, name, 8, 1, zoid);
-	}
-	*zoid = ZFS_DIRENT_OBJ(*zoid);
-
-	if (error == ENOENT && update)
-		dnlc_update(ZTOV(dzp), name, DNLC_NO_VNODE);
-
-	return (error);
-}
-
-#endif /* NAMESPACE_EXPERIMENTAL */
 
 /*
  * Lock a directory entry.  A dirlock on <dzp, name> protects that name
@@ -182,9 +139,7 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 	boolean_t		update;
 	boolean_t		exact;
 	uint64_t		zoid;
-#ifdef NAMESPACE_EXPERIMENTAL
 	slash_dentry_t		dirent;
-#endif
 	vnode_t			*vp = NULL;
 	int			error = 0;
 	int			cmpflags;
@@ -334,15 +289,10 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 			*zpp = VTOZ(vp);
 			return (0);
 		} else {
-#ifdef NAMESPACE_EXPERIMENTAL
 			error = zfs_match_find(zfsvfs, dzp, name, exact,
 			    update, direntflags, realpnp, &dirent);
 			if (!error)
 				zoid = ZFS_DIRENT_OBJ(dirent.d_id);
-#else
-			error = zfs_match_find(zfsvfs, dzp, name, exact,
-			    update, direntflags, realpnp, &zoid);
-#endif
 		}
 	}
 	if (error) {
@@ -362,10 +312,7 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 		}
 		if (!(flag & ZXATTR) && update)
 			dnlc_update(ZTOV(dzp), name, ZTOV(*zpp));
-
-#ifdef NAMESPACE_EXPERIMENTAL
 		(*zpp)->z_fid = dirent.d_fid;
-#endif
 	}
 
 	*dlpp = dl;
@@ -724,10 +671,7 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	uint64_t value;
 	int zp_is_dir = (vp->v_type == VDIR);
 	int error;
-
-#ifdef NAMESPACE_EXPERIMENTAL
 	slash_dentry_t dirent;
-#endif
 
 	dmu_buf_will_dirty(zp->z_dbuf, tx);
 	mutex_enter(&zp->z_lock);
@@ -755,7 +699,6 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 
 	value = zfs_dirent(zp);
 
-#ifdef NAMESPACE_EXPERIMENTAL
 	/* 
 	 * In the new directory format, each entry has a tuple of three values.
 	 * For local files, the SLASH ID will be zero.
@@ -769,12 +712,6 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	/* FALLOWDIRLINK is only set by zfsslash2_fidlink() */
 	error = __zap_add(zp->z_zfsvfs->z_os, dzp->z_id, 
 			  dl->dl_name, 8, 2, &dirent, tx, (flag & FALLOWDIRLINK));
-#else
-
-	/* FALLOWDIRLINK is only set by zfsslash2_fidlink() */
-	error = __zap_add(zp->z_zfsvfs->z_os, dzp->z_id, 
-			  dl->dl_name, 8, 1, &value,  tx, (flag & FALLOWDIRLINK));
-#endif
 	ASSERT(error == 0);
 
 	dnlc_update(ZTOV(dzp), dl->dl_name, vp);
