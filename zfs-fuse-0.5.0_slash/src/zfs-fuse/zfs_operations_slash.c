@@ -82,12 +82,7 @@ static __inline void
 get_vnode_fids(const vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
 {
 	if (fgp) {
-#ifdef NAMESPACE_EXPERIMENTAL
 		fgp->fg_fid = VTOZ(vp)->z_fid;
-#else
-		fgp->fg_fid = VTOZ(vp)->z_id;
-		EXTERNALIZE_INUM(&fgp->fg_fid);
-#endif
 		fgp->fg_gen = VTOZ(vp)->z_phys->zp_gen;
 	}
 	if (mfp)
@@ -139,10 +134,8 @@ char *fuse_add_dirent(char *buf, const char *name, const struct stat *stbuf,
 static __inline int
 hide_vnode(vnode_t *vp, const char *cpn)
 {
-#ifdef NAMESPACE_EXPERIMENTAL
 	if (FID_GET_FLAGS(VTOZ(vp)->z_fid) & SLFIDF_HIDE_DENTRY)
 		return (1);
-#endif
 
 	if (VTOZ(vp)->z_id == ZFS_ROOT_ID &&
 	    strncmp(cpn, SL_PATH_PREFIX, strlen(SL_PATH_PREFIX)) == 0)
@@ -566,13 +559,11 @@ zfsslash2_fidlink(vnode_t **linkvp, slfid_t fid, int flags)
 		 * Map the root of slash2 to the root of the underlying ZFS.
 		 */
 		if (slashid == 1) {
-#ifdef NAMESPACE_EXPERIMENTAL
 			/*
 			 * The root does not exist in any directory, so we have to
 			 * assign its SLASH ID explicitly.
 			 */
 			VTOZ(dvp)->z_fid = 1;
-#endif
 			*linkvp = dvp;
 			return 0;
 		}
@@ -760,10 +751,8 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
 
-#ifdef NAMESPACE_EXPERIMENTAL
 		if (fg)
 			vattr.va_fid = fg->fg_fid;
-#endif
 
 		if (flags & FTRUNC) {
 			vattr.va_size = 0;
@@ -987,10 +976,8 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 
-#ifdef NAMESPACE_EXPERIMENTAL
 	if (fg)
 		vattr.va_fid = fg->fg_fid;
-#endif
 
 	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL);
 	if (error)
