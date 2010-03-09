@@ -8,8 +8,8 @@
 #include <stdint.h>
 
 #include "fid.h"
-#include "mdsio.h"
 #include "slashrpc.h"
+#include "slashd/mdsio.h"
 
 struct statvfs;
 
