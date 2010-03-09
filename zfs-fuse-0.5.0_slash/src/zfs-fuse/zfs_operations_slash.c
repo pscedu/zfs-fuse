@@ -623,6 +623,12 @@ zfsslash2_fidlink(vnode_t **linkvp, slfid_t fid, int flags)
 		break;
 	case FIDLINK_CREATE:
 		error = VOP_LINK(vp, *linkvp, (char *)id_name, &zrootcreds, NULL, FALLOWDIRLINK);
+		/*
+		 * If the by-id link is already there, we don't complain.  Maybe there is a better
+		 * way to do this than making VOP_LINK() fail.
+		 */
+		if (error == EEXIST)
+			error = 0;
 		break;
 	case FIDLINK_REMOVE:
 		error = VOP_REMOVE(vp, (char *)id_name, &zrootcreds, NULL, 0);
