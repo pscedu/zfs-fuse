@@ -1301,6 +1301,7 @@ top:
 		if (fuid_dirtied)
 			zfs_fuid_sync(zfsvfs, tx);
 
+		zp->z_fid = vap->va_fid;
 		(void) zfs_link_create(dl, zp, tx, ZNEW);
 
 		txtype = zfs_log_create_txtype(Z_FILE, vsecp, vap);
@@ -1730,6 +1731,7 @@ top:
 	/*
 	 * Now put new name in parent dir.
 	 */
+	zp->z_fid = vap->va_fid;
 	(void) zfs_link_create(dl, zp, tx, ZNEW);
 
 	*vpp = ZTOV(zp);
@@ -2027,7 +2029,7 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 			}
 
 			if (zap.za_integer_length != 8 ||
-			    zap.za_num_integers != 1) {
+			    zap.za_num_integers != 2) {
 				cmn_err(CE_WARN, "zap_readdir: bad directory "
 				    "entry, obj = %lld, offset = %lld\n",
 				    (u_longlong_t)zp->z_id,
@@ -2036,7 +2038,11 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 				goto update;
 			}
 
-			objnum = ZFS_DIRENT_OBJ(zap.za_first_integer);
+			/* ZFS ino or SLASH FID */
+			if (flags & V_RDDIR_LOCAL_ID)
+				objnum = ZFS_DIRENT_OBJ(zap.za_first_integer);
+			else
+				objnum = ZFS_DIRENT_OBJ(zap.za_second_integer);
 			/*
 			 * MacOS X can extract the object type here such as:
 			 * uint8_t type = ZFS_DIRENT_TYPE(zap.za_first_integer);

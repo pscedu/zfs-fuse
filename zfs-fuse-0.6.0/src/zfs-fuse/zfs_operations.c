@@ -431,7 +431,7 @@ static int zfsfuse_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t of
 		uio.uio_resid = iovec.iov_len;
 		uio.uio_loffset = next;
 
-		error = VOP_READDIR(vp, &uio, &cred, &eofp, NULL, 0);
+		error = VOP_READDIR(vp, &uio, &cred, &eofp, NULL, V_RDDIR_LOCAL_ID);
 		if(error)
 			goto out;
 
@@ -542,6 +542,7 @@ static int zfsfuse_opencreate(fuse_req_t req, fuse_ino_t ino, struct fuse_file_i
 		 * Wish to create a file.
 		 */
 		vattr_t vattr;
+		memset(&vattr, 0, sizeof(vattr_t));
 		vattr.va_type = VREG;
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;

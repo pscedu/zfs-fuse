@@ -49,6 +49,13 @@ typedef struct dirent {
 	char		d_name[1];	/* name of file */
 } dirent_t;
 
+#include "fid.h"
+
+typedef struct slash_dentry {
+	uint64_t	d_id;		/* ZFS native inode number */
+	uint64_t	d_fid;		/* SLASH ID and flags */
+} slash_dentry_t;
+
 #if defined(_SYSCALL32)
 
 /* kernel's view of user ILP32 dirent */
