@@ -634,6 +634,8 @@ zfsslash2_fidlink(vnode_t **linkvp, slfid_t fid, int flags)
 		break;
 	case FIDLINK_REMOVE:
 		error = VOP_REMOVE(vp, (char *)id_name, &zrootcreds, NULL, 0);
+		/* Drop the reference to the directory in which we attempted to remove a link */
+		VN_RELE(vp);
 		break;
 	default:
 		error = EINVAL;
