@@ -534,7 +534,6 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t **vpp)
 	vnode_t		*dvp;
 	int		 error;
 	znode_t		*znode;
-	slfid_t		 slashid;
 	char		 id_name[20];
 	zfsvfs_t	*zfsvfs = zfsVfs->vfs_data;
 
@@ -546,12 +545,11 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t **vpp)
 	dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
 
-	slashid = fid;
 	/*
 	 * Map the root of slash2 to the root of the underlying ZFS.
 	 */
 	if (flags == FIDLINK_LOOKUP) {
-		if (slashid == 1) {
+		if (fid == 1) {
 			/*
 			 * The root does not exist in any directory, so we have to
 			 * assign its SLASH ID explicitly.
@@ -586,7 +584,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t **vpp)
 		 * hex digit from the right side.  If the depth is 3, then we have 0xfff or
 		 * 4095 files in a directory in the by-id namespace.
 		 */
-		c = (uint8_t)((slashid & (UINT64_C(0x0000000000f00000) >> i*BPHXC)) >> ((5-i) * BPHXC));
+		c = (uint8_t)((fid & (UINT64_C(0x0000000000f00000) >> i*BPHXC)) >> ((5-i) * BPHXC));
 		/* convert a hex digit to its corresponding ascii digit or lower case letter */
 		id_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
 
@@ -608,7 +606,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t **vpp)
 	/* we should have the parent vnode in the by-id namespace now */
 	ASSERT(vp);
 
-	snprintf(id_name, sizeof(id_name), "%016"PRIx64, slashid);
+	snprintf(id_name, sizeof(id_name), "%016"PRIx64, fid);
 
 	switch (flags) {
 	case FIDLINK_LOOKUP:
@@ -637,7 +635,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t **vpp)
 
 #ifdef DEBUG
 	fprintf(stderr, "id_name=%s parent=%"PRId64" linkvp=%"PRId64" error=%d\n",
-	    id_name, VTOZ(dvp)->z_id, slashid, error);
+	    id_name, VTOZ(dvp)->z_id, fid, error);
 #endif
 
 	return (error);
