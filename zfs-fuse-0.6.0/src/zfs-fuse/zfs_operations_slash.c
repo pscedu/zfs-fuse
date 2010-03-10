@@ -501,7 +501,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		 * This check should be pushed out to mount_slash once
 		 * we move the fuse dirent packing there.
 		 */
-		if (!hide_vnode(vp, entry.dirent.d_name))
+		if (hide_vnode(vp, entry.dirent.d_name))
 			goto next_entry;
 
 		fstat.st_ino = entry.dirent.d_ino;
