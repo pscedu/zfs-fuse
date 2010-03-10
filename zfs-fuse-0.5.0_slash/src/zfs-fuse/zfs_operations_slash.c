@@ -821,17 +821,15 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 	if (error)
 		goto out;
 
-	/* it is not fatal if we can't cache the vnode */
+	/* XXX it should not be an error if we can't cache the vnode */
 	*finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
 	if (*finfo == NULL) {
-		VN_RELE(vp);
+		error = ENOMEM;
 		goto out;
 	}
 
 	((file_info_t *)(*finfo))->vp = vp;
 	((file_info_t *)(*finfo))->flags = flags;
-
-	get_vnode_fids(vp, fg, mfp);
 
  out:
 	if (error) {
