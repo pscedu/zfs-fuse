@@ -611,7 +611,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t **vpp)
 
 	switch (flags) {
 	case FIDLINK_LOOKUP:
-		*vpp = vp;
+		error = VOP_LOOKUP(vp, id_name, vpp, NULL, 0, NULL, &zrootcreds, NULL, NULL, NULL);
 		break;
 	case FIDLINK_CREATE:
 		error = VOP_LINK(vp, *vpp, (char *)id_name, &zrootcreds, NULL, FALLOWDIRLINK);
@@ -621,13 +621,9 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t **vpp)
 		 */
 		if (error == EEXIST)
 			error = 0;
-		/* Drop the reference to the directory in which we attempted to create a link */
-		VN_RELE(vp);
 		break;
 	case FIDLINK_REMOVE:
 		error = VOP_REMOVE(vp, (char *)id_name, &zrootcreds, NULL, 0);
-		/* Drop the reference to the directory in which we attempted to remove a link */
-		VN_RELE(vp);
 		break;
 	default:
 		error = EINVAL;
@@ -639,6 +635,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t **vpp)
 	    id_name, VTOZ(dvp)->z_id, fid, error);
 #endif
 
+	VN_RELE(vp);
 	return (error);
 }
 
