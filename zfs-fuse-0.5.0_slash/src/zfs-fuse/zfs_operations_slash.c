@@ -571,6 +571,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t **vpp)
 	 */
 	VN_RELE(dvp);
 	dvp = vp;
+	vp = NULL;
 
 	/* Lookup our fid's parent directory in the fid namespace, closing
 	 *   parent dvp's along the way.
