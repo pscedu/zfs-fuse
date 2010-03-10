@@ -610,10 +610,10 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t **vpp)
 	snprintf(id_name, sizeof(id_name), "%016"PRIx64, fid);
 
 	switch (flags) {
-	case FIDLINK_LOOKUP:
+	    case FIDLINK_LOOKUP:
 		error = VOP_LOOKUP(vp, id_name, vpp, NULL, 0, NULL, &zrootcreds, NULL, NULL, NULL);
 		break;
-	case FIDLINK_CREATE:
+	    case FIDLINK_CREATE:
 		error = VOP_LINK(vp, *vpp, (char *)id_name, &zrootcreds, NULL, FALLOWDIRLINK);
 		/*
 		 * If the by-id link is already there, we don't complain.  Maybe there is a better
@@ -622,10 +622,10 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t **vpp)
 		if (error == EEXIST)
 			error = 0;
 		break;
-	case FIDLINK_REMOVE:
+	    case FIDLINK_REMOVE:
 		error = VOP_REMOVE(vp, (char *)id_name, &zrootcreds, NULL, 0);
 		break;
-	default:
+	    default:
 		error = EINVAL;
 		break;
 	}
