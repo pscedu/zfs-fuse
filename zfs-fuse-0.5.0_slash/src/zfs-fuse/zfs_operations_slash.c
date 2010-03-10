@@ -629,6 +629,8 @@ zfsslash2_fidlink(vnode_t **linkvp, slfid_t fid, int flags)
 		 */
 		if (error == EEXIST)
 			error = 0;
+		/* Drop the reference to the directory in which we attempted to create a link */
+		VN_RELE(vp);
 		break;
 	case FIDLINK_REMOVE:
 		error = VOP_REMOVE(vp, (char *)id_name, &zrootcreds, NULL, 0);
@@ -642,9 +644,6 @@ zfsslash2_fidlink(vnode_t **linkvp, slfid_t fid, int flags)
 	fprintf(stderr, "id_name=%s parent=%"PRId64" linkvp=%"PRId64" error=%d\n",
 	    id_name, VTOZ(dvp)->z_id, slashid, error);
 #endif
-
-	if (error)
-		VN_RELE(vp);
 
 	return (error);
 }
