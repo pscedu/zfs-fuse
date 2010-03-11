@@ -363,13 +363,8 @@ zfsslash2_opendir(mdsio_fid_t ino, const struct slash_creds *slcrp,
 	if (error = VOP_ACCESS(vp, VREAD | VEXEC, 0, cred, NULL))
 		goto out;
 
-	vnode_t *old_vp = vp;
-
 	/* XXX: not sure about flags */
 	error = VOP_OPEN(&vp, FREAD, cred, NULL);
-
-	ASSERT(old_vp == vp);
-
 	if (error)
 		goto out;
 
@@ -805,12 +800,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		goto out;
 	}
 
-	vnode_t *old_vp = vp;
-
 	error = VOP_OPEN(&vp, flags, cred, NULL);
-
-	ASSERT(old_vp == vp);
-
 	if (error)
 		goto out;
 
