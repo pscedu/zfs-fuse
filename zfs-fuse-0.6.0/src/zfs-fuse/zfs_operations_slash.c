@@ -1228,7 +1228,8 @@ zfsslash2_unlink(mdsio_fid_t parent, const char *name,
 	if (error)
 		goto out;
 
-	int error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);
+	vattr_t vattr = { 0 };
+	error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);
 	if (error)
 		goto out;
 
