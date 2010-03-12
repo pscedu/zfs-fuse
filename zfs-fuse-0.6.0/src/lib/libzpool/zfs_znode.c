@@ -1315,6 +1315,7 @@ zfs_trunc(znode_t *zp, uint64_t end)
 	dmu_tx_t *tx;
 	rl_t *rl;
 	int error;
+	uint32_t oldgen;
 
 	/*
 	 * We will change zp_size, lock the whole file.
@@ -1350,6 +1351,12 @@ top:
 	}
 	dmu_buf_will_dirty(zp->z_dbuf, tx);
 
+	/*
+	 * Slash2 Generation needs to be bumped upon truncate to 0.
+	 *  XXX need an upcall to slash2 journal for GC.
+	 */
+	oldgen = zp->z_phys->zp_s2gen;
+	zp->z_phys->zp_s2gen++;
 	zp->z_phys->zp_size = end;
 
 	dmu_tx_commit(tx);
@@ -1383,6 +1390,8 @@ top:
 	}
 
 	zfs_range_unlock(rl);
+
+	//XXX upcall here w/ fid and oldgen.
 
 	return (0);
 }

@@ -2241,6 +2241,7 @@ zfs_getattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 	vap->va_nlink = MIN(links, UINT32_MAX);	/* nlink_t limit! */
 	vap->va_size = pzp->zp_size;
 	vap->va_s2size = pzp->zp_s2size;
+	vap->va_s2gen = pzp->zp_s2gen;
 	vap->va_ptruncgen = pzp->zp_ptruncgen;
 	vap->va_rdev = vp->v_rdev;
 	vap->va_seq = zp->z_seq;

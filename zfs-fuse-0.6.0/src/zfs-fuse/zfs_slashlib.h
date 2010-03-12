@@ -22,7 +22,7 @@ typedef struct file_info {
 
 int	zfsslash2_access(mdsio_fid_t, int, const struct slash_creds *);
 int	zfsslash2_fsync(const struct slash_creds *, int, void *);
-int	zfsslash2_getattr(mdsio_fid_t, const struct slash_creds *, struct srt_stat *, slfgen_t *);
+int	zfsslash2_getattr(mdsio_fid_t, const struct slash_creds *, struct srt_stat *);
 int	zfsslash2_link(mdsio_fid_t, mdsio_fid_t, const char *, struct slash_fidgen *, const struct slash_creds *, struct srt_stat *);
 int	zfsslash2_lookup(mdsio_fid_t, const char *, struct slash_fidgen *, mdsio_fid_t *, const struct slash_creds *, struct srt_stat *);
 int	zfsslash2_lookup_slfid(slfid_t, const struct slash_creds *, struct srt_stat *, slfgen_t *, mdsio_fid_t *);

@@ -177,6 +177,7 @@ typedef struct vattr {
 	u_longlong_t va_nblocks; /* # of blocks allocated */
 	uint_t       va_seq;     /* sequence number */
 	u_offset_t   va_s2size;  /* slash2 file size in bytes */
+	uint32_t     va_s2gen;
 	uint32_t     va_ptruncgen;
 } vattr_t;
 

@@ -253,7 +253,7 @@ zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 
 int
 zfsslash2_getattr(mdsio_fid_t ino, const struct slash_creds *slcrp,
-    struct srt_stat *sstb, slfgen_t *gen)
+    struct srt_stat *sstb)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -277,9 +277,6 @@ zfsslash2_getattr(mdsio_fid_t ino, const struct slash_creds *slcrp,
 	ASSERT(vp != NULL);
 
 	error = zfsslash2_stat(vp, sstb, cred);
-
-	if (gen)
-		*gen = VTOZ(vp)->z_phys->zp_gen;
 
 	VN_RELE(vp);
 	ZFS_EXIT(zfsvfs);
@@ -524,7 +521,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 
 		if (nstbprefetch) {
 			attr->rc = zfsslash2_getattr(entry.dirent.d_ino,
-			    slcrp, &attr->attr, &attr->gen);
+			    slcrp, &attr->attr);
 
 			attr++;
 			nstbprefetch--;
