@@ -50,7 +50,7 @@
 
 kmem_cache_t	*file_info_cache;
 cred_t		 zrootcreds;
-vfs_t		*zfsVfs;
+vfs_t		*zfsVfs;			/* initialized by do_mount() */
 
 /* flags for zfsslash2_fidlink() */
 enum fidlink_op {
