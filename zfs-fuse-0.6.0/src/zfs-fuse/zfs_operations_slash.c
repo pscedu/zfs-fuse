@@ -85,7 +85,7 @@ get_vnode_fids(const vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
 {
 	if (fgp) {
 		fgp->fg_fid = VTOZ(vp)->z_fid;
-		fgp->fg_gen = VTOZ(vp)->z_phys->zp_gen;
+		fgp->fg_gen = VTOZ(vp)->z_phys->zp_s2gen;
 	}
 	if (mfp)
 		*mfp = VTOZ(vp)->z_id;
@@ -231,6 +231,7 @@ zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 	sstb->sst_uid = vattr.va_uid;
 	sstb->sst_gid = vattr.va_gid;
 	sstb->sst_rdev = vattr.va_rdev;
+	sstb->sst_gen = vattr.va_s2gen;
 	if (S_ISDIR(sstb->sst_mode))
 		sstb->sst_size = vattr.va_blksize * vattr.va_nblocks;
 	else
@@ -656,7 +657,7 @@ zfsslash2_fidlink(slfid_t fid, enum fidlink_op op, vnode_t **vpp)
 
 int
 zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
-    struct srt_stat *sstb, slfgen_t *genp, mdsio_fid_t *mfp)
+    struct srt_stat *sstb, mdsio_fid_t *mfp)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	struct slash_fidgen fg;
@@ -671,8 +672,6 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
 	if (error)
 		goto out;
 	get_vnode_fids(vp, &fg, mfp);
-	if (genp)
-		*genp = fg.fg_gen;
 
  out:
 	VN_RELE(vp);
