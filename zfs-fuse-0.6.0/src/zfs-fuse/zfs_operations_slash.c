@@ -483,6 +483,8 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 	int error;
 
 	for (;;) {
+		znode_t *znode;
+
 		iovec.iov_base = entry.buf;
 		iovec.iov_len = sizeof(entry.buf);
 		uio.uio_resid = iovec.iov_len;
@@ -501,12 +503,18 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		if (dsize > outbuf_resid)
 			break;
 
+		error = zfs_zget(zfsvfs, entry.dirent.d_ino, &znode, B_TRUE);
+		if (error)
+			break;
+
+		ASSERT(znode != NULL);
+		vnode_t *tvp = ZTOV(znode);
 		/*
 		 * Skip internal SLASH meta-structure.
 		 * This check should be pushed out to mount_slash once
 		 * we move the fuse dirent packing there.
 		 */
-		if (hide_vnode(vp, entry.dirent.d_name))
+		if (hide_vnode(tvp, entry.dirent.d_name))
 			goto next_entry;
 
 		fstat.st_ino = entry.dirent.d_s2ino;
@@ -521,13 +529,12 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		outbuf_off += dsize;
 
 		if (nstbprefetch) {
-			attr->rc = zfsslash2_getattr(entry.dirent.d_ino,
-			    slcrp, &attr->attr);
-
+			attr->rc = zfsslash2_stat(tvp, &attr->attr, cred);
 			attr++;
 			nstbprefetch--;
 		}
  next_entry:
+		VN_RELE(tvp);
 		next = entry.dirent.d_off;
 	}
 
