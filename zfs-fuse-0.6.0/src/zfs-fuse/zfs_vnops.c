@@ -1999,6 +1999,7 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 	outcount = 0;
 	while (outcount < bytes_wanted) {
 		ino64_t objnum;
+		uint64_t s2num;
 		ushort_t reclen;
 		off64_t *next;
 
@@ -2038,11 +2039,9 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 				goto update;
 			}
 
-			/* ZFS ino or SLASH FID */
-			if (flags & V_RDDIR_LOCAL_ID)
-				objnum = ZFS_DIRENT_OBJ(zap.za_first_integer);
-			else
-				objnum = ZFS_DIRENT_OBJ(zap.za_second_integer);
+			objnum = ZFS_DIRENT_OBJ(zap.za_first_integer);
+			s2num = ZFS_DIRENT_OBJ(zap.za_second_integer);
+
 			/*
 			 * MacOS X can extract the object type here such as:
 			 * uint8_t type = ZFS_DIRENT_TYPE(zap.za_first_integer);
@@ -2092,6 +2091,7 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 			 * Add normal entry:
 			 */
 			odp->d_ino = objnum;
+			odp->d_s2ino = s2num;
 			odp->d_reclen = reclen;
 			/* NOTE: d_off is the offset for the *next* entry */
 			next = &(odp->d_off);

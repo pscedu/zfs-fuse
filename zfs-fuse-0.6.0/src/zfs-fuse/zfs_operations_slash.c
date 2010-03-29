@@ -504,9 +504,8 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		if (hide_vnode(vp, entry.dirent.d_name))
 			goto next_entry;
 
-		fstat.st_ino = entry.dirent.d_ino;
-		/* XXX XXX this is wrong, it needs to be the fid */
-		EXTERNALIZE_INUM(&fstat.st_ino);
+		fstat.st_ino = entry.dirent.d_s2ino;
+
 		fstat.st_mode = 0;
 
 		int dsize = fuse_add_direntry(NULL, NULL, 0, entry.dirent.d_name, NULL, 0);

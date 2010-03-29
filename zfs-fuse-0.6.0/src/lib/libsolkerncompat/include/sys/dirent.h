@@ -76,6 +76,7 @@ typedef	struct dirent32 {
  */
 typedef struct dirent64 {
 	ino64_t		d_ino;		/* "inode number" of entry */
+	uint64_t	d_s2ino;	/* SLASH ID and flags */
 	off64_t		d_off;		/* offset of disk directory entry */
 	unsigned short	d_reclen;	/* length of this record */
 	char		d_name[1];	/* name of file */
