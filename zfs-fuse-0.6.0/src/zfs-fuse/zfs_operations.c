@@ -431,7 +431,7 @@ static int zfsfuse_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t of
 		uio.uio_resid = iovec.iov_len;
 		uio.uio_loffset = next;
 
-		error = VOP_READDIR(vp, &uio, &cred, &eofp, NULL, V_RDDIR_LOCAL_ID);
+		error = VOP_READDIR(vp, &uio, &cred, &eofp, NULL, 0);
 		if(error)
 			goto out;
 
@@ -439,12 +439,13 @@ static int zfsfuse_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t of
 		if(iovec.iov_base == entry.buf)
 			break;
 
-		fstat.st_ino = entry.dirent.d_ino;
-		fstat.st_mode = 0;
-
+		/* No more room */
 		int dsize = fuse_add_direntry(req, NULL, 0, entry.dirent.d_name, NULL, 0);
 		if(dsize > outbuf_resid)
 			break;
+
+		fstat.st_ino = entry.dirent.d_ino;
+		fstat.st_mode = 0;
 
 		outbuf_resid -= dsize;
 		fuse_add_direntry(req, outbuf + outbuf_off, 

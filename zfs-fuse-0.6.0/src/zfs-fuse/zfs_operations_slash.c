@@ -496,6 +496,11 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		if (iovec.iov_base == entry.buf)
 			break;
 
+		/* No more room */
+		int dsize = fuse_add_direntry(NULL, NULL, 0, entry.dirent.d_name, NULL, 0);
+		if (dsize > outbuf_resid)
+			break;
+
 		/*
 		 * Skip internal SLASH meta-structure.
 		 * This check should be pushed out to mount_slash once
@@ -507,10 +512,6 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		fstat.st_ino = entry.dirent.d_s2ino;
 
 		fstat.st_mode = 0;
-
-		int dsize = fuse_add_direntry(NULL, NULL, 0, entry.dirent.d_name, NULL, 0);
-		if (dsize > outbuf_resid)
-			break;
 
 		outbuf_resid -= dsize;
 		fuse_add_direntry(NULL, outbuf + outbuf_off,

@@ -96,7 +96,6 @@ typedef enum vtype {
  * Flags for VOP_READDIR
  */
 #define V_RDDIR_ENTFLAGS 0x01 /* request dirent flags */
-#define V_RDDIR_LOCAL_ID 0x02 /* return local ID instead of SLASH ID */
 
 /*
  * Flags for VOP_RWLOCK/VOP_RWUNLOCK
