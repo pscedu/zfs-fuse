@@ -217,7 +217,7 @@ zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 
 	vattr_t vattr;
 
-	int error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);
+	int error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);	/* zfs_getattr() */
 	if (error)
 		return error;
 
@@ -530,12 +530,15 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 
 		if (nstbprefetch) {
 			attr->rc = zfsslash2_stat(tvp, &attr->attr, cred);
-			attr++;
 			nstbprefetch--;
+			fprintf(stderr, "slash id: 0x%lx, name: %s, mode: 0%o.\n", 
+				entry.dirent.d_s2ino, entry.dirent.d_name, attr->attr.sst_mode);
+			attr++;
 		}
  next_entry:
 		VN_RELE(tvp);
 		next = entry.dirent.d_off;
+
 	}
 
  out:
