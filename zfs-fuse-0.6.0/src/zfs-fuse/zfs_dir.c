@@ -310,7 +310,6 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 		}
 		if (!(flag & ZXATTR) && update)
 			dnlc_update(ZTOV(dzp), name, ZTOV(*zpp));
-		(*zpp)->z_s2id = dirent.d_s2id;
 	}
 
 	*dlpp = dl;
@@ -702,8 +701,8 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	 * For local files, the SLASH ID will be zero.
 	 */
 	dirent.d_id = value;
-	if (zp->z_s2id)
-		dirent.d_s2id = zp->z_s2id;
+	if (zp->z_phys->zp_s2id)
+		dirent.d_s2id = zp->z_phys->zp_s2id;
 	else
 		FID_SET_FLAGS(dirent.d_s2id, SLFIDF_LOCAL_DENTRY);
 

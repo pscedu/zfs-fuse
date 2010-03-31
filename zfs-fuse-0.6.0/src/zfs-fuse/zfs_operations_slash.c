@@ -582,11 +582,6 @@ zfsslash2_fidlink(slfid_t fid, enum fidlink_op op, vnode_t **vpp)
 	 */
 	if (op == FIDLINK_LOOKUP) {
 		if (fid == 1) {
-			/*
-			 * The root does not exist in any directory, so we have to
-			 * assign its SLASH ID explicitly.
-			 */
-			VTOZ(dvp)->z_s2id = 1;		/* OR in site ID? */
 			*vpp = dvp;
 			return 0;
 		}
