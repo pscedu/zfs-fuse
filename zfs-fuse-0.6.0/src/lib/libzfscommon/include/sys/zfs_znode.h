@@ -155,7 +155,7 @@ typedef struct znode_phys {
 	uint64_t zp_s2size;		/* 152 - slash2 file size */
 	uint32_t zp_ptruncgen;		/* 160 - slash2 partial truncate gen */
 	uint32_t zp_s2gen;		/* 164 - slash2 gen number (full truncate) */
-	uint64_t zp_pad[1];		/* 168 - future */
+	uint64_t zp_s2id;		/* 168 - slash2 id */
 	zfs_acl_phys_t zp_acl;		/* 176 - 263 ACL */
 	/*
 	 * Data may pad out any remaining bytes in the znode buffer, eg:

@@ -84,7 +84,7 @@ static __inline void
 get_vnode_fids(const vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
 {
 	if (fgp) {
-		fgp->fg_fid = VTOZ(vp)->z_s2id;
+		fgp->fg_fid = VTOZ(vp)->z_phys->zp_s2id;
 		fgp->fg_gen = VTOZ(vp)->z_phys->zp_s2gen;
 	}
 	if (mfp)
