@@ -436,6 +436,10 @@ zfsslash2_release(const struct slash_creds *slcrp, void *finfo)
 	return error;
 }
 
+/*
+ * Two buffers are passed in by our callers: outbuf points to the
+ * readdir result, attrs points to prefeteched attributes. 
+ */
 int
 zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
     off_t off, void *outbuf, size_t *outbuf_len, void *attrs,
@@ -451,9 +455,6 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		return ENOTDIR;
 
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
-
-	if (outbuf == NULL)
-		return EINVAL;
 
 	ZFS_ENTER(zfsvfs);
 
