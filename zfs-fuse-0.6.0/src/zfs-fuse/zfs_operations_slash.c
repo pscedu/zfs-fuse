@@ -533,7 +533,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 			attr->rc = zfsslash2_stat(tvp, &attr->attr, cred);
 			nstbprefetch--;
 			fprintf(stderr, "slash id: %#"PRIx64", zfs id: %#"PRIx64", name: %s, mode: 0%o.\n",
-			    attr->sstb.sst_ino, entry.dirent.d_ino, entry.dirent.d_name, attr->attr.sst_mode);
+			    attr->attr.sst_ino, entry.dirent.d_ino, entry.dirent.d_name, attr->attr.sst_mode);
 			attr++;
 		}
  next_entry:
