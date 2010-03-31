@@ -1301,7 +1301,7 @@ top:
 		if (fuid_dirtied)
 			zfs_fuid_sync(zfsvfs, tx);
 
-		zp->z_fid = vap->va_fid;
+		zp->z_s2id = vap->va_fid;
 		(void) zfs_link_create(dl, zp, tx, ZNEW);
 
 		txtype = zfs_log_create_txtype(Z_FILE, vsecp, vap);
@@ -1731,7 +1731,7 @@ top:
 	/*
 	 * Now put new name in parent dir.
 	 */
-	zp->z_fid = vap->va_fid;
+	zp->z_s2id = vap->va_fid;
 	(void) zfs_link_create(dl, zp, tx, ZNEW);
 
 	*vpp = ZTOV(zp);

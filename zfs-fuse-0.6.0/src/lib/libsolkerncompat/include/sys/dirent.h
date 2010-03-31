@@ -53,7 +53,7 @@ typedef struct dirent {
 
 typedef struct slash_dentry {
 	uint64_t	d_id;		/* ZFS native inode number */
-	uint64_t	d_fid;		/* SLASH ID and flags */
+	uint64_t	d_s2id;		/* SLASH ID and flags */
 } slash_dentry_t;
 
 #if defined(_SYSCALL32)

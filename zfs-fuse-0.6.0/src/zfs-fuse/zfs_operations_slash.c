@@ -84,7 +84,7 @@ static __inline void
 get_vnode_fids(const vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
 {
 	if (fgp) {
-		fgp->fg_fid = VTOZ(vp)->z_fid;
+		fgp->fg_fid = VTOZ(vp)->z_s2id;
 		fgp->fg_gen = VTOZ(vp)->z_phys->zp_s2gen;
 	}
 	if (mfp)
@@ -148,7 +148,7 @@ size_t fuse_add_direntry(fuse_req_t req, char *buf, size_t bufsize,
 static __inline int
 hide_vnode(vnode_t *vp, const char *cpn)
 {
-	if (FID_GET_FLAGS(VTOZ(vp)->z_fid) & SLFIDF_HIDE_DENTRY)
+	if (FID_GET_FLAGS(VTOZ(vp)->z_s2id) & SLFIDF_HIDE_DENTRY)
 		return (1);
 
 	if (VTOZ(vp)->z_id == ZFS_ROOT_ID &&
@@ -533,7 +533,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 			attr->rc = zfsslash2_stat(tvp, &attr->attr, cred);
 			nstbprefetch--;
 			fprintf(stderr, "slash id: %#"PRIx64", zfs id: %#"PRIx64", name: %s, mode: 0%o.\n",
-			    entry.dirent.d_s2ino, entry.dirent.d_ino, entry.dirent.d_name, attr->attr.sst_mode);
+			    attr->sstb.sst_ino, entry.dirent.d_ino, entry.dirent.d_name, attr->attr.sst_mode);
 			attr++;
 		}
  next_entry:
@@ -586,7 +586,7 @@ zfsslash2_fidlink(slfid_t fid, enum fidlink_op op, vnode_t **vpp)
 			 * The root does not exist in any directory, so we have to
 			 * assign its SLASH ID explicitly.
 			 */
-			VTOZ(dvp)->z_fid = 1;		/* OR in site ID? */
+			VTOZ(dvp)->z_s2id = 1;		/* OR in site ID? */
 			*vpp = dvp;
 			return 0;
 		}
@@ -763,9 +763,6 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 		enum vcexcl excl;
 
-		/*
-		 * Wish to create a file.
-		 */
 		vattr_t vattr;
 		memset(&vattr, 0, sizeof(vattr_t));
 		vattr.va_type = VREG;
@@ -794,7 +791,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		VN_RELE(vp);
 		vp = new_vp;
 
-		if ((error = zfsslash2_fidlink(VTOZ(vp)->z_fid, FIDLINK_CREATE, &vp)))
+		if ((error = zfsslash2_fidlink(VTOZ(vp)->z_s2id, FIDLINK_CREATE, &vp)))
 			goto out;
 	} else {
 		/*
@@ -1007,7 +1004,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 
 	ASSERT(vp != NULL);
 
-	error = zfsslash2_fidlink(VTOZ(vp)->z_fid, FIDLINK_CREATE, &vp);
+	error = zfsslash2_fidlink(VTOZ(vp)->z_s2id, FIDLINK_CREATE, &vp);
 	if (error)
 		goto out;
 
@@ -1245,7 +1242,7 @@ zfsslash2_unlink(mdsio_fid_t parent, const char *name,
 	 * so remove the file.
 	 */
 	if (vattr.va_nlink == 1)
-		error = zfsslash2_fidlink(VTOZ(vp)->z_fid, FIDLINK_REMOVE, NULL);
+		error = zfsslash2_fidlink(VTOZ(vp)->z_s2id, FIDLINK_REMOVE, NULL);
 
  out:
 	if (vp)
