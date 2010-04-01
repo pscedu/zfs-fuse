@@ -582,6 +582,9 @@ zfsslash2_fidlink(slfid_t fid, enum fidlink_op op, vnode_t **vpp)
 	 */
 	if (op == FIDLINK_LOOKUP) {
 		if (fid == 1) {
+			/* until I find out how to write our slash ID into the
+			 * root inode, this makes the assert on the client side happy */
+			VTOZ(dvp)->z_phys->zp_s2id = 1;
 			*vpp = dvp;
 			return 0;
 		}
