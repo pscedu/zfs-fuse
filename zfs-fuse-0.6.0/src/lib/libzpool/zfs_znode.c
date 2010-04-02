@@ -815,6 +815,7 @@ zfs_mknode(znode_t *dzp, vattr_t *vap, dmu_tx_t *tx, cred_t *cr,
 		 * passed in is the znode for the root.
 		 */
 		*zpp = dzp;
+		pzp->zp_s2id = 1;			/* slash2 */
 	}
 	pzp->zp_uid = acl_ids->z_fuid;
 	pzp->zp_gid = acl_ids->z_fgid;

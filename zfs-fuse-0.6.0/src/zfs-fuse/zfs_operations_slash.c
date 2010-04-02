@@ -584,9 +584,17 @@ zfsslash2_fidlink(slfid_t fid, enum fidlink_op op, vnode_t **vpp)
 	 */
 	if (op == FIDLINK_LOOKUP) {
 		if (fid == 1) {
-			/* until I find out how to write our slash ID into the
-			 * root inode, this makes the assert on the client side happy */
+#if 0
+			/* 
+			 * I have found a place in zfs_mknode() where I can write slash ID 1 into the
+			 * root node.  This function is called by dsl_pool_create() twice, once by 
+			 * zfs_create_fs(), once by zfs_create_share_dir().  Both time I see the 
+			 * IS_ROOT_NODE flag is used.  I don't know why ZFS seems to create two root 
+			 * nodes.  But the change seems to fix my problem and make the hack here 
+			 * unneeded.  I discovered this with gdb while creating a zpool.
+			 */
 			VTOZ(dvp)->z_phys->zp_s2id = 1;
+#endif
 			*vpp = dvp;
 			return 0;
 		}
