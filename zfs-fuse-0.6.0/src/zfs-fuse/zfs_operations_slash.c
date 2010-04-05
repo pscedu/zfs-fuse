@@ -703,7 +703,7 @@ int
 zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
     int fflags, mode_t createmode, const char *name,
     struct slash_fidgen *fg, mdsio_fid_t *mfp, struct srt_stat *sstb,
-    void **finfo)
+    void **finfo, int(*logfunc)(char *, uint64_t, int))
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1484,7 +1484,7 @@ zfsslash2_rename(mdsio_fid_t parent, const char *name, mdsio_fid_t newparent,
 	ASSERT(p_vp != NULL);
 	ASSERT(np_vp != NULL);
 
-	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname, cred, NULL, 0);
+	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname, cred, NULL, 0);  /* zfs_rename() */
 
 	VN_RELE(p_vp);
 	VN_RELE(np_vp);
