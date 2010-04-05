@@ -710,9 +710,6 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 	ZFS_ENTER(zfsvfs);
 
-	if (name && strlen(name) > MAXNAMELEN)
-		return ENAMETOOLONG;
-
 	INTERNALIZE_INUM(&ino);
 
 	/* Map flags */
