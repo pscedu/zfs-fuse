@@ -438,7 +438,7 @@ zfsslash2_release(const struct slash_creds *slcrp, void *finfo)
 
 /*
  * Two buffers are passed in by our callers: outbuf points to the
- * readdir result, attrs points to prefeteched attributes. 
+ * readdir result, attrs points to prefeteched attributes.
  */
 int
 zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
@@ -584,12 +584,12 @@ zfsslash2_fidlink(slfid_t fid, enum fidlink_op op, vnode_t **vpp)
 	if (op == FIDLINK_LOOKUP) {
 		if (fid == 1) {
 #if 0
-			/* 
+			/*
 			 * I have found a place in zfs_mknode() where I can write slash ID 1 into the
-			 * root node.  This function is called by dsl_pool_create() twice, once by 
-			 * zfs_create_fs(), once by zfs_create_share_dir().  Both time I see the 
-			 * IS_ROOT_NODE flag is used.  I don't know why ZFS seems to create two root 
-			 * nodes.  But the change seems to fix my problem and make the hack here 
+			 * root node.  This function is called by dsl_pool_create() twice, once by
+			 * zfs_create_fs(), once by zfs_create_share_dir().  Both time I see the
+			 * IS_ROOT_NODE flag is used.  I don't know why ZFS seems to create two root
+			 * nodes.  But the change seems to fix my problem and make the hack here
 			 * unneeded.  I discovered this with gdb while creating a zpool.
 			 */
 			VTOZ(dvp)->z_phys->zp_s2id = 1;
@@ -703,7 +703,7 @@ int
 zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
     int fflags, mode_t createmode, const char *name,
     struct slash_fidgen *fg, mdsio_fid_t *mfp, struct srt_stat *sstb,
-    void **finfo, LogFunc *logfunc)
+    void **finfo, sl_jlog_cb logfunc, sl_getslfid_cb getslfid)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -772,11 +772,10 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vattr.va_type = VREG;
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
-		
-		if (fg) {
-			(*logfunc)(MDS_NAMESPACE_CREATE, VREG, createmode, fg->fg_fid, name);
-			vattr.va_fid = fg->fg_fid;
-		}
+		vattr.va_fid = getslfid();
+
+		logfunc(MDS_NAMESPACE_CREATE, VREG, createmode,
+		    vattr.va_fid, name);
 
 		if (flags & FTRUNC) {
 			vattr.va_size = 0;
@@ -788,7 +787,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 			excl = NONEXCL;
 
 		vnode_t *new_vp;
-		
+
 		/* FIXME: check filesystem boundaries */
 		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode, &new_vp, cred, 0, NULL, NULL);
 
@@ -968,7 +967,7 @@ zfsslash2_read(const struct slash_creds *slcrp, void *buf, size_t size,
 int
 zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
     const struct slash_creds *slcrp, struct srt_stat *sstb,
-    struct slash_fidgen *fg, mdsio_fid_t *mfp)
+    struct slash_fidgen *fg, mdsio_fid_t *mfp, sl_getslfid_cb getslfid)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1001,9 +1000,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_type = VDIR;
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
-
-	if (fg)
-		vattr.va_fid = fg->fg_fid;
+	vattr.va_fid = getslfid();
 
 	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL);
 	if (error)
@@ -1382,7 +1379,7 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 int
 zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
     const struct slash_creds *slcrp, struct srt_stat *sstb,
-    struct slash_fidgen *fg, mdsio_fid_t *mfp)
+    struct slash_fidgen *fg, mdsio_fid_t *mfp, sl_getslfid_cb getslfid)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1409,9 +1406,11 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 	ASSERT(dvp != NULL);
 
 	vattr_t vattr;
+	memset(&vattr, 0, sizeof(vattr));
 	vattr.va_type = VLNK;
 	vattr.va_mode = 0777;
 	vattr.va_mask = AT_TYPE | AT_MODE;
+	vattr.va_fid = getslfid();
 
 	error = VOP_SYMLINK(dvp, (char *)name, &vattr, (char *)link, cred, NULL, 0);
 
