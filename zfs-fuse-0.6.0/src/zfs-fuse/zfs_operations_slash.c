@@ -424,7 +424,7 @@ zfsslash2_release(const struct slash_creds *slcrp, void *finfo)
 	ASSERT(info->vp != NULL);
 	ASSERT(VTOZ(info->vp) != NULL);
 
-	int error = VOP_CLOSE(info->vp, info->flags, 1, (offset_t) 0, cred, NULL);
+	int error = VOP_CLOSE(info->vp, info->flags, 1, (offset_t) 0, cred, NULL); /* zfs_close() */
 	VERIFY(error == 0);
 
 	VN_RELE(info->vp);
@@ -772,9 +772,11 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vattr.va_type = VREG;
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
-
-		if (fg)
+		
+		if (fg) {
+			(*logfunc)(MDS_NAMESPACE_CREATE, VREG, createmode, fg->fg_fid, (char *)name);
 			vattr.va_fid = fg->fg_fid;
+		}
 
 		if (flags & FTRUNC) {
 			vattr.va_size = 0;
@@ -786,6 +788,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 			excl = NONEXCL;
 
 		vnode_t *new_vp;
+		
 		/* FIXME: check filesystem boundaries */
 		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode, &new_vp, cred, 0, NULL, NULL);
 
