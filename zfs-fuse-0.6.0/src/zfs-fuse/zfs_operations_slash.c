@@ -774,7 +774,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vattr.va_mask = AT_TYPE|AT_MODE;
 		
 		if (fg) {
-			(*logfunc)(MDS_NAMESPACE_CREATE, VREG, createmode, fg->fg_fid, (char *)name);
+			(*logfunc)(MDS_NAMESPACE_CREATE, VREG, createmode, fg->fg_fid, name);
 			vattr.va_fid = fg->fg_fid;
 		}
 
