@@ -135,9 +135,9 @@ size_t fuse_add_direntry(fuse_req_t req, char *buf, size_t bufsize,
 }
 
 static __inline int
-hide_vnode(vnode_t *dvp, const char *cpn)
+hide_vnode(vnode_t *dvp, vnode_t *vp, const char *cpn)
 {
-	if (FID_GET_FLAGS(VTOZ(dvp)->z_phys->zp_s2id) & SLFIDF_HIDE_DENTRY)
+	if (FID_GET_FLAGS(VTOZ(vp)->z_phys->zp_s2id) & SLFIDF_HIDE_DENTRY)
 		return (1);
 
 	if (VTOZ(dvp)->z_id == MDSIO_FID_ROOT &&
@@ -496,7 +496,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		 * This check should be pushed out to mount_slash once
 		 * we move the fuse dirent packing there.
 		 */
-		if (hide_vnode(vp, entry.dirent.d_name))
+		if (hide_vnode(vp, tvp, entry.dirent.d_name))
 			goto next_entry;
 
 		struct slash_fidgen tfg;
