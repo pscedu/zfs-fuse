@@ -516,7 +516,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		if (nstbprefetch) {
 			attr->rc = zfsslash2_stat(tvp, &attr->attr, cred);
 			nstbprefetch--;
-#if 0
+#if 1
 			fprintf(stderr, "slash fid: %#"PRIx64", "
 			    "zfs ino: %#"PRIx64", name: %s, mode: 0%o\n",
 			    attr->attr.sst_ino, entry.dirent.d_ino,
@@ -641,7 +641,7 @@ zfsslash2_fidlink(slfid_t fid, enum fidlink_op op, vnode_t **vpp)
 		break;
 	case FIDLINK_CREATE:
 		error = VOP_LINK(dvp, *vpp, id_name, &zrootcreds, NULL,
-		    FALLOWDIRLINK);
+		    FALLOWDIRLINK);		/* zfs_link() */
 		break;
 	case FIDLINK_REMOVE:
 		error = VOP_REMOVE(dvp, id_name, &zrootcreds, NULL, 0);
@@ -984,7 +984,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_mask = AT_TYPE | AT_MODE;
 	vattr.va_fid = getslfid();
 
-	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL);
+	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL); /* zfs_mkdir() */
 	if (error)
 		goto out;
 

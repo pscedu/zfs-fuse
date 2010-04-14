@@ -825,7 +825,7 @@ static int zfsfuse_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name, mo
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	error = VOP_MKDIR(dvp, (char *) name, &vattr, &vp, &cred, NULL, 0, NULL);
+	error = VOP_MKDIR(dvp, (char *) name, &vattr, &vp, &cred, NULL, 0, NULL);  /* zfs_mkdir() */
 	if(error)
 		goto out;
 
