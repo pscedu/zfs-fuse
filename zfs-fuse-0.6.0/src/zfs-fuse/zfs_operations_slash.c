@@ -516,7 +516,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		if (nstbprefetch) {
 			attr->rc = zfsslash2_stat(tvp, &attr->attr, cred);
 			nstbprefetch--;
-#if 1
+#if 0
 			fprintf(stderr, "slash fid: %#"PRIx64", "
 			    "zfs ino: %#"PRIx64", name: %s, mode: 0%o\n",
 			    attr->attr.sst_ino, entry.dirent.d_ino,
