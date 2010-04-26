@@ -686,6 +686,11 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	 * don't overwrite its original parent. We don't care about
 	 * regular files because we don't need to look at their
 	 * zp_parent field to move up the tree.
+	 *
+	 * XXX We might create the first link in the by-id namespace
+	 * when applying updates from a remote MDS.  But we want to 
+	 * keep the link in the by-name namespace as soon as it is
+	 * available.
 	 */
 	if (!(flag & FALLOWDIRLINK) || !zp_is_dir)
 		zp->z_phys->zp_parent = dzp->z_id;	/* dzp is now zp's parent */
