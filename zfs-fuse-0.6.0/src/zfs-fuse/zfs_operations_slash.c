@@ -687,7 +687,44 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
 int
 zfsslash2_replay_create(__unusedx slfid_t pfid, __unusedx slfid_t fid,  __unusedx int type, __unusedx int mode, __unusedx char *name)
 {
-	return (0);
+	int error;
+	vnode_t *vp;
+	vnode_t *pvp;
+	vnode_t *tvp;
+	vattr_t vattr;
+
+	memset(&vattr, 0, sizeof(vattr_t));
+	vattr.va_type = VREG;
+	vattr.va_mode = mode;
+	vattr.va_mask = AT_TYPE|AT_MODE;
+	vattr.va_fid = fid;
+
+	/*
+	 * Make sure the parent exists, at least in the by-id namespace.
+	 */
+	pvp = NULL;
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, &pvp);
+	if (error == ENOENT)
+		error = zfsslash2_fidlink(pfid, FIDLINK_CREATE, &pvp);
+	if (error)
+		goto out;
+
+	error = VOP_CREATE(vp, (char *)name, &vattr, NONEXCL, mode, &tvp, NULL, 0, NULL, NULL);
+	if (error && error != EEXIST) {
+		VN_RELE(pvp);
+		goto out;
+	}
+	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, &tvp);
+	if (error && error != EEXIST) {
+		VN_RELE(pvp);
+		goto out;
+	}
+	error = 0;
+	VN_RELE(pvp);
+	VN_RELE(tvp);
+
+ out:
+	return (error);
 }
 
 /*
