@@ -685,7 +685,13 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
 }
 
 int
-zfsslash2_replay_create(__unusedx slfid_t pfid, __unusedx slfid_t fid,  __unusedx int type, __unusedx int mode, __unusedx char *name)
+zfsslash2_replay_mkdir(__unusedx slfid_t pfid, __unusedx slfid_t fid,  __unusedx int type, __unusedx int mode, __unusedx char *name)
+{
+	return (0);
+}
+
+int
+zfsslash2_replay_creat(__unusedx slfid_t pfid, __unusedx slfid_t fid,  __unusedx int type, __unusedx int mode, __unusedx char *name)
 {
 	int error;
 	vnode_t *vp;
@@ -694,7 +700,7 @@ zfsslash2_replay_create(__unusedx slfid_t pfid, __unusedx slfid_t fid,  __unused
 	vattr_t vattr;
 
 	memset(&vattr, 0, sizeof(vattr_t));
-	vattr.va_type = VREG;
+	vattr.va_type = type;
 	vattr.va_mode = mode;
 	vattr.va_mask = AT_TYPE|AT_MODE;
 	vattr.va_fid = fid;
