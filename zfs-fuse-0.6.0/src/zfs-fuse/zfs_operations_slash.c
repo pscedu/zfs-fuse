@@ -684,6 +684,12 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
 	return (error);
 }
 
+int
+zfsslash2_replay_create(__unusedx slfid_t pfid, __unusedx slfid_t fid,  __unusedx int type, __unusedx int mode, __unusedx char *name)
+{
+	return (0);
+}
+
 /*
  * Note that ino is the target inode if this is an open, otherwise it is the inode of the parent.
  */
