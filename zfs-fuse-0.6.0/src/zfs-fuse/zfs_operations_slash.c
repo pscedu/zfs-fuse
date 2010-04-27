@@ -741,12 +741,7 @@ zfsslash2_replay_creat(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx 
 		VN_RELE(pvp);
 		goto out;
 	}
-	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, NULL, &tvp);
-	if (error && error != EEXIST) {
-		VN_RELE(pvp);
-		goto out;
-	}
-	error = 0;
+	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
 	VN_RELE(pvp);
 	VN_RELE(tvp);
 
