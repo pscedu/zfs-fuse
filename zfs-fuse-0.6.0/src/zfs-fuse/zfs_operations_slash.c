@@ -54,7 +54,7 @@ vfs_t		*zfsVfs;			/* initialized by do_mount() */
 
 /* flags for zfsslash2_fidlink() */
 enum fidlink_op {
-	FIDLINK_CREATE,
+	FIDLINK_LINK,
 	FIDLINK_LOOKUP,
 	FIDLINK_REMOVE
 };
@@ -639,7 +639,7 @@ zfsslash2_fidlink(slfid_t fid, enum fidlink_op op, vnode_t **vpp)
 		error = VOP_LOOKUP(dvp, id_name, vpp, NULL, 0, NULL,
 		    &zrootcreds, NULL, NULL, NULL);
 		break;
-	case FIDLINK_CREATE:
+	case FIDLINK_LINK:
 		error = VOP_LINK(dvp, *vpp, id_name, &zrootcreds, NULL,
 		    FALLOWDIRLINK);		/* zfs_link() */
 		break;
@@ -716,7 +716,7 @@ zfsslash2_replay_creat(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx 
 	pvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, &pvp);
 	if (error == ENOENT)
-		error = zfsslash2_fidlink(pfid, FIDLINK_CREATE, &pvp);
+		error = zfsslash2_fidlink(pfid, FIDLINK_LINK, &pvp);
 	if (error)
 		goto out;
 
@@ -730,7 +730,7 @@ zfsslash2_replay_creat(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx 
 		VN_RELE(pvp);
 		goto out;
 	}
-	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, &tvp);
+	error = zfsslash2_fidlink(fid, FIDLINK_LINK, &tvp);
 	if (error && error != EEXIST) {
 		VN_RELE(pvp);
 		goto out;
@@ -842,7 +842,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		VN_RELE(vp);
 		vp = new_vp;
 
-		if ((error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_CREATE, &vp)))
+		if ((error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_LINK, &vp)))
 			goto out;
 	} else {
 		/*
@@ -1049,7 +1049,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 
 	ASSERT(vp != NULL);
 
-	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_CREATE, &vp);
+	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_LINK, &vp);
 	if (error)
 		goto out;
 
