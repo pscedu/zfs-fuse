@@ -53,11 +53,9 @@ cred_t		 zrootcreds;
 vfs_t		*zfsVfs;			/* initialized by do_mount() */
 
 /* flags for zfsslash2_fidlink() */
-enum fidlink_op {
-	FIDLINK_CREATE,
-	FIDLINK_LOOKUP,
-	FIDLINK_REMOVE
-};
+#define	FIDLINK_CREATE		0x01
+#define	FIDLINK_LOOKUP		0x02
+#define	FIDLINK_REMOVE		0x04
 
 #define SL_PATH_PREFIX	".sl"
 #define SL_PATH_FIDNS	".slfidns"
@@ -545,7 +543,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
  * created.  We do this when we format the file system.
  */
 int
-zfsslash2_fidlink(slfid_t fid, enum fidlink_op op, vnode_t *svp, vnode_t **vpp)
+zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 {
 	int		 i;
 	uint8_t		 c;
@@ -567,7 +565,7 @@ zfsslash2_fidlink(slfid_t fid, enum fidlink_op op, vnode_t *svp, vnode_t **vpp)
 	/*
 	 * Map the root of slash2 to the root of the underlying ZFS.
 	 */
-	if (op == FIDLINK_LOOKUP) {
+	if (flags & FIDLINK_LOOKUP) {
 		if (fid == 1) {
 #if 0
 			/*
@@ -634,22 +632,37 @@ zfsslash2_fidlink(slfid_t fid, enum fidlink_op op, vnode_t *svp, vnode_t **vpp)
 
 	snprintf(id_name, sizeof(id_name), "%016"PRIx64, fid);
 
-	switch (op) {
-	case FIDLINK_LOOKUP:
+	if (flags & FIDLINK_LOOKUP) {
 		error = VOP_LOOKUP(dvp, id_name, vpp, NULL, 0, NULL,
-		    &zrootcreds, NULL, NULL, NULL);	/* zfs_lookup() */
-		break;
-	case FIDLINK_CREATE:
-		error = VOP_LINK(dvp, svp, id_name, &zrootcreds, NULL,
-		    FALLOWDIRLINK);			/* zfs_link() */
-		break;
-	case FIDLINK_REMOVE:
-		error = VOP_REMOVE(dvp, id_name, &zrootcreds, NULL, 0);
-		break;					/* zfs_remove() */
-	default:
-		error = EINVAL;
-		break;
+		    &zrootcreds, NULL, NULL, NULL);
+		if (!error)
+			goto out;
+		if (error != ENOENT || !(flags & FIDLINK_CREATE))
+			goto out;
 	}
+	if (flags & FIDLINK_CREATE) {
+		if (svp) {
+			error = VOP_LINK(dvp, svp, id_name, &zrootcreds, NULL, 
+				FALLOWDIRLINK);
+		} else {
+			vattr_t vattr;
+			memset(&vattr, 0, sizeof(vattr_t));
+			vattr.va_type = VDIR;
+			vattr.va_mode = 0711;
+			vattr.va_mask = AT_TYPE | AT_MODE;
+			vattr.va_fid = fid;
+			error = VOP_MKDIR(dvp, id_name, &vattr, vpp, 
+				&zrootcreds, NULL, 0, NULL);
+		}
+		goto out;
+	}
+	if (flags & FIDLINK_REMOVE) {
+		error = VOP_REMOVE(dvp, id_name, &zrootcreds, NULL, 0);
+		goto out;
+	}
+	error = EINVAL;
+
+ out:
 
 #ifdef DEBUG
 	fprintf(stderr, "id_name=%s parent=%"PRId64" linkvp=%"PRId64" error=%d\n",
