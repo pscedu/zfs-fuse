@@ -3632,7 +3632,7 @@ top:
 		return (error);
 	}
 
-	error = zfs_link_create(dl, szp, tx, flags & FALLOWDIRLINK);
+	error = zfs_link_create(dl, szp, tx, (flags & FKEEPPARENT) ? 0 : ZPARENT);
 
 	if (error == 0) {
 		uint64_t txtype = TX_LINK;

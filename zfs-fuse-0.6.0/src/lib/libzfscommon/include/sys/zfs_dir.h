@@ -42,6 +42,7 @@ extern "C" {
 #define	ZRENAMING	0x0010		/* znode is being renamed */
 #define	ZCILOOK		0x0020		/* case-insensitive lookup requested */
 #define	ZCIEXACT	0x0040		/* c-i requires c-s match (rename) */
+#define	ZPARENT 	0x0080		/* slash2: update parent pointer */
 
 /* mknode flags */
 #define	IS_ROOT_NODE	0x01		/* create a root node */

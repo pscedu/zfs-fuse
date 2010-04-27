@@ -643,7 +643,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 	if (flags & FIDLINK_CREATE) {
 		if (svp) {
 			error = VOP_LINK(dvp, svp, id_name, &zrootcreds, NULL, 
-				FALLOWDIRLINK);
+				FALLOWDIRLINK | FKEEPPARENT);
 		} else {
 			vattr_t vattr;
 			memset(&vattr, 0, sizeof(vattr_t));
