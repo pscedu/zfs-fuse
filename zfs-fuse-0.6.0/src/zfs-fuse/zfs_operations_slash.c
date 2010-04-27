@@ -727,9 +727,7 @@ zfsslash2_replay_creat(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx 
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
 	pvp = NULL;
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &pvp);
-	if (error == ENOENT)
-		error = zfsslash2_fidlink(pfid, FIDLINK_CREATE, NULL, &pvp);
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
 	if (error)
 		goto out;
 
