@@ -642,6 +642,10 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 	}
 	if (flags & FIDLINK_CREATE) {
 		if (svp) {
+			/*
+			 * Create an extra link to the name in the regular name
+			 * space, keeping the parent pointer intact.
+			 */
 			error = VOP_LINK(dvp, svp, id_name, &zrootcreds, NULL, 
 				FALLOWDIRLINK | FKEEPPARENT);
 		} else {
@@ -712,11 +716,39 @@ zfsslash2_replay_link(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx i
 int
 zfsslash2_replay_mkdir(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, __unusedx char *name)
 {
-	return (0);
+	int error;
+	vnode_t *pvp;
+	vnode_t *tvp;
+	vattr_t vattr;
+
+	/*
+	 * Make sure the parent exists, at least in the by-id namespace.
+	 */
+	pvp = NULL;
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
+	if (error)
+		goto out;
+
+	memset(&vattr, 0, sizeof(vattr_t));
+	vattr.va_type = VDIR;
+	vattr.va_mode = mode & PERMMASK;
+	vattr.va_mask = AT_TYPE|AT_MODE;
+	vattr.va_fid = fid;
+	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &zrootcreds, NULL, 0, NULL);
+	if (error) {
+		VN_RELE(pvp);
+		goto out;
+	}
+	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
+	VN_RELE(pvp);
+	VN_RELE(tvp);
+
+ out:
+	return (error);
 }
 
 int
-zfsslash2_replay_creat(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, __unusedx char *name)
+zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int mode, char *name)
 {
 	int error;
 	vnode_t *pvp;
@@ -733,11 +765,11 @@ zfsslash2_replay_creat(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx 
 
 	memset(&vattr, 0, sizeof(vattr_t));
 	vattr.va_type = VREG;
-	vattr.va_mode = mode;
+	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE|AT_MODE;
 	vattr.va_fid = fid;
 	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, mode, &tvp, NULL, 0, NULL, NULL);
-	if (error && error != EEXIST) {
+	if (error) {
 		VN_RELE(pvp);
 		goto out;
 	}
