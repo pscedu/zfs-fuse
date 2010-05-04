@@ -748,12 +748,13 @@ zfsslash2_replay_mkdir(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx 
 }
 
 int
-zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int mode, char *name)
+zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int mode, char *name)
 {
 	int error;
 	vnode_t *pvp;
 	vnode_t *tvp;
 	vattr_t vattr;
+	cred_t cred;
 
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
@@ -768,7 +769,10 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int mode, char *name)
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE|AT_MODE;
 	vattr.va_fid = fid;
-	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, mode, &tvp, NULL, 0, NULL, NULL); /* zfs_create() */
+
+	cred.cr_uid = uid;
+	cred.cr_gid = gid;
+	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, mode, &tvp, &cred, 0, NULL, NULL); /* zfs_create() */
 	if (error) {
 		VN_RELE(pvp);
 		goto out;
