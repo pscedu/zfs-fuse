@@ -858,7 +858,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vattr.va_fid = getslfid();
 
 		logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_FILE,
-			createmode, znode->z_phys->zp_s2id, vattr.va_fid, name);
+			cred->cr_uid, cred->cr_gid, createmode, znode->z_phys->zp_s2id, vattr.va_fid, name);
 
 		if (flags & FTRUNC) {
 			vattr.va_size = 0;
@@ -1083,7 +1083,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_fid = getslfid();
 
 	logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_DIR, 
-		mode, znode->z_phys->zp_s2id, vattr.va_fid, name);
+		cred->cr_uid, cred->cr_gid, mode, znode->z_phys->zp_s2id, vattr.va_fid, name);
 
 	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL); /* zfs_mkdir() */
 	if (error)
