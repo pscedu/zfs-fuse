@@ -768,7 +768,7 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int mode, char *name)
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE|AT_MODE;
 	vattr.va_fid = fid;
-	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, mode, &tvp, NULL, 0, NULL, NULL);
+	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, mode, &tvp, NULL, 0, NULL, NULL); /* zfs_create() */
 	if (error) {
 		VN_RELE(pvp);
 		goto out;
