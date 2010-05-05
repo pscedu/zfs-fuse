@@ -862,6 +862,10 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vattr.va_mask = AT_TYPE|AT_MODE;
 		vattr.va_fid = getslfid();
 
+		stat.st_mode = createmode;
+		stat.st_uid = cred->cr_uid;
+		stat.st_gid = cred->cr_gid;
+
 		logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_FILE,
 			znode->z_phys->zp_s2id, vattr.va_fid, &stat, name);
 
@@ -1088,6 +1092,10 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_mask = AT_TYPE | AT_MODE;
 	vattr.va_fid = getslfid();
 
+	stat.st_mode = mode & PERMMASK;
+	stat.st_uid = cred->cr_uid;
+	stat.st_gid = cred->cr_gid;
+
 	logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_DIR, 
 		znode->z_phys->zp_s2id, vattr.va_fid, &stat, name);
 
@@ -1165,6 +1173,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
 	file_info_t *info = finfo;
+	znode_t *znode;
 
 	ZFS_ENTER(zfsvfs);
 
@@ -1174,7 +1183,6 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 	int error;
 
 	if (!info) {
-		znode_t *znode;
 
 		error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
 		if (error) {
@@ -1189,6 +1197,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 	} else {
 		vp = info->vp;
 		release = B_FALSE;
+		znode = VTOZ(vp);
 
 		/*
 		 * Special treatment for ftruncate().
@@ -1235,6 +1244,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 	if (to_set & SRM_SETATTRF_MODE) {
 		vattr.va_mask |= AT_MODE;
 		vattr.va_mode = sstb_in->sst_mode;
+		stat.st_mode = vattr.va_mode;
 	}
 	if (to_set & SRM_SETATTRF_UID) {
 		vattr.va_mask |= AT_UID;
@@ -1243,6 +1253,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			error = EINVAL;
 			goto out;
 		}
+		stat.st_uid = vattr.va_uid;
 	}
 	if (to_set & SRM_SETATTRF_GID) {
 		vattr.va_mask |= AT_GID;
@@ -1251,6 +1262,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			error = EINVAL;
 			goto out;
 		}
+		stat.st_gid = vattr.va_gid;
 	}
 	if (to_set & SRM_SETATTRF_ATIME) {
 		vattr.va_mask |= AT_ATIME;
@@ -1268,8 +1280,9 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		vattr.va_mask |= AT_PTRUNCGEN;
 		vattr.va_ptruncgen = sstb_in->sst_ptruncgen;
 	}
-	logfunc(MDS_NAMESPACE_OP_ATTRIB, MDS_NAMESPACE_TYPE_FILE,
-		0, znode->z_phys->zp_s2id, &stat, NULL);
+	if (logfunc)
+		logfunc(MDS_NAMESPACE_OP_ATTRIB, MDS_NAMESPACE_TYPE_FILE,
+			0, znode->z_phys->zp_s2id, &stat, NULL);
 
 	int flags = (to_set & (SRM_SETATTRF_ATIME | SRM_SETATTRF_MTIME)) ? ATTR_UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL);
