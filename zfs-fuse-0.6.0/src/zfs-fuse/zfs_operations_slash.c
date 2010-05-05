@@ -853,6 +853,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		}
 
 		enum vcexcl excl;
+		struct stat stat;
 
 		vattr_t vattr;
 		memset(&vattr, 0, sizeof(vattr_t));
@@ -862,7 +863,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vattr.va_fid = getslfid();
 
 		logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_FILE,
-			znode->z_phys->zp_s2id, &vattr, name);
+			znode->z_phys->zp_s2id, vattr.va_fid, &stat, name);
 
 		if (flags & FTRUNC) {
 			vattr.va_size = 0;
@@ -1078,6 +1079,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	ASSERT(dvp != NULL);
 
 	vnode_t *vp = NULL;
+	struct stat stat;
 
 	vattr_t vattr;
 	memset(&vattr, 0, sizeof(vattr_t));
@@ -1087,7 +1089,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_fid = getslfid();
 
 	logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_DIR, 
-		znode->z_phys->zp_s2id, &vattr, name);
+		znode->z_phys->zp_s2id, vattr.va_fid, &stat, name);
 
 	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL); /* zfs_mkdir() */
 	if (error)
@@ -1227,6 +1229,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 	ASSERT(vp != NULL);
 
+	struct stat stat;
 	vattr_t vattr = { 0 };
 
 	if (to_set & SRM_SETATTRF_MODE) {
@@ -1266,7 +1269,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		vattr.va_ptruncgen = sstb_in->sst_ptruncgen;
 	}
 	logfunc(MDS_NAMESPACE_OP_ATTRIB, MDS_NAMESPACE_TYPE_FILE,
-		0, &vattr, NULL);
+		0, znode->z_phys->zp_s2id, &stat, NULL);
 
 	int flags = (to_set & (SRM_SETATTRF_ATIME | SRM_SETATTRF_MTIME)) ? ATTR_UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL);
