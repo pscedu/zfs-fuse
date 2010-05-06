@@ -798,11 +798,11 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, int flag)
 		goto out;
 
 	vattr.va_mode = stat->sst_mode; 
-	vattr.va_atime = stat->sst_atime;
-	vattr.va_mtime = stat->sst_mtime;
-	vattr.va_ctime = stat->sst_ctime;
+	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
+	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
+	TIME_TO_TIMESTRUC(stat->sst_ctime, &vattr.va_ctime);
 
-	error = VOP_SETATTR(vp, &vattr, flag, &rootcreds, NULL); /* zfs_setattr() */
+	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL); /* zfs_setattr() */
 
 	VN_RELE(vp);
 out:
