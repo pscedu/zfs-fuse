@@ -55,6 +55,6 @@ int	zfsslash2_replay_create(slfid_t, slfid_t, int32_t, int32_t, int, char *);
 int	zfsslash2_replay_mkdir(slfid_t, slfid_t, int, char *);
 int	zfsslash2_replay_link(slfid_t, slfid_t, int, char *);
 int	zfsslash2_replay_symlink(slfid_t, slfid_t, int, char *);
-int	zfsslash2_replay_setattr(slfid_t, struct srt_stat *, int);
+int	zfsslash2_replay_setattr(slfid_t, struct srt_stat *, uint);
 
 #endif /* _ZFS_SLASHLIB_H_ */

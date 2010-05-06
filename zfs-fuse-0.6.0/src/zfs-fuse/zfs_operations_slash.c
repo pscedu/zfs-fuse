@@ -786,7 +786,7 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 }
 
 int
-zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, int flag)
+zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
 {
 	int error;
 	vnode_t *vp;
@@ -797,7 +797,10 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, int flag)
 	if (error)
 		goto out;
 
+	vattr.va_mask = mask;
 	vattr.va_mode = stat->sst_mode; 
+	vattr.va_uid = sst->sst_uid;
+	vattr.va_uid = sst->sst_uid;
 	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
 	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
 	TIME_TO_TIMESTRUC(stat->sst_ctime, &vattr.va_ctime);
