@@ -791,6 +791,7 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
 	int error;
 	vnode_t *vp;
 	vattr_t vattr;
+	int flag;
 
 	vp = NULL;
 	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &vp);
@@ -799,12 +800,13 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
 
 	vattr.va_mask = mask;
 	vattr.va_mode = stat->sst_mode; 
-	vattr.va_uid = sst->sst_uid;
-	vattr.va_uid = sst->sst_uid;
+	vattr.va_uid = stat->sst_uid;
+	vattr.va_uid = stat->sst_uid;
 	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
 	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
 	TIME_TO_TIMESTRUC(stat->sst_ctime, &vattr.va_ctime);
 
+	flag = (mask & (AT_ATIME | AT_MTIME)) ? ATTR_UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL); /* zfs_setattr() */
 
 	VN_RELE(vp);
