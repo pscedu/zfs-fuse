@@ -755,6 +755,7 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 	vnode_t *tvp;
 	vattr_t vattr;
 	cred_t cred;
+	timestruc_t now;
 
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
@@ -772,6 +773,14 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 
 	cred.cr_uid = uid;
 	cred.cr_gid = gid;
+
+	/*
+	 * Looks like ZFS allows us to pass in atime and mtime. With this, we can respect
+	 * these two timestamps instead of something close.
+	 */
+	gethrestime(&now);
+	vattr.va_mask |= AT_ATIME | AT_MTIME;
+
 	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, mode, &tvp, &cred, 0, NULL, NULL); /* zfs_create() */
 	if (error) {
 		VN_RELE(pvp);
