@@ -886,10 +886,13 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 		vattr_t vattr;
 		memset(&vattr, 0, sizeof(vattr_t));
+
 		vattr.va_type = VREG;
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
 		vattr.va_fid = getslfid();
+
+		memset(&stat, 0, sizeof(struct srt_stat));
 
 		stat.sst_mode = createmode;
 		stat.sst_uid = cred->cr_uid;
@@ -1122,6 +1125,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_mask = AT_TYPE | AT_MODE;
 	vattr.va_fid = getslfid();
 
+	memset(&stat, 0, sizeof(struct srt_stat));
 	stat.sst_mode = mode & PERMMASK;
 	stat.sst_uid = cred->cr_uid;
 	stat.sst_gid = cred->cr_gid;
@@ -1271,7 +1275,8 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 	struct srt_stat stat;
 	vattr_t vattr = { 0 };
-
+	
+	memset(&stat, 0, sizeof(struct srt_stat));
 	if (to_set & SRM_SETATTRF_MODE) {
 		vattr.va_mask |= AT_MODE;
 		vattr.va_mode = sstb_in->sst_mode;
