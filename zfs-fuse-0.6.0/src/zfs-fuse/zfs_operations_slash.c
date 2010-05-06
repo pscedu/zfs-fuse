@@ -785,6 +785,20 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 	return (error);
 }
 
+int
+zfsslash2_replay_setattr(slfid_t fid, __unusedx struct srt_stat * stat, __unusedx int flags)
+{
+	int error;
+	vnode_t *vp;
+
+	vp = NULL;
+	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &vp);
+		goto out;
+
+out:
+	return (error);
+}
+
 /*
  * Note that ino is the target inode if this is an open, otherwise it is the inode of the parent.
  */
