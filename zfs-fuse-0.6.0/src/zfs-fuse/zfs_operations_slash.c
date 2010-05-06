@@ -786,11 +786,10 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 }
 
 int
-zfsslash2_replay_setattr(slfid_t fid, __unusedx struct srt_stat * stat, __unusedx int flag)
+zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, int flag)
 {
 	int error;
 	vnode_t *vp;
-	cred_t cred;
 	vattr_t vattr;
 
 	vp = NULL;
@@ -798,15 +797,14 @@ zfsslash2_replay_setattr(slfid_t fid, __unusedx struct srt_stat * stat, __unused
 	if (error)
 		goto out;
 
-	cred.cr_uid = stat->sst_uid;
-	cred.cr_gid = stat->sst_gid;
 	vattr.va_mode = stat->sst_mode; 
 	vattr.va_atime = stat->sst_atime;
 	vattr.va_mtime = stat->sst_mtime;
 	vattr.va_ctime = stat->sst_ctime;
 
-	error = VOP_SETATTR(vp, &vattr, flag, cred, NULL);
+	error = VOP_SETATTR(vp, &vattr, flag, &rootcreds, NULL); /* zfs_setattr() */
 
+	VN_RELE(vp);
 out:
 	return (error);
 }
