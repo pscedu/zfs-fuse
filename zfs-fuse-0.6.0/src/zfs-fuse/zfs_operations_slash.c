@@ -853,7 +853,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		}
 
 		enum vcexcl excl;
-		struct stat stat;
+		struct srt_stat stat;
 
 		vattr_t vattr;
 		memset(&vattr, 0, sizeof(vattr_t));
@@ -862,9 +862,9 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vattr.va_mask = AT_TYPE|AT_MODE;
 		vattr.va_fid = getslfid();
 
-		stat.st_mode = createmode;
-		stat.st_uid = cred->cr_uid;
-		stat.st_gid = cred->cr_gid;
+		stat.sst_mode = createmode;
+		stat.sst_uid = cred->cr_uid;
+		stat.sst_gid = cred->cr_gid;
 
 		if (logfunc)
 			logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_FILE,
@@ -1084,7 +1084,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	ASSERT(dvp != NULL);
 
 	vnode_t *vp = NULL;
-	struct stat stat;
+	struct srt_stat stat;
 
 	vattr_t vattr;
 	memset(&vattr, 0, sizeof(vattr_t));
@@ -1093,9 +1093,9 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_mask = AT_TYPE | AT_MODE;
 	vattr.va_fid = getslfid();
 
-	stat.st_mode = mode & PERMMASK;
-	stat.st_uid = cred->cr_uid;
-	stat.st_gid = cred->cr_gid;
+	stat.sst_mode = mode & PERMMASK;
+	stat.sst_uid = cred->cr_uid;
+	stat.sst_gid = cred->cr_gid;
 
 	if (logfunc)
 		logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_DIR, 
@@ -1240,13 +1240,13 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 	ASSERT(vp != NULL);
 
-	struct stat stat;
+	struct srt_stat stat;
 	vattr_t vattr = { 0 };
 
 	if (to_set & SRM_SETATTRF_MODE) {
 		vattr.va_mask |= AT_MODE;
 		vattr.va_mode = sstb_in->sst_mode;
-		stat.st_mode = vattr.va_mode;
+		stat.sst_mode = vattr.va_mode;
 	}
 	if (to_set & SRM_SETATTRF_UID) {
 		vattr.va_mask |= AT_UID;
@@ -1255,7 +1255,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			error = EINVAL;
 			goto out;
 		}
-		stat.st_uid = vattr.va_uid;
+		stat.sst_uid = vattr.va_uid;
 	}
 	if (to_set & SRM_SETATTRF_GID) {
 		vattr.va_mask |= AT_GID;
@@ -1264,7 +1264,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			error = EINVAL;
 			goto out;
 		}
-		stat.st_gid = vattr.va_gid;
+		stat.sst_gid = vattr.va_gid;
 	}
 	if (to_set & SRM_SETATTRF_ATIME) {
 		vattr.va_mask |= AT_ATIME;
