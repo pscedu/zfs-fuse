@@ -786,14 +786,26 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 }
 
 int
-zfsslash2_replay_setattr(slfid_t fid, __unusedx struct srt_stat * stat, __unusedx int flags)
+zfsslash2_replay_setattr(slfid_t fid, __unusedx struct srt_stat * stat, __unusedx int flag)
 {
 	int error;
 	vnode_t *vp;
+	cred_t cred;
+	vattr_t vattr;
 
 	vp = NULL;
 	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &vp);
+	if (error)
 		goto out;
+
+	cred.cr_uid = stat->sst_uid;
+	cred.cr_gid = stat->sst_gid;
+	vattr.va_mode = stat->sst_mode; 
+	vattr.va_atime = stat->sst_atime;
+	vattr.va_mtime = stat->sst_mtime;
+	vattr.va_ctime = stat->sst_ctime;
+
+	error = VOP_SETATTR(vp, &vattr, flag, cred, NULL);
 
 out:
 	return (error);
@@ -882,7 +894,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 		if (logfunc)
 			logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_FILE,
-				znode->z_phys->zp_s2id, vattr.va_fid, &stat, name);
+				znode->z_phys->zp_s2id, vattr.va_fid, &stat, 0, name);
 
 		if (flags & FTRUNC) {
 			vattr.va_size = 0;
@@ -1113,7 +1125,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 
 	if (logfunc)
 		logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_DIR, 
-			znode->z_phys->zp_s2id, vattr.va_fid, &stat, name);
+			znode->z_phys->zp_s2id, vattr.va_fid, &stat, 0, name);
 
 	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL); /* zfs_mkdir() */
 	if (error)
@@ -1298,7 +1310,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 	}
 	if (logfunc)
 		logfunc(MDS_NAMESPACE_OP_ATTRIB, MDS_NAMESPACE_TYPE_FILE,
-			0, znode->z_phys->zp_s2id, &stat, NULL);
+			0, znode->z_phys->zp_s2id, &stat, to_set, NULL);
 
 	int flags = (to_set & (SRM_SETATTRF_ATIME | SRM_SETATTRF_MTIME)) ? ATTR_UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL);
