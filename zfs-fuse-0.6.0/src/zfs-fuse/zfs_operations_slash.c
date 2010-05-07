@@ -1647,7 +1647,8 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
 /*
  * The following are functions used to replay a namespace operation happened on a remote MDS.
  * There are two big differences between these functions and those above: (1) we have to
- * operate from the by-id namespace; (2) we don't need to log a replayed operation.
+ * operate from the by-id namespace (that's why we start with zfsslash2_fidlink() instead of
+ * zfs_zget()); (2) we don't need to log a replayed operation.
  */
 
 int
@@ -1748,7 +1749,19 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 int
 zfsslash2_replay_rmdir(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx char *name)
 {
-	return (0);
+	int error;
+	vnode_t *dvp;
+	dvp = NULL;
+
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &dvp);
+	if (error)
+		goto out;
+
+	error = VOP_RMDIR(dvp, (char *)name, NULL, &zrootcreds, NULL, 0);
+
+	VN_RELE(dvp);
+out:
+	return (error);
 }
 
 int
