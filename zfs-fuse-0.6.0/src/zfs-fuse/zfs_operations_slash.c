@@ -701,142 +701,6 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
 	return (error);
 }
 
-int
-zfsslash2_replay_symlink(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, __unusedx char *name)
-{
-	return (0);
-}
-
-int
-zfsslash2_replay_link(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, __unusedx char *name)
-{
-	return (0);
-}
-
-int
-zfsslash2_replay_mkdir(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, __unusedx char *name)
-{
-	int error;
-	vnode_t *pvp;
-	vnode_t *tvp;
-	vattr_t vattr;
-
-	/*
-	 * Make sure the parent exists, at least in the by-id namespace.
-	 */
-	pvp = NULL;
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
-	if (error)
-		goto out;
-
-	memset(&vattr, 0, sizeof(vattr_t));
-	vattr.va_type = VDIR;
-	vattr.va_mode = mode & PERMMASK;
-	vattr.va_mask = AT_TYPE|AT_MODE;
-	vattr.va_fid = fid;
-	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &zrootcreds, NULL, 0, NULL);
-	if (error) {
-		VN_RELE(pvp);
-		goto out;
-	}
-	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
-	VN_RELE(pvp);
-	VN_RELE(tvp);
-
- out:
-	return (error);
-}
-
-int
-zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int mode, char *name)
-{
-	int error;
-	vnode_t *pvp;
-	vnode_t *tvp;
-	vattr_t vattr;
-	cred_t cred;
-	timestruc_t now;
-
-	/*
-	 * Make sure the parent exists, at least in the by-id namespace.
-	 */
-	pvp = NULL;
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
-	if (error)
-		goto out;
-
-	memset(&vattr, 0, sizeof(vattr_t));
-	vattr.va_type = VREG;
-	vattr.va_mode = mode & PERMMASK;
-	vattr.va_mask = AT_TYPE|AT_MODE;
-	vattr.va_fid = fid;
-
-	cred.cr_uid = uid;
-	cred.cr_gid = gid;
-
-	/*
-	 * Looks like ZFS allows us to pass in atime and mtime. With this, we can respect
-	 * these two timestamps instead of something close.
-	 */
-	gethrestime(&now);
-	vattr.va_atime = now;
-	vattr.va_mtime = now;
-	vattr.va_mask |= AT_ATIME | AT_MTIME;
-
-	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, mode, &tvp, &cred, 0, NULL, NULL); /* zfs_create() */
-	if (error) {
-		VN_RELE(pvp);
-		goto out;
-	}
-	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
-	VN_RELE(pvp);
-	VN_RELE(tvp);
-
- out:
-	return (error);
-}
-
-int
-zfsslash2_replay_rmdir(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx char *name)
-{
-	return (0);
-}
-
-int
-zfsslash2_replay_unlink(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx char *name)
-{
-	return (0);
-}
-
-int
-zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
-{
-	int error;
-	vnode_t *vp;
-	vattr_t vattr;
-	int flag;
-
-	vp = NULL;
-	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &vp);
-	if (error)
-		goto out;
-
-	vattr.va_mask = mask;
-	vattr.va_mode = stat->sst_mode; 
-	vattr.va_uid = stat->sst_uid;
-	vattr.va_uid = stat->sst_uid;
-	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
-	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
-	TIME_TO_TIMESTRUC(stat->sst_ctime, &vattr.va_ctime);
-
-	flag = (mask & (AT_ATIME | AT_MTIME)) ? ATTR_UTIME : 0;
-	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL); /* zfs_setattr() */
-
-	VN_RELE(vp);
-out:
-	return (error);
-}
-
 /*
  * Note that ino is the target inode if this is an open, otherwise it is the inode of the parent.
  */
@@ -1779,3 +1643,146 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
 
 	return error;
 }
+
+/*
+ * The following are functions used to replay a namespace operation happened on a remote MDS.
+ * There are two big differences between these functions and those above: (1) we have to
+ * operate from the by-id namespace; (2) we don't need to log a replayed operation.
+ */
+
+int
+zfsslash2_replay_symlink(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, __unusedx char *name)
+{
+	return (0);
+}
+
+int
+zfsslash2_replay_link(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, __unusedx char *name)
+{
+	return (0);
+}
+
+int
+zfsslash2_replay_mkdir(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, __unusedx char *name)
+{
+	int error;
+	vnode_t *pvp;
+	vnode_t *tvp;
+	vattr_t vattr;
+
+	/*
+	 * Make sure the parent exists, at least in the by-id namespace.
+	 */
+	pvp = NULL;
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
+	if (error)
+		goto out;
+
+	memset(&vattr, 0, sizeof(vattr_t));
+	vattr.va_type = VDIR;
+	vattr.va_mode = mode & PERMMASK;
+	vattr.va_mask = AT_TYPE|AT_MODE;
+	vattr.va_fid = fid;
+	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &zrootcreds, NULL, 0, NULL);
+	if (error) {
+		VN_RELE(pvp);
+		goto out;
+	}
+	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
+	VN_RELE(pvp);
+	VN_RELE(tvp);
+
+ out:
+	return (error);
+}
+
+int
+zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int mode, char *name)
+{
+	int error;
+	vnode_t *pvp;
+	vnode_t *tvp;
+	vattr_t vattr;
+	cred_t cred;
+	timestruc_t now;
+
+	/*
+	 * Make sure the parent exists, at least in the by-id namespace.
+	 */
+	pvp = NULL;
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
+	if (error)
+		goto out;
+
+	memset(&vattr, 0, sizeof(vattr_t));
+	vattr.va_type = VREG;
+	vattr.va_mode = mode & PERMMASK;
+	vattr.va_mask = AT_TYPE|AT_MODE;
+	vattr.va_fid = fid;
+
+	cred.cr_uid = uid;
+	cred.cr_gid = gid;
+
+	/*
+	 * Looks like ZFS allows us to pass in atime and mtime. With this, we can respect
+	 * these two timestamps instead of something close.
+	 */
+	gethrestime(&now);
+	vattr.va_atime = now;
+	vattr.va_mtime = now;
+	vattr.va_mask |= AT_ATIME | AT_MTIME;
+
+	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, mode, &tvp, &cred, 0, NULL, NULL); /* zfs_create() */
+	if (error) {
+		VN_RELE(pvp);
+		goto out;
+	}
+	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
+	VN_RELE(pvp);
+	VN_RELE(tvp);
+
+ out:
+	return (error);
+}
+
+int
+zfsslash2_replay_rmdir(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx char *name)
+{
+	return (0);
+}
+
+int
+zfsslash2_replay_unlink(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx char *name)
+{
+	return (0);
+}
+
+int
+zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
+{
+	int error;
+	vnode_t *vp;
+	vattr_t vattr;
+	int flag;
+
+	vp = NULL;
+	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &vp);
+	if (error)
+		goto out;
+
+	vattr.va_mask = mask;
+	vattr.va_mode = stat->sst_mode; 
+	vattr.va_uid = stat->sst_uid;
+	vattr.va_uid = stat->sst_uid;
+	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
+	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
+	TIME_TO_TIMESTRUC(stat->sst_ctime, &vattr.va_ctime);
+
+	flag = (mask & (AT_ATIME | AT_MTIME)) ? ATTR_UTIME : 0;
+	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL); /* zfs_setattr() */
+
+	VN_RELE(vp);
+out:
+	return (error);
+}
+
