@@ -1081,6 +1081,17 @@ zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
 	vnode_t *dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
 
+#if TO-DO
+
+	/*
+	 * Hold a reference to the name to be removed, so that I can
+	 * remove it from the by-id namespace later.
+	 */
+	error = VOP_LOOKUP(dvp, (char *)name, &vp, NULL, 0, NULL, cred, NULL, NULL, NULL);
+	if (error)
+		goto out;
+#endif
+
 	/* FUSE doesn't care if we remove the current working directory
 	   so we just pass NULL as the cwd parameter (no problem for ZFS) */
 	error = VOP_RMDIR(dvp, (char *)name, NULL, cred, NULL, 0);
