@@ -1282,14 +1282,11 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 	ASSERT(vp != NULL);
 
-	struct srt_stat stat;
 	vattr_t vattr = { 0 };
 	
-	memset(&stat, 0, sizeof(struct srt_stat));
 	if (to_set & SRM_SETATTRF_MODE) {
 		vattr.va_mask |= AT_MODE;
 		vattr.va_mode = sstb_in->sst_mode;
-		stat.sst_mode = vattr.va_mode;
 	}
 	if (to_set & SRM_SETATTRF_UID) {
 		vattr.va_mask |= AT_UID;
@@ -1298,7 +1295,6 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			error = EINVAL;
 			goto out;
 		}
-		stat.sst_uid = vattr.va_uid;
 	}
 	if (to_set & SRM_SETATTRF_GID) {
 		vattr.va_mask |= AT_GID;
@@ -1307,7 +1303,6 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			error = EINVAL;
 			goto out;
 		}
-		stat.sst_gid = vattr.va_gid;
 	}
 	if (to_set & SRM_SETATTRF_ATIME) {
 		vattr.va_mask |= AT_ATIME;
@@ -1327,7 +1322,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 	}
 	if (logfunc)
 		logfunc(MDS_NAMESPACE_OP_ATTRIB, MDS_NAMESPACE_TYPE_FILE,
-			0, znode->z_phys->zp_s2id, &stat, vattr.va_mask, NULL);
+			0, znode->z_phys->zp_s2id, sstb_in, vattr.va_mask, NULL);
 
 	int flags = (to_set & (SRM_SETATTRF_ATIME | SRM_SETATTRF_MTIME)) ? ATTR_UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL);
