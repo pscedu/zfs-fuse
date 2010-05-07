@@ -779,6 +779,8 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 	 * these two timestamps instead of something close.
 	 */
 	gethrestime(&now);
+	vattr.va_atime = now;
+	vattr.va_mtime = now;
 	vattr.va_mask |= AT_ATIME | AT_MTIME;
 
 	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, mode, &tvp, &cred, 0, NULL, NULL); /* zfs_create() */
@@ -912,8 +914,8 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vattr.va_atime = now;
 		vattr.va_mtime = now;
 		vattr.va_mask |= AT_ATIME | AT_MTIME;
-		TIMESTRUC_TO_TIME(vattr.va_atime, &sstb->sst_atime);
-		TIMESTRUC_TO_TIME(vattr.va_mtime, &sstb->sst_mtime);
+		TIMESTRUC_TO_TIME(vattr.va_atime, &stat->sst_atime);
+		TIMESTRUC_TO_TIME(vattr.va_mtime, &stat->sst_mtime);
 
 		if (logfunc)
 			logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_FILE,
