@@ -1081,6 +1081,7 @@ zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
 	vnode_t *dvp = ZTOV(znode);
 	ASSERT(dvp != NULL);
 
+	vnode_t *vp = NULL;
 	/*
 	 * Hold a reference to the name to be removed, so that I can
 	 * remove it from the by-id namespace later.
@@ -1104,6 +1105,7 @@ zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
 
+out:
 	return error;
 }
 
