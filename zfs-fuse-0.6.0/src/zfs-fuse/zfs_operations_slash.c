@@ -647,7 +647,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 			 * space, keeping the parent pointer intact.
 			 */
 			error = VOP_LINK(dvp, svp, id_name, &zrootcreds, NULL, 
-				FALLOWDIRLINK | FKEEPPARENT);
+				FALLOWDIRLINK | FKEEPPARENT, NULL);
 		} else {
 			vattr_t vattr;
 			memset(&vattr, 0, sizeof(vattr_t));
@@ -661,7 +661,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 		goto out;
 	}
 	if (flags & FIDLINK_REMOVE) {
-		error = VOP_REMOVE(dvp, id_name, &zrootcreds, NULL, 0);
+		error = VOP_REMOVE(dvp, id_name, &zrootcreds, NULL, 0, NULL);
 		goto out;
 	}
 	error = EINVAL;
@@ -1070,7 +1070,7 @@ zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
 
 	/* FUSE doesn't care if we remove the current working directory
 	   so we just pass NULL as the cwd parameter (no problem for ZFS) */
-	error = VOP_RMDIR(dvp, (char *)name, NULL, cred, NULL, 0);		/* zfs_rmdir() */
+	error = VOP_RMDIR(dvp, (char *)name, NULL, cred, NULL, 0, NULL);		/* zfs_rmdir() */
 
 	/* Linux uses ENOTEMPTY when trying to remove a non-empty directory */
 	if (error == EEXIST)
@@ -1247,7 +1247,7 @@ zfsslash2_unlink(mdsio_fid_t parent, const char *name,
 	if (error)
 		goto out;
 
-	error = VOP_REMOVE(dvp, (char *)name, cred, NULL, 0);
+	error = VOP_REMOVE(dvp, (char *)name, cred, NULL, 0, NULL);
 	if (error)
 		goto out;
 
@@ -1454,7 +1454,7 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 
 int
 zfsslash2_rename(mdsio_fid_t parent, const char *name, mdsio_fid_t newparent,
-    const char *newname, const struct slash_creds *slcrp)
+    const char *newname, const struct slash_creds *slcrp, sl_jlog_cb logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1494,7 +1494,7 @@ zfsslash2_rename(mdsio_fid_t parent, const char *name, mdsio_fid_t newparent,
 	ASSERT(p_vp != NULL);
 	ASSERT(np_vp != NULL);
 
-	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname, cred, NULL, 0);  /* zfs_rename() */
+	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname, cred, NULL, 0, logfunc);  /* zfs_rename() */
 
 	VN_RELE(p_vp);
 	VN_RELE(np_vp);
@@ -1565,7 +1565,7 @@ zfsslash2_link(mdsio_fid_t ino, mdsio_fid_t newparent, const char *newname,
 	ASSERT(svp != NULL);
 	ASSERT(tdvp != NULL);
 
-	error = VOP_LINK(tdvp, svp, (char *)newname, cred, NULL, 0);
+	error = VOP_LINK(tdvp, svp, (char *)newname, cred, NULL, 0, NULL);
 	vnode_t *vp = NULL;
 	if (error)
 		goto out;
@@ -1746,7 +1746,7 @@ zfsslash2_replay_rmdir(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx 
 	if (error)
 		goto out;
 
-	error = VOP_RMDIR(dvp, (char *)name, NULL, &zrootcreds, NULL, 0);
+	error = VOP_RMDIR(dvp, (char *)name, NULL, &zrootcreds, NULL, 0, NULL);
 
 	VN_RELE(dvp);
 out:

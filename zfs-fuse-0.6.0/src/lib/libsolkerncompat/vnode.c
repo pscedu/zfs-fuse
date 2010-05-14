@@ -1111,11 +1111,12 @@ fop_remove(
 	char *nm,
 	cred_t *cr,
 	caller_context_t *ct,
-	int flags)
+	int flags,
+	void *logfunc)
 {
 	int	err;
 
-	err = (*(dvp)->v_op->vop_remove)(dvp, nm, cr, ct, flags);
+	err = (*(dvp)->v_op->vop_remove)(dvp, nm, cr, ct, flags, NULL);
 	VOPSTATS_UPDATE(dvp, remove);
 	return (err);
 }
@@ -1127,11 +1128,12 @@ fop_rmdir(
 	vnode_t *cdir,
 	cred_t *cr,
 	caller_context_t *ct,
-	int flags)
+	int flags,
+	void *logfunc)
 {
 	int	err;
 
-	err = (*(dvp)->v_op->vop_rmdir)(dvp, nm, cdir, cr, ct, flags);
+	err = (*(dvp)->v_op->vop_rmdir)(dvp, nm, cdir, cr, ct, flags, NULL);
 	VOPSTATS_UPDATE(dvp, rmdir);
 	return (err);
 }
@@ -1143,11 +1145,12 @@ fop_link(
 	char *tnm,
 	cred_t *cr,
 	caller_context_t *ct,
-	int flags)
+	int flags,
+	void *logfunc)
 {
 	int	err;
 
-	err = (*(tdvp)->v_op->vop_link)(tdvp, svp, tnm, cr, ct, flags);
+	err = (*(tdvp)->v_op->vop_link)(tdvp, svp, tnm, cr, ct, flags, NULL);
 	VOPSTATS_UPDATE(tdvp, link);
 	return (err);
 }
@@ -1160,11 +1163,12 @@ fop_rename(
 	char *tnm,
 	cred_t *cr,
 	caller_context_t *ct,
-	int flags)
+	int flags,
+	void *logfunc)
 {
 	int	err;
 
-	err = (*(sdvp)->v_op->vop_rename)(sdvp, snm, tdvp, tnm, cr, ct, flags);
+	err = (*(sdvp)->v_op->vop_rename)(sdvp, snm, tdvp, tnm, cr, ct, flags, NULL);
 	VOPSTATS_UPDATE(sdvp, rename);
 	return (err);
 }
