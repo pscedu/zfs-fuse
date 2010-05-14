@@ -1023,7 +1023,7 @@ static int zfsfuse_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr, in
 	}
 
 	int flags = (to_set & (FUSE_SET_ATTR_ATIME | FUSE_SET_ATTR_MTIME)) ? ATTR_UTIME : 0;
-	error = VOP_SETATTR(vp, &vattr, flags, &cred, NULL);
+	error = VOP_SETATTR(vp, &vattr, flags, &cred, NULL, NULL);
 
 out: ;
 	struct stat stat_reply;

@@ -1227,7 +1227,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			0, znode->z_phys->zp_s2id, sstb_in, vattr.va_mask, NULL);
 
 	int flags = (to_set & (SRM_SETATTRF_ATIME | SRM_SETATTRF_MTIME)) ? ATTR_UTIME : 0;
-	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL);
+	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL, logfunc);
 
  out:
 	if (!error && sstb_out)
@@ -1808,7 +1808,7 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
 	TIME_TO_TIMESTRUC(stat->sst_ctime, &vattr.va_ctime);
 
 	flag = (mask & (AT_ATIME | AT_MTIME)) ? ATTR_UTIME : 0;
-	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL); /* zfs_setattr() */
+	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL, NULL); /* zfs_setattr() */
 
 	VN_RELE(vp);
 out:

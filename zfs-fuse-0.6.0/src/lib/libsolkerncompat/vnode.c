@@ -1192,7 +1192,8 @@ fop_setattr(
 	vattr_t *vap,
 	int flags,
 	cred_t *cr,
-	caller_context_t *ct)
+	caller_context_t *ct,
+	void *logfunc)
 {
 	int	err;
 

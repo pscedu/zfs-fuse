@@ -494,7 +494,7 @@ extern int	fop_setfl(vnode_t *, int, int, cred_t *, caller_context_t *);
 extern int	fop_getattr(vnode_t *, vattr_t *, int, cred_t *,
 				caller_context_t *);
 extern int	fop_setattr(vnode_t *, vattr_t *, int, cred_t *,
-				caller_context_t *);
+				caller_context_t *, void *);
 extern int	fop_access(vnode_t *, int, int, cred_t *, caller_context_t *);
 extern int	fop_lookup(vnode_t *, char *, vnode_t **, struct pathname *,
 				int, vnode_t *, cred_t *, caller_context_t *,
@@ -580,8 +580,8 @@ extern int	fop_vnevent(vnode_t *, vnevent_t, vnode_t *, char *,
 	fop_setfl(vp, f, a, cr, ct)
 #define	VOP_GETATTR(vp, vap, f, cr, ct) \
 	fop_getattr(vp, vap, f, cr, ct)
-#define	VOP_SETATTR(vp, vap, f, cr, ct) \
-	fop_setattr(vp, vap, f, cr, ct)
+#define	VOP_SETATTR(vp, vap, f, cr, ct, logfunc) \
+	fop_setattr(vp, vap, f, cr, ct, logfunc)
 #define	VOP_ACCESS(vp, mode, f, cr, ct) \
 	fop_access(vp, mode, f, cr, ct)
 #define	VOP_LOOKUP(vp, cp, vpp, pnp, f, rdir, cr, ct, defp, rpnp) \
