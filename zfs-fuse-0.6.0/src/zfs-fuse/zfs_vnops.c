@@ -169,6 +169,16 @@
  *	return (error);			// done, report error
  */
 
+static void
+zfs_vattr_to_stat(struct srt_stat *stat, vattr_t *vap)
+{
+	stat->sst_uid = vap->va_uid;
+	stat->sst_gid = vap->va_gid;
+	stat->sst_mode = vap->va_mode;
+	TIMESTRUC_TO_TIME(vap->va_atime, &stat->sst_atime);
+	TIMESTRUC_TO_TIME(vap->va_mtime, &stat->sst_mtime);
+}
+
 /* ARGSUSED */
 static int
 zfs_open(vnode_t **vpp, int flag, cred_t *cr, caller_context_t *ct)
@@ -1320,13 +1330,7 @@ top:
 			struct srt_stat stat;
 
 			txg = dmu_tx_get_txg(tx);
-
-			memset(&stat, 0, sizeof(stat));
-			stat.sst_uid = cr->cr_uid;
-			stat.sst_gid = cr->cr_gid;
-			stat.sst_mode = vap->va_mode;
-			TIMESTRUC_TO_TIME(vap->va_atime, &stat.sst_atime);
-			TIMESTRUC_TO_TIME(vap->va_mtime, &stat.sst_mtime);
+			zfs_vattr_to_stat(&stat, vap);
 
 			logfunc(SL_NAMESPACE_OP_CREATE, SL_NAMESPACE_TYPE_FILE,
 				txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, 0, name);
@@ -2412,7 +2416,7 @@ zfs_getattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 /* ARGSUSED */
 static int
 zfs_setattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
-	caller_context_t *ct)
+	caller_context_t *ct, void *funcp)
 {
 	znode_t		*zp = VTOZ(vp);
 	znode_phys_t	*pzp;
@@ -2435,6 +2439,8 @@ zfs_setattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 	zfs_acl_t	*aclp = NULL;
 	boolean_t skipaclchk = (flags & ATTR_NOACLCHECK) ? B_TRUE : B_FALSE;
 	boolean_t fuid_dirtied = B_FALSE;
+
+	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
 
 	if (mask == 0)
 		return (0);
@@ -2932,8 +2938,19 @@ out:
 
 	if (err)
 		dmu_tx_abort(tx);
-	else
+	else {
+		if (logfunc) {
+			uint64_t txg;
+			struct srt_stat stat;
+
+			txg = dmu_tx_get_txg(tx);
+			zfs_vattr_to_stat(&stat, vap);
+
+			logfunc(SL_NAMESPACE_OP_ATTRIB, SL_NAMESPACE_TYPE_FILE,
+				txg, 0, zp->z_phys->zp_s2id, &stat, mask, NULL);
+		}
 		dmu_tx_commit(tx);
+	}
 
 	if (err == ERESTART)
 		goto top;
@@ -4596,7 +4613,7 @@ zfs_getattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 
 static int
 zfs_setattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
-        caller_context_t *ct);
+        caller_context_t *ct, void *);
 
 static int
 zfs_rename(vnode_t *sdvp, char *snm, vnode_t *tdvp, char *tnm, cred_t *cr,

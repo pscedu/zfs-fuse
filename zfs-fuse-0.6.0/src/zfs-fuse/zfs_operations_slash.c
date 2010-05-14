@@ -1224,14 +1224,9 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		vattr.va_mask |= AT_PTRUNCGEN;
 		vattr.va_ptruncgen = sstb_in->sst_ptruncgen;
 	}
-#if 0
-	if (logfunc)
-		logfunc(MDS_NAMESPACE_OP_ATTRIB, MDS_NAMESPACE_TYPE_FILE,
-			0, znode->z_phys->zp_s2id, sstb_in, vattr.va_mask, NULL);
-#endif
 
 	int flags = (to_set & (SRM_SETATTRF_ATIME | SRM_SETATTRF_MTIME)) ? ATTR_UTIME : 0;
-	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL, logfunc);
+	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL, logfunc);	/* zfs_setattr() */
 
  out:
 	if (!error && sstb_out)

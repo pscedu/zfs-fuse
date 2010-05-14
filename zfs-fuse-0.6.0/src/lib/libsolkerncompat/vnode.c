@@ -1197,7 +1197,7 @@ fop_setattr(
 {
 	int	err;
 
-	err = (*(vp)->v_op->vop_setattr)(vp, vap, flags, cr, ct);
+	err = (*(vp)->v_op->vop_setattr)(vp, vap, flags, cr, ct, NULL);
 	VOPSTATS_UPDATE(vp, setattr);
 	return (err);
 }

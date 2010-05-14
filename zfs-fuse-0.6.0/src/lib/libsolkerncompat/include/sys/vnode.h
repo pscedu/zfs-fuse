@@ -381,7 +381,7 @@ extern void vn_setops(vnode_t *vp, struct vnodeops *vnodeops);
 	int	(*vop_getattr)(vnode_t *, vattr_t *, int, cred_t *,	\
 				caller_context_t *);			\
 	int	(*vop_setattr)(vnode_t *, vattr_t *, int, cred_t *,	\
-				caller_context_t *);			\
+				caller_context_t *, void *);		\
 	int	(*vop_access)(vnode_t *, int, int, cred_t *,		\
 				caller_context_t *);			\
 	int	(*vop_lookup)(vnode_t *, char *, vnode_t **,		\
