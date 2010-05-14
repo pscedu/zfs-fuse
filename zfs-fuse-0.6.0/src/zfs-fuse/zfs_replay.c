@@ -505,7 +505,7 @@ zfs_replay_create(zfsvfs_t *zfsvfs, lr_create_t *lr, boolean_t byteswap)
 		name = (char *)(lr + 1);
 		link = name + strlen(name) + 1;
 		error = VOP_SYMLINK(ZTOV(dzp), name, &xva.xva_vattr,
-		    link, kcred, NULL, vflg);
+		    link, kcred, NULL, vflg, NULL);
 		break;
 	default:
 		error = ENOTSUP;

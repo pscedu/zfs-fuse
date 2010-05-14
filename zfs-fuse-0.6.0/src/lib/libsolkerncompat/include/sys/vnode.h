@@ -408,7 +408,8 @@ extern void vn_setops(vnode_t *vp, struct vnodeops *vnodeops);
 	int	(*vop_readdir)(vnode_t *, uio_t *, cred_t *, int *,	\
 				caller_context_t *, int);		\
 	int	(*vop_symlink)(vnode_t *, char *, vattr_t *, char *,	\
-				cred_t *, caller_context_t *, int);	\
+				cred_t *, caller_context_t *, int,	\
+				void *);				\
 	int	(*vop_readlink)(vnode_t *, uio_t *, cred_t *,		\
 				caller_context_t *);			\
 	int	(*vop_fsync)(vnode_t *, int, cred_t *,			\
@@ -517,7 +518,7 @@ extern int	fop_rmdir(vnode_t *, char *, vnode_t *, cred_t *,
 extern int	fop_readdir(vnode_t *, uio_t *, cred_t *, int *,
 				caller_context_t *, int);
 extern int	fop_symlink(vnode_t *, char *, vattr_t *, char *, cred_t *,
-				caller_context_t *, int);
+				caller_context_t *, int, void *);
 extern int	fop_readlink(vnode_t *, uio_t *, cred_t *, caller_context_t *);
 extern int	fop_fsync(vnode_t *, int, cred_t *, caller_context_t *);
 extern void	fop_inactive(vnode_t *, cred_t *, caller_context_t *);
@@ -602,8 +603,8 @@ extern int	fop_vnevent(vnode_t *, vnevent_t, vnode_t *, char *,
 	fop_rmdir(dp, p, cdir, cr, ct, f, logfunc)
 #define	VOP_READDIR(vp, uiop, cr, eofp, ct, f) \
 	fop_readdir(vp, uiop, cr, eofp, ct, f)
-#define	VOP_SYMLINK(dvp, lnm, vap, tnm, cr, ct, f) \
-	fop_symlink(dvp, lnm, vap, tnm, cr, ct, f)
+#define	VOP_SYMLINK(dvp, lnm, vap, tnm, cr, ct, f, logfunc) \
+	fop_symlink(dvp, lnm, vap, tnm, cr, ct, f, logfunc)
 #define	VOP_READLINK(vp, uiop, cr, ct) \
 	fop_readlink(vp, uiop, cr, ct)
 #define	VOP_FSYNC(vp, syncflag, cr, ct) \

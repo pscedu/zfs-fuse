@@ -1095,12 +1095,13 @@ fop_symlink(
 	char *target,
 	cred_t *cr,
 	caller_context_t *ct,
-	int flags)
+	int flags,
+	void *logfunc)
 {
 	int	err;
 
 	err = (*(dvp)->v_op->vop_symlink)
-	    (dvp, linkname, vap, target, cr, ct, flags);
+	    (dvp, linkname, vap, target, cr, ct, flags, NULL);
 	VOPSTATS_UPDATE(dvp, symlink);
 	return (err);
 }

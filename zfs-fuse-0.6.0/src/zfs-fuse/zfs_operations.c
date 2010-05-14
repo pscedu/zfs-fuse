@@ -894,7 +894,7 @@ static int zfsfuse_rmdir(fuse_req_t req, fuse_ino_t parent, const char *name)
 
 	/* FUSE doesn't care if we remove the current working directory
 	   so we just pass NULL as the cwd parameter (no problem for ZFS) */
-	error = VOP_RMDIR(dvp, (char *) name, NULL, &cred, NULL, 0);
+	error = VOP_RMDIR(dvp, (char *) name, NULL, &cred, NULL, 0, NULL);
 
 	/* Linux uses ENOTEMPTY when trying to remove a non-empty directory */
 	if(error == EEXIST)
@@ -1079,7 +1079,7 @@ static int zfsfuse_unlink(fuse_req_t req, fuse_ino_t parent, const char *name)
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	error = VOP_REMOVE(dvp, (char *) name, &cred, NULL, 0);
+	error = VOP_REMOVE(dvp, (char *) name, &cred, NULL, 0, NULL);
 
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
@@ -1262,7 +1262,7 @@ static int zfsfuse_symlink(fuse_req_t req, const char *link, fuse_ino_t parent, 
 	vattr.va_mode = 0777;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 
-	error = VOP_SYMLINK(dvp, (char *) name, &vattr, (char *) link, &cred, NULL, 0);
+	error = VOP_SYMLINK(dvp, (char *) name, &vattr, (char *) link, &cred, NULL, 0, NULL);
 
 	vnode_t *vp = NULL;
 
@@ -1353,7 +1353,7 @@ static int zfsfuse_rename(fuse_req_t req, fuse_ino_t parent, const char *name, f
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	error = VOP_RENAME(p_vp, (char *) name, np_vp, (char *) newname, &cred, NULL, 0);
+	error = VOP_RENAME(p_vp, (char *) name, np_vp, (char *) newname, &cred, NULL, 0, NULL);
 
 	VN_RELE(p_vp);
 	VN_RELE(np_vp);
@@ -1447,7 +1447,7 @@ static int zfsfuse_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent, co
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	error = VOP_LINK(tdvp, svp, (char *) newname, &cred, NULL, 0);
+	error = VOP_LINK(tdvp, svp, (char *) newname, &cred, NULL, 0, NULL);
 
 	vnode_t *vp = NULL;
 

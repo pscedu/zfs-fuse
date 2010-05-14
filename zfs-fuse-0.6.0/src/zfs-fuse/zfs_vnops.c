@@ -1433,7 +1433,7 @@ out:
 /*ARGSUSED*/
 static int
 zfs_remove(vnode_t *dvp, char *name, cred_t *cr, caller_context_t *ct,
-    int flags)
+    int flags, __unusedx void *func)
 {
 	znode_t		*zp, *dzp = VTOZ(dvp);
 	znode_t		*xzp = NULL;
@@ -3384,7 +3384,7 @@ out:
 /*ARGSUSED*/
 static int
 zfs_symlink(vnode_t *dvp, char *name, vattr_t *vap, char *link, cred_t *cr,
-    caller_context_t *ct, int flags)
+    caller_context_t *ct, int flags, __unusedx void *func)
 {
 	znode_t		*zp, *dzp = VTOZ(dvp);
 	zfs_dirlock_t	*dl;
@@ -3586,7 +3586,7 @@ zfs_readlink(vnode_t *vp, uio_t *uio, cred_t *cr, caller_context_t *ct)
 /* ARGSUSED */
 static int
 zfs_link(vnode_t *tdvp, vnode_t *svp, char *name, cred_t *cr,
-    caller_context_t *ct, int flags)
+    caller_context_t *ct, int flags, __unusedx void *func)
 {
 	znode_t		*dzp = VTOZ(tdvp);
 	znode_t		*tzp, *szp;
