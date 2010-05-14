@@ -77,6 +77,8 @@
 #include <sys/attr.h>
 #include "zfsfuse_socket.h"
 
+#include "sltypes.h"
+
 /*
  * Programming rules.
  *
@@ -1164,7 +1166,7 @@ zfs_lookup(vnode_t *dvp, char *nm, vnode_t **vpp, struct pathname *pnp,
 static int
 zfs_create(vnode_t *dvp, char *name, vattr_t *vap, vcexcl_t excl,
     int mode, vnode_t **vpp, cred_t *cr, int flag, caller_context_t *ct,
-    vsecattr_t *vsecp)
+    vsecattr_t *vsecp, sl_jlog_cb logfunc)
 {
 	znode_t		*zp, *dzp = VTOZ(dvp);
 	zfsvfs_t	*zfsvfs = dzp->z_zfsvfs;

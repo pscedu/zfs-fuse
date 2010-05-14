@@ -391,7 +391,7 @@ extern void vn_setops(vnode_t *vp, struct vnodeops *vnodeops);
 				struct pathname *);			\
 	int	(*vop_create)(vnode_t *, char *, vattr_t *, vcexcl_t,	\
 				int, vnode_t **, cred_t *, int,		\
-				caller_context_t *, vsecattr_t *);	\
+				caller_context_t *, vsecattr_t *, void *);	\
 	int	(*vop_remove)(vnode_t *, char *, cred_t *,		\
 				caller_context_t *, int);		\
 	int	(*vop_link)(vnode_t *, vnode_t *, char *, cred_t *,	\
@@ -501,7 +501,7 @@ extern int	fop_lookup(vnode_t *, char *, vnode_t **, struct pathname *,
 				int *, struct pathname *);
 extern int	fop_create(vnode_t *, char *, vattr_t *, vcexcl_t, int,
 				vnode_t **, cred_t *, int, caller_context_t *,
-				vsecattr_t *);
+				vsecattr_t *, void *);
 extern int	fop_remove(vnode_t *vp, char *, cred_t *, caller_context_t *,
 				int);
 extern int	fop_link(vnode_t *, vnode_t *, char *, cred_t *,
@@ -586,8 +586,8 @@ extern int	fop_vnevent(vnode_t *, vnevent_t, vnode_t *, char *,
 	fop_access(vp, mode, f, cr, ct)
 #define	VOP_LOOKUP(vp, cp, vpp, pnp, f, rdir, cr, ct, defp, rpnp) \
 	fop_lookup(vp, cp, vpp, pnp, f, rdir, cr, ct, defp, rpnp)
-#define	VOP_CREATE(dvp, p, vap, ex, mode, vpp, cr, flag, ct, vsap) \
-	fop_create(dvp, p, vap, ex, mode, vpp, cr, flag, ct, vsap)
+#define	VOP_CREATE(dvp, p, vap, ex, mode, vpp, cr, flag, ct, vsap, logfunc) \
+	fop_create(dvp, p, vap, ex, mode, vpp, cr, flag, ct, vsap, logfunc)
 #define	VOP_REMOVE(dvp, p, cr, ct, f) \
 	fop_remove(dvp, p, cr, ct, f)
 #define	VOP_LINK(tdvp, fvp, p, cr, ct, f) \

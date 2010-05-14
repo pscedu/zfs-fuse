@@ -1043,12 +1043,13 @@ fop_create(
 	cred_t *cr,
 	int flags,
 	caller_context_t *ct,
-	vsecattr_t *vsecp)   /* ACL to set during create */
+	vsecattr_t *vsecp,   /* ACL to set during create */
+	void *logfunc)
 {
 	int ret;
 
 	ret = (*(dvp)->v_op->vop_create)
-	    (dvp, name, vap, excl, mode, vpp, cr, flags, ct, vsecp);
+	    (dvp, name, vap, excl, mode, vpp, cr, flags, ct, vsecp, NULL);
 	if (ret == 0 && *vpp) {
 		VOPSTATS_UPDATE(*vpp, create);
 		if ((*vpp)->v_path == NULL) {

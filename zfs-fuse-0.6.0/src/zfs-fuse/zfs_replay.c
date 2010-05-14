@@ -349,7 +349,7 @@ zfs_replay_create_acl(zfsvfs_t *zfsvfs,
 		}
 
 		error = VOP_CREATE(ZTOV(dzp), name, &xva.xva_vattr,
-		    0, 0, &vp, kcred, vflg, NULL, &vsec);
+		    0, 0, &vp, kcred, vflg, NULL, &vsec, NULL);
 		break;
 	case TX_MKDIR_ACL:
 		aclstart = (caddr_t)(lracl + 1);
@@ -477,7 +477,7 @@ zfs_replay_create(zfsvfs_t *zfsvfs, lr_create_t *lr, boolean_t byteswap)
 			name = (char *)start;
 
 		error = VOP_CREATE(ZTOV(dzp), name, &xva.xva_vattr,
-		    0, 0, &vp, kcred, vflg, NULL, NULL);
+		    0, 0, &vp, kcred, vflg, NULL, NULL, NULL);
 		break;
 	case TX_MKDIR_ATTR:
 		lrattr = (lr_attr_t *)(caddr_t)(lr + 1);

@@ -558,7 +558,7 @@ static int zfsfuse_opencreate(fuse_req_t req, fuse_ino_t ino, struct fuse_file_i
 
 		vnode_t *new_vp;
 		/* FIXME: check filesystem boundaries */
-		error = VOP_CREATE(vp, (char *) name, &vattr, excl, mode, &new_vp, &cred, 0, NULL, NULL);
+		error = VOP_CREATE(vp, (char *) name, &vattr, excl, mode, &new_vp, &cred, 0, NULL, NULL, NULL);
 
 		if(error)
 			goto out;
@@ -1188,7 +1188,7 @@ static int zfsfuse_mknod(fuse_req_t req, fuse_ino_t parent, const char *name, mo
 	vnode_t *vp = NULL;
 
 	/* FIXME: check filesystem boundaries */
-	error = VOP_CREATE(dvp, (char *) name, &vattr, EXCL, 0, &vp, &cred, 0, NULL, NULL);
+	error = VOP_CREATE(dvp, (char *) name, &vattr, EXCL, 0, &vp, &cred, 0, NULL, NULL, NULL);
 
 	VN_RELE(dvp);
 

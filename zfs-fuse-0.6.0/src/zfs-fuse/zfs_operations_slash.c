@@ -793,9 +793,11 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		TIMESTRUC_TO_TIME(vattr.va_atime, &stat.sst_atime);
 		TIMESTRUC_TO_TIME(vattr.va_mtime, &stat.sst_mtime);
 
+#if 0
 		if (logfunc)
 			logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_FILE,
 				znode->z_phys->zp_s2id, vattr.va_fid, &stat, 0, name);
+#endif
 
 		if (flags & FTRUNC) {
 			vattr.va_size = 0;
@@ -809,7 +811,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vnode_t *new_vp;
 
 		/* FIXME: check filesystem boundaries */
-		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode, &new_vp, cred, 0, NULL, NULL);
+		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode, &new_vp, cred, 0, NULL, NULL, logfunc);   /* zfs_create() */
 
 		if (error)
 			goto out;
@@ -1747,7 +1749,7 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 	vattr.va_mtime = now;
 	vattr.va_mask |= AT_ATIME | AT_MTIME;
 
-	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, mode, &tvp, &cred, 0, NULL, NULL); /* zfs_create() */
+	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, mode, &tvp, &cred, 0, NULL, NULL, NULL); /* zfs_create() */
 	if (error) {
 		VN_RELE(pvp);
 		goto out;
