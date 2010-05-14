@@ -1166,7 +1166,7 @@ zfs_lookup(vnode_t *dvp, char *nm, vnode_t **vpp, struct pathname *pnp,
 static int
 zfs_create(vnode_t *dvp, char *name, vattr_t *vap, vcexcl_t excl,
     int mode, vnode_t **vpp, cred_t *cr, int flag, caller_context_t *ct,
-    vsecattr_t *vsecp, sl_jlog_cb logfunc)
+    vsecattr_t *vsecp, void *funcp)
 {
 	znode_t		*zp, *dzp = VTOZ(dvp);
 	zfsvfs_t	*zfsvfs = dzp->z_zfsvfs;
@@ -1180,6 +1180,8 @@ zfs_create(vnode_t *dvp, char *name, vattr_t *vap, vcexcl_t excl,
 	gid_t		gid = crgetgid(cr);
 	zfs_acl_ids_t	acl_ids;
 	boolean_t	fuid_dirtied;
+
+	sl_jlog_cb	*logfunc = funcp;
 
 	/*
 	 * If we have an ephemeral id, ACL, or XVATTR then
@@ -1610,7 +1612,7 @@ out:
 /*ARGSUSED*/
 static int
 zfs_mkdir(vnode_t *dvp, char *dirname, vattr_t *vap, vnode_t **vpp, cred_t *cr,
-    caller_context_t *ct, int flags, vsecattr_t *vsecp)
+    caller_context_t *ct, int flags, vsecattr_t *vsecp, void *funcp)
 {
 	znode_t		*zp, *dzp = VTOZ(dvp);
 	zfsvfs_t	*zfsvfs = dzp->z_zfsvfs;
@@ -1625,6 +1627,8 @@ zfs_mkdir(vnode_t *dvp, char *dirname, vattr_t *vap, vnode_t **vpp, cred_t *cr,
 	gid_t		gid = crgetgid(cr);
 	zfs_acl_ids_t	acl_ids;
 	boolean_t	fuid_dirtied;
+
+	sl_jlog_cb	*logfunc = funcp;
 
 	ASSERT(vap->va_type == VDIR);
 
