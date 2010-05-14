@@ -44,9 +44,9 @@
 #include "util.h"
 
 #include "fid.h"
+#include "sltypes.h"
 #include "slashrpc.h"
 #include "zfs_slashlib.h"
-#include "slashd/mdsio.h"
 
 kmem_cache_t	*file_info_cache;
 cred_t		 zrootcreds;
