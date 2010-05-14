@@ -769,8 +769,6 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		}
 
 		enum vcexcl excl;
-		struct srt_stat stat;
-		timestruc_t now;
 
 		vattr_t vattr;
 		memset(&vattr, 0, sizeof(vattr_t));
@@ -779,25 +777,6 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
 		vattr.va_fid = getslfid();
-
-		memset(&stat, 0, sizeof(struct srt_stat));
-
-		stat.sst_mode = createmode;
-		stat.sst_uid = cred->cr_uid;
-		stat.sst_gid = cred->cr_gid;
-
-		gethrestime(&now);
-		vattr.va_atime = now;
-		vattr.va_mtime = now;
-		vattr.va_mask |= AT_ATIME | AT_MTIME;
-		TIMESTRUC_TO_TIME(vattr.va_atime, &stat.sst_atime);
-		TIMESTRUC_TO_TIME(vattr.va_mtime, &stat.sst_mtime);
-
-#if 0
-		if (logfunc)
-			logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_FILE,
-				znode->z_phys->zp_s2id, vattr.va_fid, &stat, 0, name);
-#endif
 
 		if (flags & FTRUNC) {
 			vattr.va_size = 0;
