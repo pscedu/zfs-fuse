@@ -509,7 +509,7 @@ extern int	fop_link(vnode_t *, vnode_t *, char *, cred_t *,
 extern int	fop_rename(vnode_t *, char *, vnode_t *, char *, cred_t *,
 				caller_context_t *, int);
 extern int	fop_mkdir(vnode_t *, char *, vattr_t *, vnode_t **, cred_t *,
-				caller_context_t *, int, vsecattr_t *);
+				caller_context_t *, int, vsecattr_t *, void *);
 extern int	fop_rmdir(vnode_t *, char *, vnode_t *, cred_t *,
 				caller_context_t *, int);
 extern int	fop_readdir(vnode_t *, uio_t *, cred_t *, int *,
@@ -594,8 +594,8 @@ extern int	fop_vnevent(vnode_t *, vnevent_t, vnode_t *, char *,
 	fop_link(tdvp, fvp, p, cr, ct, f)
 #define	VOP_RENAME(fvp, fnm, tdvp, tnm, cr, ct, f) \
 	fop_rename(fvp, fnm, tdvp, tnm, cr, ct, f)
-#define	VOP_MKDIR(dp, p, vap, vpp, cr, ct, f, vsap) \
-	fop_mkdir(dp, p, vap, vpp, cr, ct, f, vsap)
+#define	VOP_MKDIR(dp, p, vap, vpp, cr, ct, f, vsap, logfunc) \
+	fop_mkdir(dp, p, vap, vpp, cr, ct, f, vsap, logfunc)
 #define	VOP_RMDIR(dp, p, cdir, cr, ct, f) \
 	fop_rmdir(dp, p, cdir, cr, ct, f)
 #define	VOP_READDIR(vp, uiop, cr, eofp, ct, f) \

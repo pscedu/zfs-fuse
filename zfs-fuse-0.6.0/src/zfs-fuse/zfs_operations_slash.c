@@ -656,7 +656,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 			vattr.va_mask = AT_TYPE | AT_MODE;
 			vattr.va_fid = fid;
 			error = VOP_MKDIR(dvp, id_name, &vattr, vpp, 
-				&zrootcreds, NULL, 0, NULL);
+				&zrootcreds, NULL, 0, NULL, NULL);
 		}
 		goto out;
 	}
@@ -1031,7 +1031,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 		logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_DIR, 
 			znode->z_phys->zp_s2id, vattr.va_fid, &stat, 0, name);
 
-	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL); /* zfs_mkdir() */
+	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL, logfunc); /* zfs_mkdir() */
 	if (error)
 		goto out;
 
@@ -1700,7 +1700,7 @@ zfsslash2_replay_mkdir(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx 
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE|AT_MODE;
 	vattr.va_fid = fid;
-	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &zrootcreds, NULL, 0, NULL);
+	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &zrootcreds, NULL, 0, NULL, NULL);
 	if (error) {
 		VN_RELE(pvp);
 		goto out;

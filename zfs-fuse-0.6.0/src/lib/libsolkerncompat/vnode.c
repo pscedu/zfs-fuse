@@ -1069,7 +1069,8 @@ fop_mkdir(
 	cred_t *cr,
 	caller_context_t *ct,
 	int flags,
-	vsecattr_t *vsecp)    /* ACL to set during create */
+	vsecattr_t *vsecp,    /* ACL to set during create */
+	void *logfunc)
 {
 	int ret;
 
