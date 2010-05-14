@@ -1770,6 +1770,16 @@ top:
 	    acl_ids.z_fuidp, vap);
 
 	zfs_acl_ids_free(&acl_ids);
+	if (logfunc) {
+		uint64_t txg;
+		struct srt_stat stat;
+
+		txg = dmu_tx_get_txg(tx);
+		zfs_vattr_to_stat(&stat, vap);
+
+		logfunc(SL_NAMESPACE_OP_CREATE, SL_NAMESPACE_TYPE_DIR, 
+			txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, 0, dirname);
+	}
 	dmu_tx_commit(tx);
 
 	zfs_dirent_unlock(dl);

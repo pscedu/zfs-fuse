@@ -1027,11 +1027,6 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	stat.sst_uid = cred->cr_uid;
 	stat.sst_gid = cred->cr_gid;
 
-#if 0
-	if (logfunc)
-		logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_DIR, 
-			znode->z_phys->zp_s2id, vattr.va_fid, &stat, 0, name);
-#endif
 
 	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL, logfunc); /* zfs_mkdir() */
 	if (error)
