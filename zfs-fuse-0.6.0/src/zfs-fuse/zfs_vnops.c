@@ -1181,7 +1181,7 @@ zfs_create(vnode_t *dvp, char *name, vattr_t *vap, vcexcl_t excl,
 	zfs_acl_ids_t	acl_ids;
 	boolean_t	fuid_dirtied;
 
-	sl_jlog_cb	*logfunc = funcp;
+	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
 
 	/*
 	 * If we have an ephemeral id, ACL, or XVATTR then
@@ -1314,6 +1314,24 @@ top:
 		zfs_log_create(zilog, tx, txtype, dzp, zp, name,
 		    vsecp, acl_ids.z_fuidp, vap);
 		zfs_acl_ids_free(&acl_ids);
+
+		if (logfunc) {
+			uint64_t txg;
+			struct srt_stat stat;
+
+			txg = dmu_tx_get_txg(tx);
+
+			memset(&stat, 0, sizeof(stat));
+			stat.sst_uid = cr->cr_uid;
+			stat.sst_gid = cr->cr_gid;
+			stat.sst_mode = vap->va_mode;
+			TIMESTRUC_TO_TIME(vap->va_atime, &stat.sst_atime);
+			TIMESTRUC_TO_TIME(vap->va_mtime, &stat.sst_mtime);
+
+			logfunc(SL_NAMESPACE_OP_CREATE, SL_NAMESPACE_TYPE_FILE,
+				txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, 0, name);
+		}
+
 		dmu_tx_commit(tx);
 	} else {
 		int aflags = (flag & FAPPEND) ? V_APPEND : 0;
@@ -1628,8 +1646,7 @@ zfs_mkdir(vnode_t *dvp, char *dirname, vattr_t *vap, vnode_t **vpp, cred_t *cr,
 	zfs_acl_ids_t	acl_ids;
 	boolean_t	fuid_dirtied;
 
-	sl_jlog_cb	*logfunc = funcp;
-
+	sl_jlog_cb	logfunc = (sl_jlog_cb) funcp;
 	ASSERT(vap->va_type == VDIR);
 
 	/*

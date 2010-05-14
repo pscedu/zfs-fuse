@@ -1075,7 +1075,7 @@ fop_mkdir(
 	int ret;
 
 	ret = (*(dvp)->v_op->vop_mkdir)
-	    (dvp, dirname, vap, vpp, cr, ct, flags, vsecp);
+	    (dvp, dirname, vap, vpp, cr, ct, flags, vsecp, NULL);
 	if (ret == 0 && *vpp) {
 		VOPSTATS_UPDATE(*vpp, mkdir);
 		if ((*vpp)->v_path == NULL) {

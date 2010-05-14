@@ -391,7 +391,8 @@ extern void vn_setops(vnode_t *vp, struct vnodeops *vnodeops);
 				struct pathname *);			\
 	int	(*vop_create)(vnode_t *, char *, vattr_t *, vcexcl_t,	\
 				int, vnode_t **, cred_t *, int,		\
-				caller_context_t *, vsecattr_t *, void *);	\
+				caller_context_t *, vsecattr_t *, 	\
+				void *);				\
 	int	(*vop_remove)(vnode_t *, char *, cred_t *,		\
 				caller_context_t *, int);		\
 	int	(*vop_link)(vnode_t *, vnode_t *, char *, cred_t *,	\
@@ -400,7 +401,7 @@ extern void vn_setops(vnode_t *vp, struct vnodeops *vnodeops);
 				cred_t *, caller_context_t *, int);	\
 	int	(*vop_mkdir)(vnode_t *, char *, vattr_t *, vnode_t **,	\
 				cred_t *, caller_context_t *, int,	\
-				vsecattr_t *);				\
+				vsecattr_t *, void *);			\
 	int	(*vop_rmdir)(vnode_t *, char *, vnode_t *, cred_t *,	\
 				caller_context_t *, int);		\
 	int	(*vop_readdir)(vnode_t *, uio_t *, cred_t *, int *,	\

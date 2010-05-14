@@ -1027,9 +1027,11 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	stat.sst_uid = cred->cr_uid;
 	stat.sst_gid = cred->cr_gid;
 
+#if 0
 	if (logfunc)
 		logfunc(MDS_NAMESPACE_OP_CREATE, MDS_NAMESPACE_TYPE_DIR, 
 			znode->z_phys->zp_s2id, vattr.va_fid, &stat, 0, name);
+#endif
 
 	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL, logfunc); /* zfs_mkdir() */
 	if (error)
@@ -1222,9 +1224,11 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		vattr.va_mask |= AT_PTRUNCGEN;
 		vattr.va_ptruncgen = sstb_in->sst_ptruncgen;
 	}
+#if 0
 	if (logfunc)
 		logfunc(MDS_NAMESPACE_OP_ATTRIB, MDS_NAMESPACE_TYPE_FILE,
 			0, znode->z_phys->zp_s2id, sstb_in, vattr.va_mask, NULL);
+#endif
 
 	int flags = (to_set & (SRM_SETATTRF_ATIME | SRM_SETATTRF_MTIME)) ? ATTR_UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL, logfunc);
