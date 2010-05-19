@@ -1635,8 +1635,8 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
 
 /*
  * The following are functions used to replay a namespace operation happened on a remote MDS.
- * There are two big differences between these functions and those above: (1) we have to
- * operate from the by-id namespace (that's why we start with zfsslash2_fidlink() instead of
+ * There are two big differences between these functions and those above: (1) we have to start
+ * from the immutable by-id namespace (that's why we start with zfsslash2_fidlink() instead of
  * zfs_zget()); (2) we don't need to log a replayed operation.
  */
 
@@ -1653,7 +1653,7 @@ zfsslash2_replay_link(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx i
 }
 
 int
-zfsslash2_replay_mkdir(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, __unusedx char *name)
+zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, int mode, char *name)
 {
 	int error;
 	vnode_t *pvp;
@@ -1741,21 +1741,20 @@ zfsslash2_replay_rmdir(slfid_t pfid, __unusedx slfid_t fid, char *name)
 	int error;
 	vnode_t *dvp, *vp;
 	
+	vp = NULL;
 	dvp = NULL;
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &dvp);
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
 	if (error)
 		goto out;
-	/*
-	 * Hold a reference to the name to be removed, so that I can
-	 * remove it from the by-id namespace later.
-	 */
-	vp = NULL;
+
 	error = VOP_LOOKUP(dvp, (char *)name, &vp, NULL, 0, NULL, &zrootcreds, NULL, NULL, NULL);
 	if (error)
 		goto out;
 
-	/* FUSE doesn't care if we remove the current working directory
-	   so we just pass NULL as the cwd parameter (no problem for ZFS) */
+	if (VTOZ(vp)->z_phys->zp_s2id != fid) {
+		error = EINVAL;
+		goto out;
+	}
 	error = VOP_RMDIR(dvp, (char *)name, NULL, &zrootcreds, NULL, 0, NULL);		/* zfs_rmdir() */
 
 	/* Linux uses ENOTEMPTY when trying to remove a non-empty directory */
@@ -1767,9 +1766,11 @@ zfsslash2_replay_rmdir(slfid_t pfid, __unusedx slfid_t fid, char *name)
 
 	error = VOP_RMDIR(dvp, (char *)name, NULL, &zrootcreds, NULL, 0, NULL);
 
-	VN_RELE(vp);
-	VN_RELE(dvp);
 out:
+	if (vp)
+		VN_RELE(vp);
+	if (dvp)
+		VN_RELE(dvp);
 	return (error);
 }
 
@@ -1780,7 +1781,7 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, __unusedx char *name)
 	vnode_t *dvp;
 	dvp = NULL;
 
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &dvp);
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
 	if (error)
 		goto out;
 
