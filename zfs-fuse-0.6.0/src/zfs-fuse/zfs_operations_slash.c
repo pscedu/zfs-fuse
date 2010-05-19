@@ -1758,6 +1758,8 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 		goto out;
 
 	if (VTOZ(vp)->z_phys->zp_s2id != fid) {
+		fprintf(stderr, "zfsslash2_replay_mkdir(): target ID mismatch %"PRIx64" vs. %"PRIx64, 
+			VTOZ(vp)->z_phys->zp_s2id, fid);
 		error = EINVAL;
 		goto out;
 	}
