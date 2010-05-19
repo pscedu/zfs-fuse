@@ -1434,7 +1434,7 @@ out:
 /*ARGSUSED*/
 static int
 zfs_remove(vnode_t *dvp, char *name, cred_t *cr, caller_context_t *ct,
-    int flags, __unusedx void *func)
+    int flags, void *funcp)
 {
 	znode_t		*zp, *dzp = VTOZ(dvp);
 	znode_t		*xzp = NULL;
@@ -1451,6 +1451,8 @@ zfs_remove(vnode_t *dvp, char *name, cred_t *cr, caller_context_t *ct,
 	pathname_t	realnm;
 	int		error;
 	int		zflg = ZEXISTS;
+
+	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
 
 	ZFS_ENTER(zfsvfs);
 	ZFS_VERIFY_ZP(dzp);
@@ -1594,6 +1596,14 @@ top:
 		txtype |= TX_CI;
 	zfs_log_remove(zilog, tx, txtype, dzp, name);
 
+	if (logfunc) {
+		uint64_t txg;
+
+		txg = dmu_tx_get_txg(tx);
+
+		logfunc(SL_NAMESPACE_OP_REMOVE, SL_NAMESPACE_TYPE_DIR, 
+			txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name);
+	}
 	dmu_tx_commit(tx);
 out:
 	if (realnmp)
@@ -1779,7 +1789,7 @@ top:
 		zfs_vattr_to_stat(&stat, vap);
 
 		logfunc(SL_NAMESPACE_OP_CREATE, SL_NAMESPACE_TYPE_DIR, 
-			txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, dirname);
+			txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, &stat, dirname);
 	}
 	dmu_tx_commit(tx);
 
@@ -1821,6 +1831,8 @@ zfs_rmdir(vnode_t *dvp, char *name, vnode_t *cwd, cred_t *cr,
 	dmu_tx_t	*tx;
 	int		error;
 	int		zflg = ZEXISTS;
+
+	sl_jlog_cb	logfunc = (sl_jlog_cb) funcp;
 
 	ZFS_ENTER(zfsvfs);
 	ZFS_VERIFY_ZP(dzp);
@@ -1899,6 +1911,14 @@ top:
 		zfs_log_remove(zilog, tx, txtype, dzp, name);
 	}
 
+	if (logfunc) {
+		uint64_t txg;
+
+		txg = dmu_tx_get_txg(tx);
+
+		logfunc(SL_NAMESPACE_OP_REMOVE, SL_NAMESPACE_TYPE_DIR, 
+			txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name);
+	}
 	dmu_tx_commit(tx);
 
 	rw_exit(&zp->z_parent_lock);
