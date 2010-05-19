@@ -1334,7 +1334,7 @@ top:
 			zfs_vattr_to_stat(&stat, vap);
 
 			logfunc(SL_NAMESPACE_OP_CREATE, SL_NAMESPACE_TYPE_FILE,
-				txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, 0, name);
+				txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, name);
 		}
 
 		dmu_tx_commit(tx);
@@ -1779,7 +1779,7 @@ top:
 		zfs_vattr_to_stat(&stat, vap);
 
 		logfunc(SL_NAMESPACE_OP_CREATE, SL_NAMESPACE_TYPE_DIR, 
-			txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, 0, dirname);
+			txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, dirname);
 	}
 	dmu_tx_commit(tx);
 
@@ -2958,7 +2958,7 @@ out:
 			zfs_vattr_to_stat(&stat, vap);
 
 			logfunc(SL_NAMESPACE_OP_ATTRIB, SL_NAMESPACE_TYPE_FILE,
-				txg, 0, zp->z_phys->zp_s2id, &stat, mask, NULL);
+				txg, 0, zp->z_phys->zp_s2id, &stat, NULL);
 		}
 		dmu_tx_commit(tx);
 	}
