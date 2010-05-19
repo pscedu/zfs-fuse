@@ -172,6 +172,7 @@
 static void
 zfs_vattr_to_stat(struct srt_stat *stat, vattr_t *vap)
 {
+	stat->sst_mask = vap->va_mask;
 	stat->sst_uid = vap->va_uid;
 	stat->sst_gid = vap->va_gid;
 	stat->sst_mode = vap->va_mode;
