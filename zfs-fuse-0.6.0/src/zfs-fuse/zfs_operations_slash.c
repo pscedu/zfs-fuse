@@ -1736,7 +1736,45 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 }
 
 int
-zfsslash2_replay_rmdir(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx char *name)
+zfsslash2_replay_rmdir(slfid_t pfid, __unusedx slfid_t fid, char *name)
+{
+	int error;
+	vnode_t *dvp, *vp;
+	
+	dvp = NULL;
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &dvp);
+	if (error)
+		goto out;
+	/*
+	 * Hold a reference to the name to be removed, so that I can
+	 * remove it from the by-id namespace later.
+	 */
+	vp = NULL;
+	error = VOP_LOOKUP(dvp, (char *)name, &vp, NULL, 0, NULL, &zrootcreds, NULL, NULL, NULL);
+	if (error)
+		goto out;
+
+	/* FUSE doesn't care if we remove the current working directory
+	   so we just pass NULL as the cwd parameter (no problem for ZFS) */
+	error = VOP_RMDIR(dvp, (char *)name, NULL, &zrootcreds, NULL, 0, NULL);		/* zfs_rmdir() */
+
+	/* Linux uses ENOTEMPTY when trying to remove a non-empty directory */
+	if (error == EEXIST)
+		error = ENOTEMPTY;
+
+	if (!error)
+		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_REMOVE, NULL, NULL);
+
+	error = VOP_RMDIR(dvp, (char *)name, NULL, &zrootcreds, NULL, 0, NULL);
+
+	VN_RELE(vp);
+	VN_RELE(dvp);
+out:
+	return (error);
+}
+
+int
+zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, __unusedx char *name)
 {
 	int error;
 	vnode_t *dvp;
@@ -1746,17 +1784,11 @@ zfsslash2_replay_rmdir(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx 
 	if (error)
 		goto out;
 
-	error = VOP_RMDIR(dvp, (char *)name, NULL, &zrootcreds, NULL, 0, NULL);
+	error = VOP_REMOVE(dvp, (char *)name, &zrootcreds, NULL, 0, NULL);
 
 	VN_RELE(dvp);
 out:
 	return (error);
-}
-
-int
-zfsslash2_replay_unlink(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx char *name)
-{
-	return (0);
 }
 
 int
