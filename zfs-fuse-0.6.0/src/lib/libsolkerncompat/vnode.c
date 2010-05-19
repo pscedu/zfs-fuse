@@ -1049,7 +1049,7 @@ fop_create(
 	int ret;
 
 	ret = (*(dvp)->v_op->vop_create)
-	    (dvp, name, vap, excl, mode, vpp, cr, flags, ct, vsecp, NULL);
+	    (dvp, name, vap, excl, mode, vpp, cr, flags, ct, vsecp, logfunc);
 	if (ret == 0 && *vpp) {
 		VOPSTATS_UPDATE(*vpp, create);
 		if ((*vpp)->v_path == NULL) {
@@ -1075,7 +1075,7 @@ fop_mkdir(
 	int ret;
 
 	ret = (*(dvp)->v_op->vop_mkdir)
-	    (dvp, dirname, vap, vpp, cr, ct, flags, vsecp, NULL);
+	    (dvp, dirname, vap, vpp, cr, ct, flags, vsecp, logfunc);
 	if (ret == 0 && *vpp) {
 		VOPSTATS_UPDATE(*vpp, mkdir);
 		if ((*vpp)->v_path == NULL) {
@@ -1101,7 +1101,7 @@ fop_symlink(
 	int	err;
 
 	err = (*(dvp)->v_op->vop_symlink)
-	    (dvp, linkname, vap, target, cr, ct, flags, NULL);
+	    (dvp, linkname, vap, target, cr, ct, flags, logfunc);
 	VOPSTATS_UPDATE(dvp, symlink);
 	return (err);
 }
@@ -1117,7 +1117,7 @@ fop_remove(
 {
 	int	err;
 
-	err = (*(dvp)->v_op->vop_remove)(dvp, nm, cr, ct, flags, NULL);
+	err = (*(dvp)->v_op->vop_remove)(dvp, nm, cr, ct, flags, logfunc);
 	VOPSTATS_UPDATE(dvp, remove);
 	return (err);
 }
@@ -1134,7 +1134,7 @@ fop_rmdir(
 {
 	int	err;
 
-	err = (*(dvp)->v_op->vop_rmdir)(dvp, nm, cdir, cr, ct, flags, NULL);
+	err = (*(dvp)->v_op->vop_rmdir)(dvp, nm, cdir, cr, ct, flags, logfunc);
 	VOPSTATS_UPDATE(dvp, rmdir);
 	return (err);
 }
@@ -1151,7 +1151,7 @@ fop_link(
 {
 	int	err;
 
-	err = (*(tdvp)->v_op->vop_link)(tdvp, svp, tnm, cr, ct, flags, NULL);
+	err = (*(tdvp)->v_op->vop_link)(tdvp, svp, tnm, cr, ct, flags, logfunc);
 	VOPSTATS_UPDATE(tdvp, link);
 	return (err);
 }
@@ -1169,7 +1169,7 @@ fop_rename(
 {
 	int	err;
 
-	err = (*(sdvp)->v_op->vop_rename)(sdvp, snm, tdvp, tnm, cr, ct, flags, NULL);
+	err = (*(sdvp)->v_op->vop_rename)(sdvp, snm, tdvp, tnm, cr, ct, flags, logfunc);
 	VOPSTATS_UPDATE(sdvp, rename);
 	return (err);
 }
@@ -1202,7 +1202,7 @@ fop_setattr(
 {
 	int	err;
 
-	err = (*(vp)->v_op->vop_setattr)(vp, vap, flags, cr, ct, NULL);
+	err = (*(vp)->v_op->vop_setattr)(vp, vap, flags, cr, ct, logfunc);
 	VOPSTATS_UPDATE(vp, setattr);
 	return (err);
 }
