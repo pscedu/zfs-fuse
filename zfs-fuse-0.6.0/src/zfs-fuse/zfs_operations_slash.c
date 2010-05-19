@@ -1665,8 +1665,10 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, int mode, char *name)
 	 */
 	pvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
-	if (error)
+	if (error) {
+		fprintf(stderr, "zfsslash2_replay_mkdir(): fail to look up fid %"PRIx64, fid);
 		goto out;
+	}
 
 	memset(&vattr, 0, sizeof(vattr_t));
 	vattr.va_type = VDIR;
@@ -1701,8 +1703,10 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 	 */
 	pvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
-	if (error)
+	if (error) {
+		fprintf(stderr, "zfsslash2_replay_create(): fail to look up fid %"PRIx64, fid);
 		goto out;
+	}
 
 	memset(&vattr, 0, sizeof(vattr_t));
 	vattr.va_type = VREG;
@@ -1736,7 +1740,7 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 }
 
 int
-zfsslash2_replay_rmdir(slfid_t pfid, __unusedx slfid_t fid, char *name)
+zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 {
 	int error;
 	vnode_t *dvp, *vp;
@@ -1744,8 +1748,10 @@ zfsslash2_replay_rmdir(slfid_t pfid, __unusedx slfid_t fid, char *name)
 	vp = NULL;
 	dvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
-	if (error)
+	if (error) {
+		fprintf(stderr, "zfsslash2_replay_mkdir(): fail to look up fid %"PRIx64, fid);
 		goto out;
+	}
 
 	error = VOP_LOOKUP(dvp, (char *)name, &vp, NULL, 0, NULL, &zrootcreds, NULL, NULL, NULL);
 	if (error)
@@ -1755,7 +1761,7 @@ zfsslash2_replay_rmdir(slfid_t pfid, __unusedx slfid_t fid, char *name)
 		error = EINVAL;
 		goto out;
 	}
-	error = VOP_RMDIR(dvp, (char *)name, NULL, &zrootcreds, NULL, 0, NULL);		/* zfs_rmdir() */
+	error = VOP_RMDIR(dvp, name, NULL, &zrootcreds, NULL, 0, NULL);		/* zfs_rmdir() */
 
 	/* Linux uses ENOTEMPTY when trying to remove a non-empty directory */
 	if (error == EEXIST)
@@ -1782,8 +1788,10 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, __unusedx char *name)
 	dvp = NULL;
 
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
-	if (error)
+	if (error) {
+		fprintf(stderr, "zfsslash2_replay_unlink(): fail to look up fid %"PRIx64, fid);
 		goto out;
+	}
 
 	error = VOP_REMOVE(dvp, (char *)name, &zrootcreds, NULL, 0, NULL);
 
@@ -1801,9 +1809,11 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
 	int flag;
 
 	vp = NULL;
-	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &vp);
-	if (error)
+	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP, NULL, &vp);
+	if (error) {
+		fprintf(stderr, "zfsslash2_replay_setattr(): fail to look up fid %"PRIx64, fid);
 		goto out;
+	}
 
 	vattr.va_mask = mask;
 	vattr.va_mode = stat->sst_mode; 
