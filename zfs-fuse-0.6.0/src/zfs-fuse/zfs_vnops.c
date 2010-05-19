@@ -1809,7 +1809,7 @@ top:
 /*ARGSUSED*/
 static int
 zfs_rmdir(vnode_t *dvp, char *name, vnode_t *cwd, cred_t *cr,
-    caller_context_t *ct, int flags, void *logfunc)
+    caller_context_t *ct, int flags, void *funcp)
 {
 	znode_t		*dzp = VTOZ(dvp);
 	znode_t		*zp;
