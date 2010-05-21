@@ -78,6 +78,8 @@
 #include "zfsfuse_socket.h"
 
 #include "sltypes.h"
+#include "slashd/mdsio.h"
+#include "slashd/namespace.h"
 
 /*
  * Programming rules.
