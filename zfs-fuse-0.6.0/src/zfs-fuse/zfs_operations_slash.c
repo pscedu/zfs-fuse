@@ -1653,7 +1653,7 @@ zfsslash2_replay_link(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx i
 }
 
 int
-zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, int mode, char *name)
+zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, __unusedx int32_t uid, __unusedx int32_t gid, int mode, char *name)
 {
 	int error;
 	vnode_t *pvp;
@@ -1833,3 +1833,8 @@ out:
 	return (error);
 }
 
+int
+zfsslash2_replay_rename(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx char *name1, __unusedx char * name2)
+{
+	return (0);
+}

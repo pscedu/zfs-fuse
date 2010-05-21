@@ -1333,8 +1333,7 @@ top:
 			txg = dmu_tx_get_txg(tx);
 			zfs_vattr_to_stat(&stat, vap);
 
-			logfunc(SL_NAMESPACE_OP_CREATE, SL_NAMESPACE_TYPE_FILE,
-				txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, name);
+			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, name);
 		}
 
 		dmu_tx_commit(tx);
@@ -1601,8 +1600,7 @@ top:
 
 		txg = dmu_tx_get_txg(tx);
 
-		logfunc(SL_NAMESPACE_OP_REMOVE, SL_NAMESPACE_TYPE_DIR, 
-			txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name);
+		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name);
 	}
 	dmu_tx_commit(tx);
 out:
@@ -1788,8 +1786,7 @@ top:
 		txg = dmu_tx_get_txg(tx);
 		zfs_vattr_to_stat(&stat, vap);
 
-		logfunc(SL_NAMESPACE_OP_CREATE, SL_NAMESPACE_TYPE_DIR, 
-			txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, &stat, dirname);
+		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, &stat, dirname);
 	}
 	dmu_tx_commit(tx);
 
@@ -1916,8 +1913,7 @@ top:
 
 		txg = dmu_tx_get_txg(tx);
 
-		logfunc(SL_NAMESPACE_OP_REMOVE, SL_NAMESPACE_TYPE_DIR, 
-			txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name);
+		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name);
 	}
 	dmu_tx_commit(tx);
 
@@ -2977,8 +2973,7 @@ out:
 			txg = dmu_tx_get_txg(tx);
 			zfs_vattr_to_stat(&stat, vap);
 
-			logfunc(SL_NAMESPACE_OP_ATTRIB, SL_NAMESPACE_TYPE_FILE,
-				txg, 0, zp->z_phys->zp_s2id, &stat, NULL);
+			logfunc(NS_OP_SETATTR, txg, 0, zp->z_phys->zp_s2id, &stat, NULL);
 		}
 		dmu_tx_commit(tx);
 	}
