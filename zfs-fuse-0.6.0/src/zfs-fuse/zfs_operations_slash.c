@@ -1659,6 +1659,7 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, __unusedx int32_t uid, __unuse
 	vnode_t *pvp;
 	vnode_t *tvp;
 	vattr_t vattr;
+	cred_t cred;
 
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
@@ -1675,7 +1676,11 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, __unusedx int32_t uid, __unuse
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE|AT_MODE;
 	vattr.va_fid = fid;
-	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &zrootcreds, NULL, 0, NULL, NULL);
+
+	cred.cr_uid = uid;
+	cred.cr_gid = gid;
+
+	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &cred, NULL, 0, NULL, NULL); /* zfs_mkdir() */
 	if (error) {
 		VN_RELE(pvp);
 		goto out;
