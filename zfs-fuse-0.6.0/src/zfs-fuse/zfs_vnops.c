@@ -2979,6 +2979,8 @@ out:
 			struct srt_stat stat;
 
 			txg = dmu_tx_get_txg(tx);
+			vap->va_uid = pzp->zp_uid;
+			vap->va_gid = pzp->zp_gid;
 			zfs_vattr_to_stat(&stat, vap);
 
 			logfunc(NS_OP_SETATTR, txg, 0, zp->z_phys->zp_s2id, &stat, NULL);
