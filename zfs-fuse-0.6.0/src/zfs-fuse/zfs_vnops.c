@@ -1326,18 +1326,21 @@ top:
 			txtype |= TX_CI;
 		zfs_log_create(zilog, tx, txtype, dzp, zp, name,
 		    vsecp, acl_ids.z_fuidp, vap);
-		zfs_acl_ids_free(&acl_ids);
 
 		if (logfunc) {
 			uint64_t txg;
 			struct srt_stat stat;
 
 			txg = dmu_tx_get_txg(tx);
+			vap->va_uid = acl_ids.z_fuid;
+			vap->va_gid = acl_ids.z_fgid;
+			vap->va_mode = acl_ids.z_mode;
 			zfs_vattr_to_stat(&stat, vap);
 
 			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, name);
 		}
 
+		zfs_acl_ids_free(&acl_ids);
 		dmu_tx_commit(tx);
 	} else {
 		int aflags = (flag & FAPPEND) ? V_APPEND : 0;
@@ -1780,16 +1783,19 @@ top:
 	zfs_log_create(zilog, tx, txtype, dzp, zp, dirname, vsecp,
 	    acl_ids.z_fuidp, vap);
 
-	zfs_acl_ids_free(&acl_ids);
 	if (logfunc) {
 		uint64_t txg;
 		struct srt_stat stat;
 
 		txg = dmu_tx_get_txg(tx);
+		vap->va_uid = acl_ids.z_fuid;
+		vap->va_gid = acl_ids.z_fgid;
+		vap->va_mode = acl_ids.z_mode;
 		zfs_vattr_to_stat(&stat, vap);
 
 		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, &stat, dirname);
 	}
+	zfs_acl_ids_free(&acl_ids);
 	dmu_tx_commit(tx);
 
 	zfs_dirent_unlock(dl);
