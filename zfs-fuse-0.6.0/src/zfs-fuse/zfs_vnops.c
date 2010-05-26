@@ -3112,7 +3112,7 @@ zfs_rename_lock(znode_t *szp, znode_t *tdzp, znode_t *sdzp, zfs_zlock_t **zlpp)
 /*ARGSUSED*/
 static int
 zfs_rename(vnode_t *sdvp, char *snm, vnode_t *tdvp, char *tnm, cred_t *cr,
-    caller_context_t *ct, int flags, void *func)
+    caller_context_t *ct, int flags, void *funcp)
 {
 	znode_t		*tdzp, *szp, *tzp;
 	znode_t		*sdzp = VTOZ(sdvp);
@@ -3125,6 +3125,8 @@ zfs_rename(vnode_t *sdvp, char *snm, vnode_t *tdvp, char *tnm, cred_t *cr,
 	int		cmp, serr, terr;
 	int		error = 0;
 	int		zflg = 0;
+
+	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
 
 	ZFS_ENTER(zfsvfs);
 	ZFS_VERIFY_ZP(sdzp);
@@ -3354,16 +3356,39 @@ top:
 		return (error);
 	}
 
-	if (tzp)	/* Attempt to remove the existing target */
+	if (tzp) {	/* Attempt to remove the existing target */
 		error = zfs_link_destroy(tdl, tzp, tx, zflg, NULL);
+		if (logfunc) {
+			uint64_t txg;
+
+			txg = dmu_tx_get_txg(tx);
+			logfunc(ZTOV(tzp)->v_type != VDIR ? NS_OP_UNLINK : NS_OP_RMDIR, 
+				txg, tdzp->z_phys->zp_s2id, tzp->z_phys->zp_s2id, NULL, tnm);
+		}
+	}
 
 	if (error == 0) {
 		error = zfs_link_create(tdl, szp, tx, ZRENAMING);
 		if (error == 0) {
+			if (logfunc) {
+				uint64_t txg;
+
+				txg = dmu_tx_get_txg(tx);
+				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_CREATE : NS_OP_MKDIR, 
+					txg, tdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, NULL, tnm);
+			}
+
 			szp->z_phys->zp_flags |= ZFS_AV_MODIFIED;
 
 			error = zfs_link_destroy(sdl, szp, tx, ZRENAMING, NULL);
 			ASSERT(error == 0);
+			if (logfunc) {
+				uint64_t txg;
+
+				txg = dmu_tx_get_txg(tx);
+				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_UNLINK : NS_OP_RMDIR, 
+					txg, sdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, NULL, snm); 
+			}
 
 			zfs_log_rename(zilog, tx,
 			    TX_RENAME | (flags & FIGNORECASE ? TX_CI : 0),
