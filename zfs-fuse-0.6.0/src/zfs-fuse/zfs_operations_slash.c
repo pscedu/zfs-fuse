@@ -1825,7 +1825,7 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
 	vattr.va_mask = mask;
 	vattr.va_mode = stat->sst_mode; 
 	vattr.va_uid = stat->sst_uid;
-	vattr.va_uid = stat->sst_uid;
+	vattr.va_gid = stat->sst_gid;
 	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
 	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
 	TIME_TO_TIMESTRUC(stat->sst_ctime, &vattr.va_ctime);
