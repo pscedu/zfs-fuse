@@ -37,12 +37,12 @@ int	zfsslash2_readdir(const struct slash_creds *, size_t, off_t, void *, size_t 
 int	zfsslash2_readlink(mdsio_fid_t, char *, const struct slash_creds *);
 int	zfsslash2_release(const struct slash_creds *, void *);
 int	zfsslash2_rename(mdsio_fid_t, const char *, mdsio_fid_t, const char *, const struct slash_creds *, sl_jlog_cb);
-int	zfsslash2_rmdir(mdsio_fid_t, const char *, const struct slash_creds *);
+int	zfsslash2_rmdir(mdsio_fid_t, const char *, const struct slash_creds *, sl_jlog_cb);
 int	zfsslash2_setattr(mdsio_fid_t, const struct srt_stat *, int, const struct slash_creds *, struct srt_stat *, void *, sl_jlog_cb);
 int	zfsslash2_statfs(struct statvfs *);
 int	zfsslash2_symlink(const char *, mdsio_fid_t, const char *, const struct slash_creds *, struct srt_stat *, \
 		struct slash_fidgen *, mdsio_fid_t *, sl_getslfid_cb);
-int	zfsslash2_unlink(mdsio_fid_t, const char *, const struct slash_creds *);
+int	zfsslash2_unlink(mdsio_fid_t, const char *, const struct slash_creds *, sl_jlog_cb);
 int	zfsslash2_write(const struct slash_creds *, const void *, size_t, size_t *, off_t, void *);
 
 int	do_init(void);

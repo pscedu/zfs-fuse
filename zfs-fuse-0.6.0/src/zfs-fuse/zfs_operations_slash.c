@@ -1035,7 +1035,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 
 int
 zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
-    const struct slash_creds *slcrp)
+    const struct slash_creds *slcrp, sl_jlog_cb logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1217,7 +1217,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 int
 zfsslash2_unlink(mdsio_fid_t parent, const char *name,
-    const struct slash_creds *slcrp)
+    const struct slash_creds *slcrp, sl_jlog_cb logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
