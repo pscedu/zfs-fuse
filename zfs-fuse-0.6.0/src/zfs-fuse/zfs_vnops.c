@@ -3372,10 +3372,18 @@ top:
 		if (error == 0) {
 			if (logfunc) {
 				uint64_t txg;
+				struct srt_stat stat;
+				vattr_t vap;
+
+				txg = dmu_tx_get_txg(tx);
+				vap.va_uid = szp->z_phys->zp_uid;
+				vap.va_gid = szp->z_phys->zp_gid;
+				vap.va_mode= szp->z_phys->zp_mode;
+				zfs_vattr_to_stat(&stat, &vap);
 
 				txg = dmu_tx_get_txg(tx);
 				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_CREATE : NS_OP_MKDIR, 
-					txg, tdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, NULL, tnm);
+					txg, tdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, &stat, tnm);
 			}
 
 			szp->z_phys->zp_flags |= ZFS_AV_MODIFIED;
