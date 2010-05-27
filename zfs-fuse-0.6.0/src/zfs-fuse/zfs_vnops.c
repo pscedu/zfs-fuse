@@ -3379,8 +3379,8 @@ top:
 				vap.va_uid  = szp->z_phys->zp_uid;
 				vap.va_gid  = szp->z_phys->zp_gid;
 				vap.va_mode = szp->z_phys->zp_mode;
-				ZFS_TIME_DECODE(&vap.va_mtime, pzp->zp_atime);
-				ZFS_TIME_DECODE(&vap.va_mtime, pzp->zp_mtime);
+				ZFS_TIME_DECODE(&vap.va_mtime, szp->z_phys->zp_atime);
+				ZFS_TIME_DECODE(&vap.va_mtime, szp->z_phys->zp_mtime);
 				
 				zfs_vattr_to_stat(&stat, &vap);
 
