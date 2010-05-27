@@ -3370,6 +3370,10 @@ top:
 	if (error == 0) {
 		error = zfs_link_create(tdl, szp, tx, ZRENAMING);
 		if (error == 0) {
+			szp->z_phys->zp_flags |= ZFS_AV_MODIFIED;
+
+			error = zfs_link_destroy(sdl, szp, tx, ZRENAMING, NULL);
+			ASSERT(error == 0);
 			if (logfunc) {
 				uint64_t txg;
 				struct srt_stat stat;
@@ -3385,20 +3389,16 @@ top:
 				zfs_vattr_to_stat(&stat, &vap);
 
 				txg = dmu_tx_get_txg(tx);
-				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_CREATE : NS_OP_MKDIR, 
-					txg, tdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, &stat, tnm);
-			}
-
-			szp->z_phys->zp_flags |= ZFS_AV_MODIFIED;
-
-			error = zfs_link_destroy(sdl, szp, tx, ZRENAMING, NULL);
-			ASSERT(error == 0);
-			if (logfunc) {
-				uint64_t txg;
-
-				txg = dmu_tx_get_txg(tx);
+				/*
+				 * A receiving MDS replays log in order.  We must remove
+				 * the old target first so that the same fidlink can be removed
+				 * and added back to point to the new target.  The slash ID
+				 * remains the same during a rename.
+				 */
 				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_UNLINK : NS_OP_RMDIR, 
 					txg, sdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, NULL, snm); 
+				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_CREATE : NS_OP_MKDIR, 
+					txg, tdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, &stat, tnm);
 			}
 
 			zfs_log_rename(zilog, tx,
