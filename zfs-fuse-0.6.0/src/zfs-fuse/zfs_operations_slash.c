@@ -1778,11 +1778,14 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 	if (error == EEXIST)
 		error = ENOTEMPTY;
 
-	if (!error)
+	if (!error) {
 		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_REMOVE|FIDLINK_DIR, NULL, NULL);
-
-	error = VOP_RMDIR(dvp, (char *)name, NULL, &zrootcreds, NULL, 0, NULL);
-
+		if (!error) 
+			/* 
+			 * The vnode is still there, but its underlying link count is zero.
+			 */
+			assert(VTOZ(vp)->z_phys->zp_links == 0);
+	}
 out:
 	if (vp)
 		VN_RELE(vp);
