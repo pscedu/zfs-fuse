@@ -56,6 +56,7 @@ vfs_t		*zfsVfs;			/* initialized by do_mount() */
 #define	FIDLINK_CREATE		0x01
 #define	FIDLINK_LOOKUP		0x02
 #define	FIDLINK_REMOVE		0x04
+#define	FIDLINK_DIR		0x08
 
 #define SL_PATH_PREFIX	".sl"
 #define SL_PATH_FIDNS	".slfidns"
@@ -660,11 +661,14 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 		}
 		goto out;
 	}
-	if (flags & FIDLINK_REMOVE) {
+	assert(flags & FIDLINK_REMOVE);
+	/*
+	 * ZFS returns EPERM (1) even if root attempts to VOP_REMOVE() a directory.
+	 */
+	if (flags & FIDLINK_DIR)
+		error = VOP_RMDIR(dvp, id_name, NULL, &zrootcreds, NULL, 0, NULL);
+	else
 		error = VOP_REMOVE(dvp, id_name, &zrootcreds, NULL, 0, NULL);
-		goto out;
-	}
-	error = EINVAL;
 
  out:
 
@@ -1077,7 +1081,7 @@ zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
 		error = ENOTEMPTY;
 
 	if (!error)
-		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_REMOVE, NULL, NULL);
+		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_REMOVE|FIDLINK_DIR, NULL, NULL);
 
 	VN_RELE(vp);
 	VN_RELE(dvp);
@@ -1775,7 +1779,7 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 		error = ENOTEMPTY;
 
 	if (!error)
-		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_REMOVE, NULL, NULL);
+		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_REMOVE|FIDLINK_DIR, NULL, NULL);
 
 	error = VOP_RMDIR(dvp, (char *)name, NULL, &zrootcreds, NULL, 0, NULL);
 
