@@ -515,7 +515,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		if (nstbprefetch) {
 			attr->rc = zfsslash2_stat(tvp, &attr->attr, cred);
 			nstbprefetch--;
-#if 0
+#if 1
 			fprintf(stderr, "slash fid: %#"PRIx64", "
 			    "zfs ino: %#"PRIx64", name: %s, mode: 0%o\n",
 			    attr->attr.sst_ino, entry.dirent.d_ino,
@@ -996,7 +996,6 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	ASSERT(dvp != NULL);
 
 	vnode_t *vp = NULL;
-	struct srt_stat stat;
 
 	vattr_t vattr;
 	memset(&vattr, 0, sizeof(vattr_t));
@@ -1004,12 +1003,6 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 	vattr.va_fid = getslfid();
-
-	memset(&stat, 0, sizeof(struct srt_stat));
-	stat.sst_mode = mode & PERMMASK;
-	stat.sst_uid = cred->cr_uid;
-	stat.sst_gid = cred->cr_gid;
-
 
 	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL, logfunc); /* zfs_mkdir() */
 	if (error)
