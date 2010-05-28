@@ -3377,16 +3377,18 @@ top:
 			if (logfunc) {
 				uint64_t txg;
 				struct srt_stat stat;
-				vattr_t vap;
+				vattr_t vattr;
 
 				txg = dmu_tx_get_txg(tx);
-				vap.va_uid  = szp->z_phys->zp_uid;
-				vap.va_gid  = szp->z_phys->zp_gid;
-				vap.va_mode = szp->z_phys->zp_mode;
-				ZFS_TIME_DECODE(&vap.va_mtime, szp->z_phys->zp_atime);
-				ZFS_TIME_DECODE(&vap.va_mtime, szp->z_phys->zp_mtime);
+
+				memset(&vattr, 0, sizeof(vattr_t));
+				vattr.va_uid  = szp->z_phys->zp_uid;
+				vattr.va_gid  = szp->z_phys->zp_gid;
+				vattr.va_mode = szp->z_phys->zp_mode;
+				ZFS_TIME_DECODE(&vattr.va_mtime, szp->z_phys->zp_atime);
+				ZFS_TIME_DECODE(&vattr.va_mtime, szp->z_phys->zp_mtime);
 				
-				zfs_vattr_to_stat(&stat, &vap);
+				zfs_vattr_to_stat(&stat, &vattr);
 
 				txg = dmu_tx_get_txg(tx);
 				/*
