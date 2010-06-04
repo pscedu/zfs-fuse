@@ -180,6 +180,7 @@ zfs_vattr_to_stat(struct srt_stat *stat, vattr_t *vap)
 	stat->sst_mode = vap->va_mode;
 	TIMESTRUC_TO_TIME(vap->va_atime, &stat->sst_atime);
 	TIMESTRUC_TO_TIME(vap->va_mtime, &stat->sst_mtime);
+	TIMESTRUC_TO_TIME(vap->va_ctime, &stat->sst_ctime);
 }
 
 /* ARGSUSED */
@@ -3385,17 +3386,18 @@ top:
 				vattr.va_uid  = szp->z_phys->zp_uid;
 				vattr.va_gid  = szp->z_phys->zp_gid;
 				vattr.va_mode = szp->z_phys->zp_mode;
-				ZFS_TIME_DECODE(&vattr.va_mtime, szp->z_phys->zp_atime);
+				ZFS_TIME_DECODE(&vattr.va_atime, szp->z_phys->zp_atime);
 				ZFS_TIME_DECODE(&vattr.va_mtime, szp->z_phys->zp_mtime);
+				ZFS_TIME_DECODE(&vattr.va_ctime, szp->z_phys->zp_ctime);
 				
 				zfs_vattr_to_stat(&stat, &vattr);
 
 				txg = dmu_tx_get_txg(tx);
 				/*
-				 * A receiving MDS replays log in order.  We must remove
+				 * A receiving MDS replays log entries in order.  We must remove
 				 * the old target first so that the same fidlink can be removed
-				 * and added back to point to the new target.  The slash ID
-				 * remains the same during a rename.
+				 * and added back to point to the new target.  Note that the 
+				 * slash ID remains the same during a rename.
 				 */
 				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_UNLINK : NS_OP_RMDIR, 
 					txg, sdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, NULL, snm); 
