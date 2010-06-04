@@ -1650,7 +1650,7 @@ zfsslash2_replay_link(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx i
 }
 
 int
-zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, __unusedx int32_t uid, __unusedx int32_t gid, int mode, char *name)
+zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *name)
 {
 	int error;
 	vnode_t *pvp;
@@ -1670,12 +1670,17 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, __unusedx int32_t uid, __unuse
 
 	memset(&vattr, 0, sizeof(vattr_t));
 	vattr.va_type = VDIR;
-	vattr.va_mode = mode & PERMMASK;
+	vattr.va_mode = stat->sst_mode & PERMMASK;
 	vattr.va_mask = AT_TYPE|AT_MODE;
 	vattr.va_fid = fid;
 
-	cred.cr_uid = uid;
-	cred.cr_gid = gid;
+	/* zfs_mknode() respects our ATIME and MTIME, but not CTIME */
+	vattr.va_mask |= AT_ATIME|AT_MTIME;
+	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
+	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
+
+	cred.cr_uid = stat->sst_uid;
+	cred.cr_gid = stat->sst_gid;
 
 	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &cred, NULL, 0, NULL, NULL); /* zfs_mkdir() */
 	if (error) {
@@ -1691,14 +1696,13 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, __unusedx int32_t uid, __unuse
 }
 
 int
-zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int mode, char *name)
+zfsslash2_replay_create(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *name)
 {
 	int error;
 	vnode_t *pvp;
 	vnode_t *tvp;
 	vattr_t vattr;
 	cred_t cred;
-	timestruc_t now;
 
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
@@ -1712,23 +1716,19 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, int32_t uid, int32_t gid, int
 
 	memset(&vattr, 0, sizeof(vattr_t));
 	vattr.va_type = VREG;
-	vattr.va_mode = mode & PERMMASK;
+	vattr.va_mode = stat->sst_mode & PERMMASK;
 	vattr.va_mask = AT_TYPE|AT_MODE;
 	vattr.va_fid = fid;
 
-	cred.cr_uid = uid;
-	cred.cr_gid = gid;
+	/* zfs_mknode() respects our ATIME and MTIME, but not CTIME */
+	vattr.va_mask |= AT_ATIME|AT_MTIME;
+	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
+	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
 
-	/*
-	 * Looks like ZFS allows us to pass in atime and mtime. With this, we can respect
-	 * these two timestamps instead of something close.
-	 */
-	gethrestime(&now);
-	vattr.va_atime = now;
-	vattr.va_mtime = now;
-	vattr.va_mask |= AT_ATIME | AT_MTIME;
+	cred.cr_uid = stat->sst_uid;
+	cred.cr_gid = stat->sst_gid;
 
-	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, mode, &tvp, &cred, 0, NULL, NULL, NULL); /* zfs_create() */
+	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, 0, &tvp, &cred, 0, NULL, NULL, NULL); /* zfs_create() */
 	if (error) {
 		VN_RELE(pvp);
 		goto out;
