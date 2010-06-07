@@ -1067,7 +1067,7 @@ zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
 
 	/* FUSE doesn't care if we remove the current working directory
 	   so we just pass NULL as the cwd parameter (no problem for ZFS) */
-	error = VOP_RMDIR(dvp, (char *)name, NULL, cred, NULL, 0, NULL);		/* zfs_rmdir() */
+	error = VOP_RMDIR(dvp, (char *)name, NULL, cred, NULL, 0, logfunc);	/* zfs_rmdir() */
 
 	/* Linux uses ENOTEMPTY when trying to remove a non-empty directory */
 	if (error == EEXIST)
