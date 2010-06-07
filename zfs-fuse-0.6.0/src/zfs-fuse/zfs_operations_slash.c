@@ -1244,7 +1244,7 @@ zfsslash2_unlink(mdsio_fid_t parent, const char *name,
 	if (error)
 		goto out;
 
-	error = VOP_REMOVE(dvp, (char *)name, cred, NULL, 0, NULL);
+	error = VOP_REMOVE(dvp, (char *)name, cred, NULL, 0, logfunc);	/* zfs_remove() */
 	if (error)
 		goto out;
 
