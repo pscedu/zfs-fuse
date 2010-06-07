@@ -1760,7 +1760,7 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 		goto out;
 
 	if (VTOZ(vp)->z_phys->zp_s2id != fid) {
-		fprintf(stderr, "zfsslash2_replay_mkdir(): target ID mismatch %"PRIx64" vs. %"PRIx64, 
+		fprintf(stderr, "zfsslash2_replay_rmdir(): target ID mismatch %"PRIx64" vs. %"PRIx64, 
 			VTOZ(vp)->z_phys->zp_s2id, fid);
 		error = EINVAL;
 		goto out;
@@ -1788,22 +1788,50 @@ out:
 }
 
 int
-zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, __unusedx char *name)
+zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name)
 {
 	int error;
-	vnode_t *dvp;
-	dvp = NULL;
+	vnode_t *vp, *dvp;
 
+	vp = dvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
 	if (error) {
 		fprintf(stderr, "zfsslash2_replay_unlink(): fail to look up fid %"PRIx64, fid);
 		goto out;
 	}
+	error = VOP_LOOKUP(dvp, (char *)name, &vp, NULL, 0, NULL, &zrootcreds,
+			   NULL, NULL, NULL);
+	if (error)
+		goto out;
+	if (VTOZ(vp)->z_phys->zp_s2id != fid) {
+		fprintf(stderr, "zfsslash2_replay_unlink(): target ID mismatch %"PRIx64" vs. %"PRIx64, 
+			VTOZ(vp)->z_phys->zp_s2id, fid);
+		error = EINVAL;
+		goto out;
+	}
 
 	error = VOP_REMOVE(dvp, (char *)name, &zrootcreds, NULL, 0, NULL);
 
-	VN_RELE(dvp);
+	if (error)
+		goto out;
+
+	vattr_t vattr = { 0 };
+	error = VOP_GETATTR(vp, &vattr, 0, &zrootcreds, NULL);
+	if (error)
+		goto out;
+
+	/*
+	 * The last remaining link is our FID namespace one,
+	 * so remove the file.
+	 */
+	if (vattr.va_nlink == 1)
+		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_REMOVE, NULL, NULL);
+
 out:
+	if (vp)
+		VN_RELE(vp);
+	if (dvp)
+		VN_RELE(dvp);
 	return (error);
 }
 

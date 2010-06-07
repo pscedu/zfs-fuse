@@ -1606,7 +1606,7 @@ top:
 
 		txg = dmu_tx_get_txg(tx);
 
-		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name);
+		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name);
 	}
 	dmu_tx_commit(tx);
 out:
