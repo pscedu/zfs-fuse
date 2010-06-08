@@ -61,6 +61,6 @@ int	zfsslash2_replay_unlink(slfid_t, slfid_t, char *);
 
 int	zfsslash2_replay_setattr(slfid_t, struct srt_stat *, uint);
 
-int	zfsslash2_replay_rename(slfid_t, slfid_t, slfid_t, char *, char *);
+int	zfsslash2_replay_rename(slfid_t, const char *, slfid_t, const char *);
 
 #endif /* _ZFS_SLASHLIB_H_ */

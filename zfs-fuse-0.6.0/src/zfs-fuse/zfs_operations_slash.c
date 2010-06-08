@@ -1872,8 +1872,17 @@ out:
 }
 
 int
-zfsslash2_replay_rename(__unusedx slfid_t pfid, __unusedx slfid_t newpfid, 
-	__unusedx slfid_t fid, __unusedx char *name1, __unusedx char * name2)
+zfsslash2_replay_rename(__unusedx slfid_t parent, __unusedx const char *name, __unusedx slfid_t newparent, 
+	__unusedx const char *newname)
 {
-	return (0);
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
+	if (error) {
+		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64, fid);
+		goto out;
+	}
+	error = zfsslash2_fidlink(newpfid, FIDLINK_LOOKUP, NULL, &dvp);
+	if (error) {
+		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64, fid);
+		goto out;
+	}
 }
