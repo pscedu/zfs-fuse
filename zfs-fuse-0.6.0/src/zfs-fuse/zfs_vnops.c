@@ -3364,7 +3364,7 @@ top:
 
 			txg = dmu_tx_get_txg(tx);
 			logfunc(ZTOV(tzp)->v_type != VDIR ? NS_OP_UNLINK : NS_OP_RMDIR, 
-				txg, tdzp->z_phys->zp_s2id, tzp->z_phys->zp_s2id, NULL, tnm, NULL);
+				txg, tdzp->z_phys->zp_s2id, 0, tzp->z_phys->zp_s2id, NULL, tnm, NULL);
 		}
 	}
 
@@ -3400,9 +3400,9 @@ top:
 				 * slash ID remains the same during a rename.
 				 */
 				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_UNLINK : NS_OP_RMDIR, 
-					txg, sdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, NULL, snm, NULL); 
+					txg, sdzp->z_phys->zp_s2id, 0, szp->z_phys->zp_s2id, NULL, snm, NULL); 
 				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_CREATE : NS_OP_MKDIR, 
-					txg, tdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, &stat, tnm, NULL);
+					txg, tdzp->z_phys->zp_s2id, 0, szp->z_phys->zp_s2id, &stat, tnm, NULL);
 			}
 
 			zfs_log_rename(zilog, tx,
