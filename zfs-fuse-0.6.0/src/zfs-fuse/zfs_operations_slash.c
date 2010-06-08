@@ -1872,7 +1872,8 @@ out:
 }
 
 int
-zfsslash2_replay_rename(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx char *name1, __unusedx char * name2)
+zfsslash2_replay_rename(__unusedx slfid_t pfid, __unusedx slfid_t newpfid, 
+	__unusedx slfid_t fid, __unusedx char *name1, __unusedx char * name2)
 {
 	return (0);
 }
