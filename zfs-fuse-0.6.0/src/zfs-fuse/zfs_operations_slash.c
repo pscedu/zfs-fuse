@@ -1875,14 +1875,23 @@ int
 zfsslash2_replay_rename(__unusedx slfid_t parent, __unusedx const char *name, __unusedx slfid_t newparent, 
 	__unusedx const char *newname)
 {
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
+	int error;
+	vnode_t *p_vp, *np_vp;
+
+	p_vp = np_vp = NULL;
+	error = zfsslash2_fidlink(parent, FIDLINK_LOOKUP, NULL, &p_vp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64, fid);
+		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64, parent);
 		goto out;
 	}
-	error = zfsslash2_fidlink(newpfid, FIDLINK_LOOKUP, NULL, &dvp);
+	error = zfsslash2_fidlink(newparent, FIDLINK_LOOKUP, NULL, &np_vp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64, fid);
+		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64, newparent);
 		goto out;
 	}
+out:
+	if (p_vp)
+		VN_RELE(p_vp);
+	if (np_vp)
+		VN_RELE(np_vp);
 }
