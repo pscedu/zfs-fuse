@@ -1400,6 +1400,9 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 	if (strlen(name) > MAXNAMELEN)
 		return ENAMETOOLONG;
 
+	if (strlen(name) + strlen(link) > MAX_NAME_BUF_SIZE)
+		return ENAMETOOLONG;
+
 	int error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
 	if (error) {
 		ZFS_EXIT(zfsvfs);
@@ -1463,6 +1466,8 @@ zfsslash2_rename(mdsio_fid_t parent, const char *name, mdsio_fid_t newparent,
 	if (strlen(name) > MAXNAMELEN)
 		return ENAMETOOLONG;
 	if (strlen(newname) > MAXNAMELEN)
+		return ENAMETOOLONG;
+	if (strlen(name) + strlen(newname) > MAX_NAME_BUF_SIZE)
 		return ENAMETOOLONG;
 
 	int error = zfs_zget(zfsvfs, parent, &p_znode, B_FALSE);
