@@ -1338,7 +1338,7 @@ top:
 			vap->va_mode = acl_ids.z_mode;
 			zfs_vattr_to_stat(&stat, vap);
 
-			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, name);
+			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, name, NULL);
 		}
 
 		zfs_acl_ids_free(&acl_ids);
@@ -1606,7 +1606,7 @@ top:
 
 		txg = dmu_tx_get_txg(tx);
 
-		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name);
+		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name, NULL);
 	}
 	dmu_tx_commit(tx);
 out:
@@ -1794,7 +1794,7 @@ top:
 		vap->va_mode = acl_ids.z_mode;
 		zfs_vattr_to_stat(&stat, vap);
 
-		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, &stat, dirname);
+		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, &stat, dirname, NULL);
 	}
 	zfs_acl_ids_free(&acl_ids);
 	dmu_tx_commit(tx);
@@ -1922,7 +1922,7 @@ top:
 
 		txg = dmu_tx_get_txg(tx);
 
-		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name);
+		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name, NULL);
 	}
 	dmu_tx_commit(tx);
 
@@ -2984,7 +2984,7 @@ out:
 			vap->va_gid = pzp->zp_gid;
 			zfs_vattr_to_stat(&stat, vap);
 
-			logfunc(NS_OP_SETATTR, txg, 0, zp->z_phys->zp_s2id, &stat, NULL);
+			logfunc(NS_OP_SETATTR, txg, 0, zp->z_phys->zp_s2id, &stat, NULL, NULL);
 		}
 		dmu_tx_commit(tx);
 	}
@@ -3364,7 +3364,7 @@ top:
 
 			txg = dmu_tx_get_txg(tx);
 			logfunc(ZTOV(tzp)->v_type != VDIR ? NS_OP_UNLINK : NS_OP_RMDIR, 
-				txg, tdzp->z_phys->zp_s2id, tzp->z_phys->zp_s2id, NULL, tnm);
+				txg, tdzp->z_phys->zp_s2id, tzp->z_phys->zp_s2id, NULL, tnm, NULL);
 		}
 	}
 
@@ -3400,9 +3400,9 @@ top:
 				 * slash ID remains the same during a rename.
 				 */
 				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_UNLINK : NS_OP_RMDIR, 
-					txg, sdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, NULL, snm); 
+					txg, sdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, NULL, snm, NULL); 
 				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_CREATE : NS_OP_MKDIR, 
-					txg, tdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, &stat, tnm);
+					txg, tdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, &stat, tnm, NULL);
 			}
 
 			zfs_log_rename(zilog, tx,
