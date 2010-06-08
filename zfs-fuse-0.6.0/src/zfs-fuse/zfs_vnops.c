@@ -3357,16 +3357,8 @@ top:
 		return (error);
 	}
 
-	if (tzp) {	/* Attempt to remove the existing target */
+	if (tzp) 	/* Attempt to remove the existing target */
 		error = zfs_link_destroy(tdl, tzp, tx, zflg, NULL);
-		if (logfunc) {
-			uint64_t txg;
-
-			txg = dmu_tx_get_txg(tx);
-			logfunc(ZTOV(tzp)->v_type != VDIR ? NS_OP_UNLINK : NS_OP_RMDIR, 
-				txg, tdzp->z_phys->zp_s2id, 0, tzp->z_phys->zp_s2id, NULL, tnm, NULL);
-		}
-	}
 
 	if (error == 0) {
 		error = zfs_link_create(tdl, szp, tx, ZRENAMING);
@@ -3377,32 +3369,11 @@ top:
 			ASSERT(error == 0);
 			if (logfunc) {
 				uint64_t txg;
-				struct srt_stat stat;
-				vattr_t vattr;
 
 				txg = dmu_tx_get_txg(tx);
-
-				memset(&vattr, 0, sizeof(vattr_t));
-				vattr.va_uid  = szp->z_phys->zp_uid;
-				vattr.va_gid  = szp->z_phys->zp_gid;
-				vattr.va_mode = szp->z_phys->zp_mode;
-				ZFS_TIME_DECODE(&vattr.va_atime, szp->z_phys->zp_atime);
-				ZFS_TIME_DECODE(&vattr.va_mtime, szp->z_phys->zp_mtime);
-				ZFS_TIME_DECODE(&vattr.va_ctime, szp->z_phys->zp_ctime);
-				
-				zfs_vattr_to_stat(&stat, &vattr);
-
-				txg = dmu_tx_get_txg(tx);
-				/*
-				 * A receiving MDS replays log entries in order.  We must remove
-				 * the old target first so that the same fidlink can be removed
-				 * and added back to point to the new target.  Note that the 
-				 * slash ID remains the same during a rename.
-				 */
-				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_UNLINK : NS_OP_RMDIR, 
-					txg, sdzp->z_phys->zp_s2id, 0, szp->z_phys->zp_s2id, NULL, snm, NULL); 
-				logfunc(ZTOV(szp)->v_type != VDIR ? NS_OP_CREATE : NS_OP_MKDIR, 
-					txg, tdzp->z_phys->zp_s2id, 0, szp->z_phys->zp_s2id, &stat, tnm, NULL);
+				logfunc(NS_OP_RENAME, txg, sdzp->z_phys->zp_s2id, 
+					tdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id, 
+					NULL, snm, tnm);
 			}
 
 			zfs_log_rename(zilog, tx,
