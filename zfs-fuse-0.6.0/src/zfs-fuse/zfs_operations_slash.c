@@ -1872,8 +1872,7 @@ out:
 }
 
 int
-zfsslash2_replay_rename(__unusedx slfid_t parent, __unusedx const char *name, __unusedx slfid_t newparent, 
-	__unusedx const char *newname)
+zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t newparent, const char *newname)
 {
 	int error;
 	vnode_t *p_vp, *np_vp;
@@ -1889,6 +1888,8 @@ zfsslash2_replay_rename(__unusedx slfid_t parent, __unusedx const char *name, __
 		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64, newparent);
 		goto out;
 	}
+
+	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname, &zrootcreds, NULL, 0, NULL);  /* zfs_rename() */
 out:
 	if (p_vp)
 		VN_RELE(p_vp);
