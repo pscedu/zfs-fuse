@@ -1338,7 +1338,7 @@ top:
 			vap->va_mode = acl_ids.z_mode;
 			zfs_vattr_to_stat(&stat, vap);
 
-			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2id, vap->va_fid, &stat, name, NULL);
+			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2id, 0, vap->va_fid, &stat, name, NULL);
 		}
 
 		zfs_acl_ids_free(&acl_ids);
@@ -1606,7 +1606,7 @@ top:
 
 		txg = dmu_tx_get_txg(tx);
 
-		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name, NULL);
+		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2id, 0, zp->z_phys->zp_s2id, NULL, name, NULL);
 	}
 	dmu_tx_commit(tx);
 out:
@@ -1794,7 +1794,7 @@ top:
 		vap->va_mode = acl_ids.z_mode;
 		zfs_vattr_to_stat(&stat, vap);
 
-		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, &stat, dirname, NULL);
+		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2id, 0, zp->z_phys->zp_s2id, &stat, dirname, NULL);
 	}
 	zfs_acl_ids_free(&acl_ids);
 	dmu_tx_commit(tx);
@@ -1922,7 +1922,7 @@ top:
 
 		txg = dmu_tx_get_txg(tx);
 
-		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2id, zp->z_phys->zp_s2id, NULL, name, NULL);
+		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2id, 0, zp->z_phys->zp_s2id, NULL, name, NULL);
 	}
 	dmu_tx_commit(tx);
 
@@ -2984,7 +2984,7 @@ out:
 			vap->va_gid = pzp->zp_gid;
 			zfs_vattr_to_stat(&stat, vap);
 
-			logfunc(NS_OP_SETATTR, txg, 0, zp->z_phys->zp_s2id, &stat, NULL, NULL);
+			logfunc(NS_OP_SETATTR, txg, 0, 0, zp->z_phys->zp_s2id, &stat, NULL, NULL);
 		}
 		dmu_tx_commit(tx);
 	}
