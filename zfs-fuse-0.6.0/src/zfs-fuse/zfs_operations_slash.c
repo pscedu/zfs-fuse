@@ -1422,7 +1422,7 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 	vattr.va_mask = AT_TYPE | AT_MODE;
 	vattr.va_fid = getslfid();
 
-	error = VOP_SYMLINK(dvp, (char *)name, &vattr, (char *)link, cred, NULL, 0, NULL);
+	error = VOP_SYMLINK(dvp, (char *)name, &vattr, (char *)link, cred, NULL, 0, NULL); /* zfs_symlink() */
 
 	vnode_t *vp = NULL;
 

@@ -3536,6 +3536,7 @@ top:
 	/*
 	 * Insert the new object into the directory.
 	 */
+	zp->z_phys->zp_s2id = vap->va_fid;
 	(void) zfs_link_create(dl, zp, tx, ZNEW);
 	if (error == 0) {
 		uint64_t txtype = TX_SYMLINK;
