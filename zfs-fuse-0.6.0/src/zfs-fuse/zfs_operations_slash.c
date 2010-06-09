@@ -1895,4 +1895,5 @@ out:
 		VN_RELE(p_vp);
 	if (np_vp)
 		VN_RELE(np_vp);
+	return (error);
 }

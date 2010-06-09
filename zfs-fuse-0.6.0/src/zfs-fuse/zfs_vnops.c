@@ -1194,6 +1194,7 @@ zfs_create(vnode_t *dvp, char *name, vattr_t *vap, vcexcl_t excl,
 	gid_t		gid = crgetgid(cr);
 	zfs_acl_ids_t	acl_ids;
 	boolean_t	fuid_dirtied;
+	uint64_t	seq, foid;
 
 	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
 
@@ -1343,6 +1344,7 @@ top:
 
 		zfs_acl_ids_free(&acl_ids);
 		dmu_tx_commit(tx);
+		zil_commit(zfsvfs->z_log, zp->z_last_itx, zp->z_id);
 	} else {
 		int aflags = (flag & FAPPEND) ? V_APPEND : 0;
 
