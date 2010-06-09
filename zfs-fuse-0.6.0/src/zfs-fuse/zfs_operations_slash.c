@@ -1431,6 +1431,10 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 	if (error)
 		goto out;
 
+	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_CREATE, vp, NULL);
+	if (error)
+		goto out;
+
 	ASSERT(vp != NULL);
 
 	if (sstb)
