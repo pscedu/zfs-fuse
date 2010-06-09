@@ -326,7 +326,7 @@ zfsslash2_lookup(mdsio_fid_t parent, const char *name,
  */
 int
 zfsslash2_opendir(mdsio_fid_t ino, const struct slash_creds *slcrp,
-    struct slash_fidgen *fg, struct srt_stat *sstb, void **finfo)
+    struct slash_fidgen *fg, void **finfo)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -377,8 +377,6 @@ zfsslash2_opendir(mdsio_fid_t ino, const struct slash_creds *slcrp,
 	((file_info_t *)(*finfo))->vp = vp;
 	((file_info_t *)(*finfo))->flags = FREAD;
 
-	if (sstb)
-		error = zfsslash2_stat(vp, sstb, cred);
 	get_vnode_fids(vp, fg, NULL);
 
  out:
