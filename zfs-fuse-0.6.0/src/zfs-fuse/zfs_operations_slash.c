@@ -1684,9 +1684,26 @@ out:
 }
 
 int
-zfsslash2_replay_link(__unusedx slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, __unusedx char *name)
+zfsslash2_replay_link(slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, char *name)
 {
-	return (0);
+	int error;
+	vnode_t *pvp, *svp;
+	vattr_t vattr;
+
+	/*
+	 * Make sure the parent exists, at least in the by-id namespace.
+	 */
+	pvp = svp = NULL;
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &pvp);
+	if (error) {
+		fprintf(stderr, "zfsslash2_replay_link(): fail to look up fid %"PRIx64, fid);
+		goto out;
+	}
+	error = VOP_LINK(pvp, svp, (char *)name, &zrootcreds, NULL, 0, NULL);	/* zfs_link() */
+out:
+	if (pvp)
+		VN_RELE(pvp);
+	return (error);
 }
 
 int
