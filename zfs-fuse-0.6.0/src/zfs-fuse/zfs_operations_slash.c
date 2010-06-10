@@ -924,7 +924,7 @@ zfsslash2_readlink(mdsio_fid_t ino, char *buf,
 		 * We may not need this if we write NULL
 		 * at symlink() time.
 		 */
-		buf[uio.uio_loffset - 1] = '\0';
+		buf[uio.uio_loffset] = '\0';
 	}
 
 	return error;
