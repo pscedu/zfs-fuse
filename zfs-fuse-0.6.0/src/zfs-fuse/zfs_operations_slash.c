@@ -1793,15 +1793,15 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *
 	cred.cr_gid = stat->sst_gid;
 
 	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, 0, &tvp, &cred, 0, NULL, NULL, NULL); /* zfs_create() */
-	if (error) {
-		VN_RELE(pvp);
+	if (error)
 		goto out;
-	}
 	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
-	VN_RELE(pvp);
-	VN_RELE(tvp);
 
  out:
+	if (tvp)
+		VN_RELE(tvp);
+	if (pvp)
+		VN_RELE(pvp);
 	return (error);
 }
 
@@ -1923,10 +1923,11 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
 	TIME_TO_TIMESTRUC(stat->sst_ctime, &vattr.va_ctime);
 
 	flag = (mask & (AT_ATIME | AT_MTIME)) ? ATTR_UTIME : 0;
-	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL, NULL); /* zfs_setattr() */
+	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL, NULL);		/* zfs_setattr() */
 
-	VN_RELE(vp);
 out:
+	if (vp)
+		VN_RELE(vp);
 	return (error);
 }
 
