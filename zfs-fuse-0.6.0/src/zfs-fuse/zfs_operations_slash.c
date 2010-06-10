@@ -1393,7 +1393,8 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 int
 zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
     const struct slash_creds *slcrp, struct srt_stat *sstb,
-    struct slash_fidgen *fg, mdsio_fid_t *mfp, sl_getslfid_cb getslfid)
+    struct slash_fidgen *fg, mdsio_fid_t *mfp, sl_getslfid_cb getslfid,
+    sl_jlog_cb logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1427,7 +1428,7 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 	vattr.va_mask = AT_TYPE | AT_MODE;
 	vattr.va_fid = getslfid();
 
-	error = VOP_SYMLINK(dvp, (char *)name, &vattr, (char *)link, cred, NULL, 0, NULL); /* zfs_symlink() */
+	error = VOP_SYMLINK(dvp, (char *)name, &vattr, (char *)link, cred, NULL, 0, logfunc); /* zfs_symlink() */
 
 	vnode_t *vp = NULL;
 
@@ -1540,7 +1541,7 @@ zfsslash2_fsync(const struct slash_creds *slcrp, int datasync,
 int
 zfsslash2_link(mdsio_fid_t ino, mdsio_fid_t newparent, const char *newname,
     struct slash_fidgen *fg, const struct slash_creds *slcrp,
-    struct srt_stat *sstb)
+    struct srt_stat *sstb, sl_jlog_cb logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1576,7 +1577,7 @@ zfsslash2_link(mdsio_fid_t ino, mdsio_fid_t newparent, const char *newname,
 	ASSERT(svp != NULL);
 	ASSERT(tdvp != NULL);
 
-	error = VOP_LINK(tdvp, svp, (char *)newname, cred, NULL, 0, NULL);
+	error = VOP_LINK(tdvp, svp, (char *)newname, cred, NULL, 0, logfunc);	/* zfs_link() */
 	vnode_t *vp = NULL;
 	if (error)
 		goto out;
