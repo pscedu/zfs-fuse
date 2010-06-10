@@ -88,14 +88,6 @@ get_vnode_fids(const vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
 #define FUSE_DIRENT_SIZE(d) \
 	FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + (d)->namelen)
 
-struct fuse_dirent {
-	uint64_t	ino;
-	uint64_t	off;
-	uint32_t	namelen;
-	uint32_t	type;
-	char name[0];
-};
-
 size_t fuse_dirent_size(size_t namelen)
 {
 	return FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + namelen);
@@ -419,8 +411,8 @@ zfsslash2_release(const struct slash_creds *slcrp, void *finfo)
  */
 int
 zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
-    off_t off, void *outbuf, size_t *outbuf_len, void *attrs,
-    int nstbprefetch, void *finfo)
+	  off_t off, void *outbuf, size_t *outbuf_len, size_t *nents, 
+	  void *attrs, int nstbprefetch, void *finfo)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	vnode_t *vp = ((file_info_t *)finfo)->vp;
@@ -460,6 +452,9 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 
 	int error;
 
+	if (nents)
+		*nents = 0;
+
 	for (;;) {
 		iovec.iov_base = entry.buf;
 		iovec.iov_len = sizeof(entry.buf);
@@ -475,7 +470,8 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 			break;
 
 		/* No more room */
-		int dsize = fuse_add_direntry(NULL, NULL, 0, entry.dirent.d_name, NULL, 0);
+		int dsize = fuse_add_direntry(NULL, NULL, 0, 
+				      entry.dirent.d_name, NULL, 0);
 		if (dsize > outbuf_resid)
 			break;
 
@@ -513,7 +509,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		if (nstbprefetch) {
 			attr->rc = zfsslash2_stat(tvp, &attr->attr, cred);
 			nstbprefetch--;
-#if 1
+#if 0
 			fprintf(stderr, "slash fid: %#"PRIx64", "
 			    "zfs ino: %#"PRIx64", name: %s, mode: 0%o\n",
 			    attr->attr.sst_ino, entry.dirent.d_ino,
@@ -521,6 +517,8 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 #endif
 			attr++;
 		}
+		if (nents)
+			(*nents)++;
  next_entry:
 		VN_RELE(tvp);
 		next = entry.dirent.d_off;
