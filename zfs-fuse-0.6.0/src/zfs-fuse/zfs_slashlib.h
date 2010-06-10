@@ -55,7 +55,7 @@ void	do_exit(void);
 int	zfsslash2_replay_create(slfid_t, slfid_t, struct srt_stat *, char *);
 int	zfsslash2_replay_mkdir(slfid_t, slfid_t, struct srt_stat *, char *);
 int	zfsslash2_replay_link(slfid_t, slfid_t, int, char *);
-int	zfsslash2_replay_symlink(slfid_t, slfid_t, int, char *);
+int	zfsslash2_replay_symlink(slfid_t, slfid_t, int, char *, char *);
 
 int	zfsslash2_replay_rmdir(slfid_t, slfid_t, char *);
 int	zfsslash2_replay_unlink(slfid_t, slfid_t, char *);
