@@ -1747,15 +1747,15 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *n
 	cred.cr_gid = stat->sst_gid;
 
 	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &cred, NULL, 0, NULL, NULL); /* zfs_mkdir() */
-	if (error) {
-		VN_RELE(pvp);
+	if (error)
 		goto out;
-	}
-	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
-	VN_RELE(pvp);
-	VN_RELE(tvp);
 
+	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
  out:
+	if (pvp)
+		VN_RELE(pvp);
+	if (tvp)
+		VN_RELE(tvp);
 	return (error);
 }
 
