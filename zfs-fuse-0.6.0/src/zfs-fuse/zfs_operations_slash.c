@@ -1684,7 +1684,7 @@ out:
 }
 
 int
-zfsslash2_replay_link(slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, char *name)
+zfsslash2_replay_link(slfid_t pfid, slfid_t fid, char *name)
 {
 	int error;
 	vnode_t *pvp, *svp;
@@ -1694,13 +1694,20 @@ zfsslash2_replay_link(slfid_t pfid, __unusedx slfid_t fid, __unusedx int mode, c
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
 	pvp = svp = NULL;
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &pvp);
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
+	if (error) {
+		fprintf(stderr, "zfsslash2_replay_link(): fail to look up fid %"PRIx64, fid);
+		goto out;
+	}
+	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &svp);
 	if (error) {
 		fprintf(stderr, "zfsslash2_replay_link(): fail to look up fid %"PRIx64, fid);
 		goto out;
 	}
 	error = VOP_LINK(pvp, svp, (char *)name, &zrootcreds, NULL, 0, NULL);	/* zfs_link() */
 out:
+	if (svp)
+		VN_RELE(svp);
 	if (pvp)
 		VN_RELE(pvp);
 	return (error);
