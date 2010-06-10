@@ -838,7 +838,11 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 	vnode_t *old_vp = vp;
 
-	/* XXX readlink() causes the following to return ENOSYS (38). */
+	/* 
+	 * readlink() causes the following to return ENOSYS (38)
+	 * if the vnode is of type VLNK.  This is because its 
+	 * v_op is set to fs_nosys() for VOP_OPEN(). 
+	 */
 	error = VOP_OPEN(&vp, flags, cred, NULL);
 
 	ASSERT(old_vp == vp);
