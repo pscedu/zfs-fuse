@@ -910,7 +910,7 @@ zfsslash2_readlink(mdsio_fid_t ino, char *buf,
 	uio.uio_llimit = RLIM64_INFINITY;
 	iovec.iov_base = buf;
 	iovec.iov_len = PATH_MAX;
-	uio.uio_resid = iovec.iov_len;
+	uio.uio_resid = PATH_MAX;
 	uio.uio_loffset = 0;
 
 	error = VOP_READLINK(vp, &uio, cred, NULL);
@@ -920,7 +920,11 @@ zfsslash2_readlink(mdsio_fid_t ino, char *buf,
 
 	if (!error) {
 		VERIFY(uio.uio_loffset <= PATH_MAX);
-		buf[sizeof(buf) - 1] = '\0';
+		/*
+		 * We may not need this if we write NULL
+		 * at symlink() time.
+		 */
+		buf[uio.uio_loffset - 1] = '\0';
 	}
 
 	return error;
