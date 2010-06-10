@@ -3423,7 +3423,7 @@ out:
 /*ARGSUSED*/
 static int
 zfs_symlink(vnode_t *dvp, char *name, vattr_t *vap, char *link, cred_t *cr,
-    caller_context_t *ct, int flags, __unusedx void *func)
+    caller_context_t *ct, int flags, void *funcp)
 {
 	znode_t		*zp, *dzp = VTOZ(dvp);
 	zfs_dirlock_t	*dl;
@@ -3435,6 +3435,8 @@ zfs_symlink(vnode_t *dvp, char *name, vattr_t *vap, char *link, cred_t *cr,
 	int		zflg = ZNEW;
 	zfs_acl_ids_t	acl_ids;
 	boolean_t	fuid_dirtied;
+
+	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
 
 	ASSERT(vap->va_type == VLNK);
 
@@ -3543,6 +3545,13 @@ top:
 		if (flags & FIGNORECASE)
 			txtype |= TX_CI;
 		zfs_log_symlink(zilog, tx, txtype, dzp, zp, name, link);
+		if (logfunc) {
+			uint64_t txg;
+
+			txg = dmu_tx_get_txg(tx);
+			logfunc(NS_OP_SYMLINK, txg, dzp->z_phys->zp_s2id, 
+				0, zp->z_phys->zp_s2id, NULL, name, link);
+		}
 	}
 
 	zfs_acl_ids_free(&acl_ids);
@@ -3626,7 +3635,7 @@ zfs_readlink(vnode_t *vp, uio_t *uio, cred_t *cr, caller_context_t *ct)
 /* ARGSUSED */
 static int
 zfs_link(vnode_t *tdvp, vnode_t *svp, char *name, cred_t *cr,
-    caller_context_t *ct, int flags, __unusedx void *func)
+    caller_context_t *ct, int flags, void *funcp)
 {
 	znode_t		*dzp = VTOZ(tdvp);
 	znode_t		*tzp, *szp;
@@ -3639,6 +3648,7 @@ zfs_link(vnode_t *tdvp, vnode_t *svp, char *name, cred_t *cr,
 	int		zf = ZNEW;
 	uid_t		owner;
 
+	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
 	ASSERT(tdvp->v_type == VDIR);
 
 	ZFS_ENTER(zfsvfs);
@@ -3729,6 +3739,13 @@ top:
 		if (flags & FIGNORECASE)
 			txtype |= TX_CI;
 		zfs_log_link(zilog, tx, txtype, dzp, szp, name);
+
+		if (logfunc) {
+			uint64_t txg;
+
+			txg = dmu_tx_get_txg(tx);
+			logfunc(NS_OP_LINK, txg, dzp->z_phys->zp_s2id, 0, szp->z_phys->zp_s2id, NULL, name, NULL);
+		}
 	}
 
 	dmu_tx_commit(tx);
