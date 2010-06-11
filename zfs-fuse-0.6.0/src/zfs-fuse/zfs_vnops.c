@@ -1794,6 +1794,9 @@ top:
 		vap->va_uid = acl_ids.z_fuid;
 		vap->va_gid = acl_ids.z_fgid;
 		vap->va_mode = acl_ids.z_mode;
+		ZFS_TIME_DECODE(&vap->va_atime, zp->z_phys->zp_atime);
+		ZFS_TIME_DECODE(&vap->va_mtime, zp->z_phys->zp_mtime);
+		ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
 		zfs_vattr_to_stat(&stat, vap);
 
 		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2id, 0, zp->z_phys->zp_s2id, &stat, dirname, NULL);
