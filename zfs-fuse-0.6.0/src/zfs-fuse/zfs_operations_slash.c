@@ -1656,14 +1656,14 @@ int
 zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *name, char *link)
 {
 	int error;
-	vnode_t *pvp;
+	vnode_t *vp, *pvp;
 	vattr_t vattr;
 	cred_t cred;
 
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
-	pvp = NULL;
+	vp = pvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
 	if (error) {
 		fprintf(stderr, "zfsslash2_replay_mkdir(): fail to look up fid %"PRIx64, fid);
@@ -1685,7 +1685,18 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char 
 
 	error = VOP_SYMLINK(pvp, (char *)name, &vattr, (char *)link, &cred, NULL, 0, NULL);	/* zfs_symlink() */
 
+	if (error)
+		goto out;
+
+	error = VOP_LOOKUP(pvp, (char *)name, &vp, NULL, 0, NULL, &cred, NULL, NULL, NULL);
+	if (error)
+		goto out;
+
+	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_CREATE, vp, NULL);
+
 out:
+	if (vp)
+		VN_RELE(vp);
 	if (pvp)
 		VN_RELE(pvp);
 	return (error);
