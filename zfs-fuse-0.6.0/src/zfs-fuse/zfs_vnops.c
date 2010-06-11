@@ -3560,6 +3560,7 @@ top:
 			ZFS_TIME_DECODE(&vap->va_atime, zp->z_phys->zp_atime);
 			ZFS_TIME_DECODE(&vap->va_mtime, zp->z_phys->zp_mtime);
 			ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
+			zfs_vattr_to_stat(&stat, vap);
 			logfunc(NS_OP_SYMLINK, txg, dzp->z_phys->zp_s2id, 
 				0, zp->z_phys->zp_s2id, &stat, name, link);
 		}
