@@ -1658,6 +1658,7 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char 
 	int error;
 	vnode_t *pvp;
 	vattr_t vattr;
+	cred_t cred;
 
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
@@ -1679,7 +1680,10 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char 
 	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
 	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
 
-	error = VOP_SYMLINK(pvp, (char *)name, &vattr, (char *)link, &zrootcreds, NULL, 0, NULL);	/* zfs_symlink() */
+	cred.cr_uid = stat->sst_uid;
+	cred.cr_gid = stat->sst_gid;
+
+	error = VOP_SYMLINK(pvp, (char *)name, &vattr, (char *)link, &cred, NULL, 0, NULL);	/* zfs_symlink() */
 
 out:
 	if (pvp)
