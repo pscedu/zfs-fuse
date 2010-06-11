@@ -3550,10 +3550,18 @@ top:
 		zfs_log_symlink(zilog, tx, txtype, dzp, zp, name, link);
 		if (logfunc) {
 			uint64_t txg;
+			struct srt_stat stat;
 
 			txg = dmu_tx_get_txg(tx);
+
+			vap->va_uid = acl_ids.z_fuid;
+			vap->va_gid = acl_ids.z_fgid;
+			vap->va_mode = acl_ids.z_mode;
+			ZFS_TIME_DECODE(&vap->va_atime, zp->z_phys->zp_atime);
+			ZFS_TIME_DECODE(&vap->va_mtime, zp->z_phys->zp_mtime);
+			ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
 			logfunc(NS_OP_SYMLINK, txg, dzp->z_phys->zp_s2id, 
-				0, zp->z_phys->zp_s2id, NULL, name, link);
+				0, zp->z_phys->zp_s2id, &stat, name, link);
 		}
 	}
 

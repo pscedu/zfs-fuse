@@ -1653,7 +1653,7 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
  */
 
 int
-zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, int mode, char *name, char *link)
+zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *name, char *link)
 {
 	int error;
 	vnode_t *pvp;
@@ -1671,9 +1671,13 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, int mode, char *name, char *
 
 	memset(&vattr, 0, sizeof(vattr));
 	vattr.va_type = VLNK;
-	vattr.va_mode = mode;
+	vattr.va_mode = stat->sst_mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 	vattr.va_fid = fid;
+
+	vattr.va_mask |= AT_ATIME|AT_MTIME;
+	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
+	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
 
 	error = VOP_SYMLINK(pvp, (char *)name, &vattr, (char *)link, &zrootcreds, NULL, 0, NULL);	/* zfs_symlink() */
 
