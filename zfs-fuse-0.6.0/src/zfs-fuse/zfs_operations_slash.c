@@ -917,7 +917,7 @@ zfsslash2_readlink(mdsio_fid_t ino, char *buf,
 	ZFS_EXIT(zfsvfs);
 
 	if (!error) {
-		VERIFY(uio.uio_loffset <= PATH_MAX);
+		VERIFY(uio.uio_loffset < PATH_MAX);
 		/*
 		 * We may not need this if we write NULL
 		 * at symlink() time.
