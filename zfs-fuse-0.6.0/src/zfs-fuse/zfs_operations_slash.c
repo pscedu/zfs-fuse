@@ -411,7 +411,7 @@ zfsslash2_release(const struct slash_creds *slcrp, void *finfo)
  */
 int
 zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
-	  off_t off, void *outbuf, size_t *outbuf_len, size_t *nents, 
+	  off_t off, void *outbuf, size_t *outbuf_len, size_t *nents,
 	  void *attrs, int nstbprefetch, void *finfo)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
@@ -470,7 +470,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 			break;
 
 		/* No more room */
-		int dsize = fuse_add_direntry(NULL, NULL, 0, 
+		int dsize = fuse_add_direntry(NULL, NULL, 0,
 				      entry.dirent.d_name, NULL, 0);
 		if (dsize > outbuf_resid)
 			break;
@@ -643,7 +643,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 			 * Create an extra link to the name in the regular name
 			 * space, keeping the parent pointer intact.
 			 */
-			error = VOP_LINK(dvp, svp, id_name, &zrootcreds, NULL, 
+			error = VOP_LINK(dvp, svp, id_name, &zrootcreds, NULL,
 				FALLOWDIRLINK | FKEEPPARENT, NULL);
 		} else {
 			vattr_t vattr;
@@ -652,7 +652,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 			vattr.va_mode = 0711;
 			vattr.va_mask = AT_TYPE | AT_MODE;
 			vattr.va_fid = fid;
-			error = VOP_MKDIR(dvp, id_name, &vattr, vpp, 
+			error = VOP_MKDIR(dvp, id_name, &vattr, vpp,
 				&zrootcreds, NULL, 0, NULL, NULL);
 		}
 		goto out;
@@ -790,7 +790,8 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vnode_t *new_vp;
 
 		/* FIXME: check filesystem boundaries */
-		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode, &new_vp, cred, 0, NULL, NULL, logfunc);   /* zfs_create() */
+		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode,
+		    &new_vp, cred, 0, NULL, NULL, logfunc);   /* zfs_create() */
 
 		if (error)
 			goto out;
@@ -836,10 +837,10 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 	vnode_t *old_vp = vp;
 
-	/* 
+	/*
 	 * readlink() causes the following to return ENOSYS (38)
-	 * if the vnode is of type VLNK.  This is because its 
-	 * v_op is set to fs_nosys() for VOP_OPEN(). 
+	 * if the vnode is of type VLNK.  This is because its
+	 * v_op is set to fs_nosys() for VOP_OPEN().
 	 */
 	error = VOP_OPEN(&vp, flags, cred, NULL);		/* zfs_open() */
 
@@ -1163,7 +1164,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 	ASSERT(vp != NULL);
 
 	vattr_t vattr = { 0 };
-	
+
 	if (to_set & SRM_SETATTRF_MODE) {
 		vattr.va_mask |= AT_MODE;
 		vattr.va_mode = sstb_in->sst_mode;
@@ -1829,7 +1830,7 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 {
 	int error;
 	vnode_t *dvp, *vp;
-	
+
 	vp = NULL;
 	dvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
@@ -1843,7 +1844,7 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 		goto out;
 
 	if (VTOZ(vp)->z_phys->zp_s2id != fid) {
-		fprintf(stderr, "zfsslash2_replay_rmdir(): target ID mismatch %"PRIx64" vs. %"PRIx64, 
+		fprintf(stderr, "zfsslash2_replay_rmdir(): target ID mismatch %"PRIx64" vs. %"PRIx64,
 			VTOZ(vp)->z_phys->zp_s2id, fid);
 		error = EINVAL;
 		goto out;
@@ -1856,8 +1857,8 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 
 	if (!error) {
 		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_REMOVE|FIDLINK_DIR, NULL, NULL);
-		if (!error) 
-			/* 
+		if (!error)
+			/*
 			 * The vnode is still there, but its underlying link count is zero.
 			 */
 			assert(VTOZ(vp)->z_phys->zp_links == 0);
@@ -1887,7 +1888,7 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name)
 	if (error)
 		goto out;
 	if (VTOZ(vp)->z_phys->zp_s2id != fid) {
-		fprintf(stderr, "zfsslash2_replay_unlink(): target ID mismatch %"PRIx64" vs. %"PRIx64, 
+		fprintf(stderr, "zfsslash2_replay_unlink(): target ID mismatch %"PRIx64" vs. %"PRIx64,
 			VTOZ(vp)->z_phys->zp_s2id, fid);
 		error = EINVAL;
 		goto out;
@@ -1934,7 +1935,7 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
 	}
 
 	vattr.va_mask = mask;
-	vattr.va_mode = stat->sst_mode; 
+	vattr.va_mode = stat->sst_mode;
 	vattr.va_uid = stat->sst_uid;
 	vattr.va_gid = stat->sst_gid;
 	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
