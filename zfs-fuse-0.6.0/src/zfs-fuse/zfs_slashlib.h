@@ -52,6 +52,9 @@ void	do_exit(void);
 #define zfs_init()	do_init()
 #define zfs_exit()	do_exit()
 
+uint64_t
+zfsslash2_first_txg(void);
+
 int	zfsslash2_replay_create(slfid_t, slfid_t, struct srt_stat *, char *);
 int	zfsslash2_replay_mkdir(slfid_t, slfid_t, struct srt_stat *, char *);
 int	zfsslash2_replay_link(slfid_t, slfid_t, char *);

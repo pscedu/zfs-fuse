@@ -35,6 +35,7 @@
 #include <sys/zfs_znode.h>
 #include <sys/mode.h>
 #include <sys/fcntl.h>
+#include <sys/dmu_objset.h>
 
 #include <string.h>
 #include <errno.h>
@@ -1652,6 +1653,13 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
  * from the immutable by-id namespace (that's why we start with zfsslash2_fidlink() instead of
  * zfs_zget()); (2) we don't need to log a replayed operation.
  */
+
+uint64_t
+zfsslash2_first_txg(void) 
+{
+	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
+	return (spa_first_txg(zfsvfs->z_os->os->os_spa));
+}
 
 int
 zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *name, char *link)

@@ -1173,6 +1173,7 @@ out:
 		zfsvfs_free(zfsvfs);
 	} else {
 		atomic_add_32(&zfs_active_fs_count, 1);
+		dprintf("first txg: %lu\n", spa_first_txg(zfsvfs->z_os->os->os_spa));	/* slash2 */
 	}
 
 	return (error);
