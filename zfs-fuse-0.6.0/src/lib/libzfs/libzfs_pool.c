@@ -24,6 +24,9 @@
  * Use is subject to license terms.
  */
 
+#include <sys/types.h>
+#include <sys/stat.h>
+
 #include <alloca.h>
 #include <assert.h>
 #include <ctype.h>
