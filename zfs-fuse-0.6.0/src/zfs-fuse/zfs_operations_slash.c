@@ -394,9 +394,6 @@ zfsslash2_release(const struct slash_creds *slcrp, void *finfo)
 	ASSERT(info->vp != NULL);
 	ASSERT(VTOZ(info->vp) != NULL);
 
-	int error = VOP_CLOSE(info->vp, info->flags, 1, (offset_t) 0, cred, NULL); /* zfs_close() */
-	VERIFY(error == 0);
-
 	VN_RELE(info->vp);
 
 	kmem_cache_free(file_info_cache, info);
@@ -835,20 +832,6 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		error = ELOOP;
 		goto out;
 	}
-
-	vnode_t *old_vp = vp;
-
-	/*
-	 * readlink() causes the following to return ENOSYS (38)
-	 * if the vnode is of type VLNK.  This is because its
-	 * v_op is set to fs_nosys() for VOP_OPEN().
-	 */
-	error = VOP_OPEN(&vp, flags, cred, NULL);		/* zfs_open() */
-
-	ASSERT(old_vp == vp);
-
-	if (error)
-		goto out;
 
 	if (sstb)
 		error = zfsslash2_stat(vp, sstb, cred);
