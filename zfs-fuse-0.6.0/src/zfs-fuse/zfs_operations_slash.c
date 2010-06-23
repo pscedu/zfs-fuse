@@ -400,7 +400,7 @@ zfsslash2_release(const struct slash_creds *slcrp, void *finfo)
 
 	ZFS_EXIT(zfsvfs);
 
-	return error;
+	return 0;
 }
 
 /*
