@@ -833,10 +833,11 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		goto out;
 	}
 
-	if (sstb)
+	if (sstb) {
 		error = zfsslash2_stat(vp, sstb, cred);
-	if (error)
-		goto out;
+		if (error)
+			goto out;
+	}
 
 	/* XXX it should not be an error if we can't cache the vnode */
 	*finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
