@@ -563,14 +563,14 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 	if (flags & FIDLINK_LOOKUP) {
 		if (fid == 1) {
 #if 0
-			/*
-			 * I have found a place in zfs_mknode() where I can write slash ID 1 into the
-			 * root node.  This function is called by dsl_pool_create() twice, once by
-			 * zfs_create_fs(), once by zfs_create_share_dir().  Both time I see the
-			 * IS_ROOT_NODE flag is used.  I don't know why ZFS seems to create two root
-			 * nodes.  But the change seems to fix my problem and make the hack here
-			 * unneeded.  I discovered this with gdb while creating a zpool.
-			 */
+/*
+ * I have found a place in zfs_mknode() where I can write slash ID 1 into the
+ * root node.  This function is called by dsl_pool_create() twice, once by
+ * zfs_create_fs(), once by zfs_create_share_dir().  Both time I see the
+ * IS_ROOT_NODE flag is used.  I don't know why ZFS seems to create two root
+ * nodes.  But the change seems to fix my problem and make the hack here
+ * unneeded.  I discovered this with gdb while creating a zpool.
+ */
 			VTOZ(dvp)->z_phys->zp_s2id = 1;
 #endif
 			*vpp = dvp;
@@ -598,10 +598,12 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 	id_name[1] = '\0';
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
 		/*
-		 * Extract BPHXC bits at a time and convert them to a digit or a lower-case
-		 * letter to construct our pathname component.  5 means we start with 5th
-		 * hex digit from the right side.  If the depth is 3, then we have 0xfff or
-		 * 4095 files in a directory in the by-id namespace.
+		 * Extract BPHXC bits at a time and convert them to 
+		 *    a digit or a lower-case letter to construct 
+		 *    our pathname component.  5 means we start with 5th
+		 *    hex digit from the right side.  If the depth is 3, 
+		 *    then we have 0xfff or 4095 files in a directory 
+		 *    in the by-id namespace.
 		 */
 		c = (uint8_t)((fid & (UINT64_C(0x0000000000f00000) >> i*BPHXC)) >> ((5-i) * BPHXC));
 		/* convert a hex digit to its corresponding ascii digit or lower case letter */
@@ -797,7 +799,8 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		VN_RELE(vp);
 		vp = new_vp;
 
-		if ((error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_CREATE, vp, NULL)))
+		if ((error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, 
+			       FIDLINK_CREATE, vp, NULL)))
 			goto out;
 	} else {
 		/*
