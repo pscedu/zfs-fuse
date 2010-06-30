@@ -1339,12 +1339,13 @@ top:
 			vap->va_mode = acl_ids.z_mode;
 			zfs_vattr_to_stat(&stat, vap);
 
-			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2id, 0, vap->va_fid, &stat, name, NULL);
+			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2id, 0, 
+				vap->va_fid, &stat, name, NULL);
 		}
 
 		zfs_acl_ids_free(&acl_ids);
 		dmu_tx_commit(tx);
-		zil_commit(zfsvfs->z_log, zp->z_last_itx, zp->z_id);
+		//zil_commit(zfsvfs->z_log, zp->z_last_itx, zp->z_id);
 	} else {
 		int aflags = (flag & FAPPEND) ? V_APPEND : 0;
 
