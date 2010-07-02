@@ -598,11 +598,11 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 	id_name[1] = '\0';
 	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
 		/*
-		 * Extract BPHXC bits at a time and convert them to 
-		 *    a digit or a lower-case letter to construct 
+		 * Extract BPHXC bits at a time and convert them to
+		 *    a digit or a lower-case letter to construct
 		 *    our pathname component.  5 means we start with 5th
-		 *    hex digit from the right side.  If the depth is 3, 
-		 *    then we have 0xfff or 4095 files in a directory 
+		 *    hex digit from the right side.  If the depth is 3,
+		 *    then we have 0xfff or 4095 files in a directory
 		 *    in the by-id namespace.
 		 */
 		c = (uint8_t)((fid & (UINT64_C(0x0000000000f00000) >> i*BPHXC)) >> ((5-i) * BPHXC));
@@ -708,7 +708,7 @@ int
 zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
     int fflags, mode_t createmode, const char *name,
     struct slash_fidgen *fg, mdsio_fid_t *mfp, struct srt_stat *sstb,
-    void **finfo, sl_log_update logfunc, sl_getslfid_cb getslfid)
+    void **finfo, sl_log_update_t logfunc, sl_getslfid_cb_t getslfid)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -799,7 +799,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		VN_RELE(vp);
 		vp = new_vp;
 
-		if ((error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, 
+		if ((error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id,
 			       FIDLINK_CREATE, vp, NULL)))
 			goto out;
 	} else {
@@ -965,7 +965,7 @@ int
 zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
     const struct slash_creds *slcrp, struct srt_stat *sstb,
     struct slash_fidgen *fg, mdsio_fid_t *mfp,
-    sl_log_update logfunc, sl_getslfid_cb getslfid)
+    sl_log_update_t logfunc, sl_getslfid_cb_t getslfid)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1026,7 +1026,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 
 int
 zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
-    const struct slash_creds *slcrp, sl_log_update logfunc)
+    const struct slash_creds *slcrp, sl_log_update_t logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1081,7 +1081,7 @@ out:
 int
 zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
     int to_set, const struct slash_creds *slcrp,
-    struct srt_stat *sstb_out, void *finfo, sl_log_update logfunc)
+    struct srt_stat *sstb_out, void *finfo, sl_log_update_t logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1208,7 +1208,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 int
 zfsslash2_unlink(mdsio_fid_t parent, const char *name,
-    const struct slash_creds *slcrp, sl_log_update logfunc)
+    const struct slash_creds *slcrp, sl_log_update_t logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1268,7 +1268,8 @@ zfsslash2_unlink(mdsio_fid_t parent, const char *name,
  */
 int
 zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
-    size_t size, size_t *nb, off_t off, void *finfo, sl_log_write funcp, void *datap)
+    size_t size, size_t *nb, off_t off, void *finfo,
+    sl_log_write_t funcp, void *datap)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	file_info_t *info = finfo;
@@ -1382,8 +1383,8 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 int
 zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
     const struct slash_creds *slcrp, struct srt_stat *sstb,
-    struct slash_fidgen *fg, mdsio_fid_t *mfp, sl_getslfid_cb getslfid,
-    sl_log_update logfunc)
+    struct slash_fidgen *fg, mdsio_fid_t *mfp, sl_getslfid_cb_t getslfid,
+    sl_log_update_t logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1452,8 +1453,9 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 }
 
 int
-zfsslash2_rename(mdsio_fid_t parent, const char *name, mdsio_fid_t newparent,
-    const char *newname, const struct slash_creds *slcrp, sl_log_update logfunc)
+zfsslash2_rename(mdsio_fid_t parent, const char *name,
+    mdsio_fid_t newparent, const char *newname,
+    const struct slash_creds *slcrp, sl_log_update_t logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1530,7 +1532,7 @@ zfsslash2_fsync(const struct slash_creds *slcrp, int datasync,
 int
 zfsslash2_link(mdsio_fid_t ino, mdsio_fid_t newparent, const char *newname,
     struct slash_fidgen *fg, const struct slash_creds *slcrp,
-    struct srt_stat *sstb, sl_log_update logfunc)
+    struct srt_stat *sstb, sl_log_update_t logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1642,7 +1644,7 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
  */
 
 uint64_t
-zfsslash2_first_txg(void) 
+zfsslash2_first_txg(void)
 {
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
 	return (spa_first_txg(zfsvfs->z_os->os->os_spa));
