@@ -595,7 +595,8 @@ out:
  */
 /* ARGSUSED */
 static int
-zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct)
+zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct,
+    void *funcp, void *datap)
 {
 	znode_t		*zp = VTOZ(vp);
 	rlim64_t	limit = uio->uio_llimit;
@@ -612,6 +613,11 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct)
 	uint64_t	pflags;
 	int		error;
 	arc_buf_t	*abuf;
+
+	uint64_t	txg;
+	sl_log_write	logfuncp;	
+
+	logfuncp = (sl_log_write) funcp;
 
 	/*
 	 * Fasttrack empty write
@@ -853,7 +859,14 @@ again:
 			(void) atomic_cas_64(&zp->z_phys->zp_size, end_size,
 			    uio->uio_loffset);
 		zfs_log_write(zilog, tx, TX_WRITE, zp, woff, tx_bytes, ioflag);
+
+		if (logfuncp)
+			txg = dmu_tx_get_txg(tx);
+
 		dmu_tx_commit(tx);
+
+		if (logfuncp)
+			logfuncp(datap, txg);
 
 		if (error != 0)
 			break;
@@ -1196,7 +1209,7 @@ zfs_create(vnode_t *dvp, char *name, vattr_t *vap, vcexcl_t excl,
 	boolean_t	fuid_dirtied;
 	uint64_t	seq, foid;
 
-	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
+	sl_log_update	logfunc = (sl_log_update)funcp;
 
 	/*
 	 * If we have an ephemeral id, ACL, or XVATTR then
@@ -1460,7 +1473,7 @@ zfs_remove(vnode_t *dvp, char *name, cred_t *cr, caller_context_t *ct,
 	int		error;
 	int		zflg = ZEXISTS;
 
-	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
+	sl_log_update	logfunc = (sl_log_update)funcp;
 
 	ZFS_ENTER(zfsvfs);
 	ZFS_VERIFY_ZP(dzp);
@@ -1668,7 +1681,7 @@ zfs_mkdir(vnode_t *dvp, char *dirname, vattr_t *vap, vnode_t **vpp, cred_t *cr,
 	zfs_acl_ids_t	acl_ids;
 	boolean_t	fuid_dirtied;
 
-	sl_jlog_cb	logfunc = (sl_jlog_cb) funcp;
+	sl_log_update	logfunc = (sl_log_update) funcp;
 	ASSERT(vap->va_type == VDIR);
 
 	/*
@@ -1844,7 +1857,7 @@ zfs_rmdir(vnode_t *dvp, char *name, vnode_t *cwd, cred_t *cr,
 	int		error;
 	int		zflg = ZEXISTS;
 
-	sl_jlog_cb	logfunc = (sl_jlog_cb) funcp;
+	sl_log_update	logfunc = (sl_log_update) funcp;
 
 	ZFS_ENTER(zfsvfs);
 	ZFS_VERIFY_ZP(dzp);
@@ -2482,7 +2495,7 @@ zfs_setattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 	boolean_t skipaclchk = (flags & ATTR_NOACLCHECK) ? B_TRUE : B_FALSE;
 	boolean_t fuid_dirtied = B_FALSE;
 
-	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
+	sl_log_update	logfunc = (sl_log_update)funcp;
 
 	if (mask == 0)
 		return (0);
@@ -3133,7 +3146,7 @@ zfs_rename(vnode_t *sdvp, char *snm, vnode_t *tdvp, char *tnm, cred_t *cr,
 	int		error = 0;
 	int		zflg = 0;
 
-	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
+	sl_log_update	logfunc = (sl_log_update)funcp;
 
 	ZFS_ENTER(zfsvfs);
 	ZFS_VERIFY_ZP(sdzp);
@@ -3440,7 +3453,7 @@ zfs_symlink(vnode_t *dvp, char *name, vattr_t *vap, char *link, cred_t *cr,
 	zfs_acl_ids_t	acl_ids;
 	boolean_t	fuid_dirtied;
 
-	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
+	sl_log_update	logfunc = (sl_log_update)funcp;
 
 	ASSERT(vap->va_type == VLNK);
 
@@ -3661,7 +3674,7 @@ zfs_link(vnode_t *tdvp, vnode_t *svp, char *name, cred_t *cr,
 	int		zf = ZNEW;
 	uid_t		owner;
 
-	sl_jlog_cb	logfunc = (sl_jlog_cb)funcp;
+	sl_log_update	logfunc = (sl_log_update)funcp;
 	ASSERT(tdvp->v_type == VDIR);
 
 	ZFS_ENTER(zfsvfs);

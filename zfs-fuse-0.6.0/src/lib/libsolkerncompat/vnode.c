@@ -671,7 +671,7 @@ vn_rdwr(
 	if (rw == UIO_WRITE) {
 		uio.uio_fmode = FWRITE;
 		uio.uio_extflg = UIO_COPY_DEFAULT;
-		error = VOP_WRITE(vp, &uio, ioflag, cr, NULL);
+		error = VOP_WRITE(vp, &uio, ioflag, cr, NULL, NULL, NULL);
 	} else {
 		uio.uio_fmode = FREAD;
 		uio.uio_extflg = UIO_COPY_CACHED;
@@ -1258,11 +1258,13 @@ fop_write(
 	uio_t *uiop,
 	int ioflag,
 	cred_t *cr,
-	caller_context_t *ct)
+	caller_context_t *ct,
+	void *funcp,
+	void *datap)
 {
 	int	err;
 
-	err = (*(vp)->v_op->vop_write)(vp, uiop, ioflag, cr, ct);
+	err = (*(vp)->v_op->vop_write)(vp, uiop, ioflag, cr, ct, funcp, datap);
 	VOPSTATS_UPDATE_IO(vp, write,
 	    write_bytes, (resid_start - uiop->uio_resid));
 	return (err);

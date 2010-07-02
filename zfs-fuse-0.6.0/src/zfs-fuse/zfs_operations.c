@@ -1126,7 +1126,7 @@ static int zfsfuse_write(fuse_req_t req, fuse_ino_t ino, const char *buf, size_t
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	int error = VOP_WRITE(vp, &uio, info->flags, &cred, NULL);
+	int error = VOP_WRITE(vp, &uio, info->flags, &cred, NULL, NULL, NULL);
 
 	ZFS_EXIT(zfsvfs);
 
