@@ -1647,7 +1647,19 @@ uint64_t
 zfsslash2_first_txg(void)
 {
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
+	/* return the first txg via the SPA (Storage Pool Allocator) layer */
 	return (spa_first_txg(zfsvfs->z_os->os->os_spa));
+}
+
+void
+zfsslash2_wait_synced(uint64_t txg)
+{
+	dsl_pool_t *dp;
+	
+
+	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
+	dp = spa_get_dsl(zfsvfs->z_os->os->os_spa);
+	txg_wait_synced(dp, txg);
 }
 
 int
