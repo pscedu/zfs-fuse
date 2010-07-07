@@ -90,6 +90,8 @@ extern void txg_delay(struct dsl_pool *dp, uint64_t txg, int ticks);
  */
 extern void txg_wait_synced(struct dsl_pool *dp, uint64_t txg);
 
+extern uint64_t txg_return_synced(struct dsl_pool *dp);
+
 /*
  * Wait until the given transaction group, or one after it, is
  * the open transaction group.  Try to make this happen as soon

@@ -428,6 +428,18 @@ txg_delay(dsl_pool_t *dp, uint64_t txg, int ticks)
 	mutex_exit(&tx->tx_sync_lock);
 }
 
+uint64_t
+txg_return_synced(dsl_pool_t *dp)
+{
+	uint64_t txg;
+	tx_state_t *tx = &dp->dp_tx;
+
+	mutex_enter(&tx->tx_sync_lock);
+	txg = tx->tx_synced_txg;
+	mutex_exit(&tx->tx_sync_lock);
+	return (txg);
+}
+
 void
 txg_wait_synced(dsl_pool_t *dp, uint64_t txg)
 {

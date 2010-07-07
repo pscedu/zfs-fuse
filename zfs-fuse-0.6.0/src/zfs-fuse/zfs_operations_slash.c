@@ -1655,11 +1655,22 @@ void
 zfsslash2_wait_synced(uint64_t txg)
 {
 	dsl_pool_t *dp;
-	
 
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
 	dp = spa_get_dsl(zfsvfs->z_os->os->os_spa);
 	txg_wait_synced(dp, txg);
+}
+
+uint64_t
+zfsslash2_return_synced(void)
+{
+	dsl_pool_t *dp;
+	uint64_t txg;
+
+	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
+	dp = spa_get_dsl(zfsvfs->z_os->os->os_spa);
+	txg = txg_return_synced(dp);
+	return (txg);
 }
 
 int
