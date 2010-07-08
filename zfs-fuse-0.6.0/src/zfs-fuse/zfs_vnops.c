@@ -614,7 +614,6 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct,
 	int		error;
 	arc_buf_t	*abuf;
 
-	uint64_t	txg;
 	sl_log_write_t	logfuncp = funcp;
 
 	/*
@@ -858,13 +857,10 @@ again:
 			    uio->uio_loffset);
 		zfs_log_write(zilog, tx, TX_WRITE, zp, woff, tx_bytes, ioflag);
 
-		if (logfuncp)
-			txg = dmu_tx_get_txg(tx);
+		if (logfuncp) 
+			logfuncp(datap, dmu_tx_get_txg(tx));
 
 		dmu_tx_commit(tx);
-
-		if (logfuncp)
-			logfuncp(datap, txg);
 
 		if (error != 0)
 			break;
