@@ -1648,7 +1648,8 @@ zfsslash2_last_synced_txg(void)
 {
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
 	/* return the first txg via the SPA (Storage Pool Allocator) layer */
-	return (spa_last_synced_txg(zfsvfs->z_os->os->os_spa));
+	//return (spa_last_synced_txg(zfsvfs->z_os->os->os_spa));
+	return (spa_first_txg(zfsvfs->z_os->os->os_spa));
 }
 
 void
