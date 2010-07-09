@@ -63,7 +63,7 @@ int	zfsslash2_replay_setattr(slfid_t, struct srt_stat *, uint);
 
 int	zfsslash2_replay_rename(slfid_t, const char *, slfid_t, const char *);
 
-uint64_t	zfsslash2_first_txg(void);
+uint64_t	zfsslash2_last_synced_txg(void);
 uint64_t	zfsslash2_return_synced(void);
 void		zfsslash2_wait_synced(uint64_t);
 
