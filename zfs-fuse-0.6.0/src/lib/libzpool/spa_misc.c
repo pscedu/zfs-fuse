@@ -444,6 +444,7 @@ spa_add(const char *name, const char *altroot)
 	spa->spa_state = POOL_STATE_UNINITIALIZED;
 	spa->spa_freeze_txg = UINT64_MAX;
 	spa->spa_final_txg = UINT64_MAX;
+	spa->spa_load_txg = UINT64_MAX;
 
 	refcount_create(&spa->spa_refcount);
 	spa_config_lock_init(spa);
@@ -1201,6 +1202,13 @@ spa_first_txg(spa_t *spa)
 {
 	return (spa->spa_first_txg);
 }
+
+uint64_t
+spa_load_txg(spa_t *spa)
+{
+	return (spa->spa_load_txg);
+}
+
 
 pool_state_t
 spa_state(spa_t *spa)

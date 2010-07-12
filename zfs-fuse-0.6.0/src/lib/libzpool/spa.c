@@ -1307,6 +1307,13 @@ spa_load(spa_t *spa, nvlist_t *config, spa_load_state_t state, int mosconfig)
 	spa->spa_state = POOL_STATE_ACTIVE;
 	spa->spa_ubsync = spa->spa_uberblock;
 	spa->spa_first_txg = spa_last_synced_txg(spa) + 1;
+
+	/*
+	 * slash2: Based on my experiment, the same pool could be loaded more than once.
+ 	 */
+	if (spa->spa_load_txg == UINT64_MAX)
+		spa->spa_load_txg = spa_last_synced_txg(spa);
+	
 	error = dsl_pool_open(spa, spa->spa_first_txg, &spa->spa_dsl_pool);
 	if (error) {
 		dprintf("spa_load(): error %i in dsl_pool_open()\n", error);
