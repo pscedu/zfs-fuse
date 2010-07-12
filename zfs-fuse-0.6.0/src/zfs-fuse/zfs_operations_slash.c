@@ -1673,10 +1673,6 @@ zfsslash2_return_synced(void)
 	return (txg);
 }
 
-void
-zfsslash2_update_txg(uint64_txg)
-{
-
 int
 zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *name, char *link)
 {
