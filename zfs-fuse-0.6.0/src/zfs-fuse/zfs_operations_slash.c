@@ -792,7 +792,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 		/* FIXME: check filesystem boundaries */
 		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode,
-		    &new_vp, cred, 0, NULL, NULL, logfunc);   /* zfs_create() */
+			   &new_vp, cred, 0, NULL, NULL, logfunc);   		/* zfs_create() */
 
 		if (error)
 			goto out;
@@ -1951,7 +1951,7 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
 	vp = NULL;
 	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP, NULL, &vp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_setattr(): fail to look up fid %"PRIx64, fid);
+		fprintf(stderr, "zfsslash2_replay_setattr(): fail to look up fid %"PRIx64"\n", fid);
 		goto out;
 	}
 
