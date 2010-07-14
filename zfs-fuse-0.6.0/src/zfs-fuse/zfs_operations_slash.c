@@ -691,7 +691,8 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
 	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP, NULL, &vp);
 	if (error)
 		return (error);
-	error = zfsslash2_stat(vp, sstb, cred);
+	if (sstb)
+		error = zfsslash2_stat(vp, sstb, cred);
 	if (error)
 		goto out;
 	get_vnode_fids(vp, &fg, mfp);
