@@ -630,7 +630,10 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct,
 
 		error = dmu_write_uio(zfsvfs->z_os, zp->z_id, uio,
 			    uio->uio_resid, tx);
-		dmu_tx_commit(tx);
+		if (error)
+			dmu_tx_abort(tx);
+		else
+			dmu_tx_commit(tx);
 		return (error);
 	}
 
