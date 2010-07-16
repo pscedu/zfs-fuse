@@ -702,12 +702,29 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
 	return (error);
 }
 
-/*
- * Note that ino is the target inode if this is an open, otherwise it is the inode of the parent.
+/**
+ * zfsslash2_opencreate - Open a file (create if necessary).
+ * @ino: parent inode if O_CREAT is specified; otherwise, the ZFS inum
+ *	of file to open.
+ * @slcrp: credentials with which to perform access.
+ * @fflags: file open flags.
+ * @opflags: operation flags (see MDSIO_OPENCRF_*).
+ * @createmode: permission set new file should take on.
+ * @name: link base name to use in parent directory if creating.
+ * @fg: value-result FID+GEN of file if creating.
+ * @mfp: value-result ZFS inum if creating.
+ * @sstb: value-result stat buffer of file.
+ * @finfo: value-result handle to ZFS structure; used as a descriptor to
+ *	all other mdsio routines.
+ * @logfunc: callback for logging create operation.
+ * @getslfid: callback for retrieving a unique SLASH FID.
+ *
+ * Note that ino is the target inode if this is an open, otherwise it is
+ * the inode of the parent.
  */
 int
 zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
-    int fflags, mode_t createmode, const char *name,
+    int fflags, int opflags, mode_t createmode, const char *name,
     struct slash_fidgen *fg, mdsio_fid_t *mfp, struct srt_stat *sstb,
     void **finfo, sl_log_update_t logfunc, sl_getslfid_cb_t getslfid)
 {
@@ -792,7 +809,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 		/* FIXME: check filesystem boundaries */
 		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode,
-			   &new_vp, cred, 0, NULL, NULL, logfunc);   		/* zfs_create() */
+			   &new_vp, cred, 0, NULL, NULL, logfunc);		/* zfs_create() */
 
 		if (error)
 			goto out;
@@ -800,9 +817,13 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		VN_RELE(vp);
 		vp = new_vp;
 
-		if ((error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id,
-			       FIDLINK_CREATE, vp, NULL)))
-			goto out;
+		if ((opflags & MDSIO_OPENCRF_NOLINK) == 0) {
+			error = zfsslash2_fidlink(
+			    VTOZ(vp)->z_phys->zp_s2id,
+			    FIDLINK_CREATE, vp, NULL);
+			if (error)
+				goto out;
+		}
 	} else {
 		/*
 		 * Get the attributes to check whether file is large.
