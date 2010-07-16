@@ -971,6 +971,8 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 			return (err);
 	}
 
+	txstate->tx_txg_count++;
+
 	return (0);
 }
 
