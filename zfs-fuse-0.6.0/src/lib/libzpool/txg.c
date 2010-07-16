@@ -258,6 +258,7 @@ txg_quiesce(dsl_pool_t *dp, uint64_t txg)
 
 	ASSERT(txg == tx->tx_open_txg);
 	tx->tx_open_txg++;
+	tx->tx_txg_count = 0;
 
 	/*
 	 * Now that we've incremented tx_open_txg, we can let threads

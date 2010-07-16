@@ -863,6 +863,7 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 	spa_t *spa = tx->tx_pool->dp_spa;
 	uint64_t memory, asize, fsize, usize;
 	uint64_t towrite, tofree, tooverwrite, tounref, tohold, fudge;
+	tx_state_t *txstate;
 
 	ASSERT3U(tx->tx_txg, ==, 0);
 
@@ -885,6 +886,9 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 
 		return (ERESTART);
 	}
+
+	if (txg_how && txstate->tx_txg_count == 0)
+		sched_yield();
 
 	tx->tx_txg = txg_hold_open(tx->tx_pool, &tx->tx_txgh);
 	tx->tx_needassign_txh = NULL;
