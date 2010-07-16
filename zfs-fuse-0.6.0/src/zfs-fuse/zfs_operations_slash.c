@@ -45,8 +45,9 @@
 #include "util.h"
 
 #include "fid.h"
-#include "sltypes.h"
+#include "slashd/mdsio.h"
 #include "slashrpc.h"
+#include "sltypes.h"
 #include "zfs_slashlib.h"
 
 kmem_cache_t	*file_info_cache;
@@ -319,7 +320,7 @@ zfsslash2_lookup(mdsio_fid_t parent, const char *name,
  */
 int
 zfsslash2_opendir(mdsio_fid_t ino, const struct slash_creds *slcrp,
-    struct slash_fidgen *fg, void **finfo)
+    struct slash_fidgen *fg, void *finfop)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -361,14 +362,15 @@ zfsslash2_opendir(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		goto out;
 
 	/* XXX convert to the slash d_ino cache */
-	*finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
-	if (*finfo == NULL) {
+	file_info_t *finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
+	if (finfo == NULL) {
 		error = ENOMEM;
 		goto out;
 	}
+	*(void **)finfop = finfo;
 
-	((file_info_t *)(*finfo))->vp = vp;
-	((file_info_t *)(*finfo))->flags = FREAD;
+	finfo->vp = vp;
+	finfo->flags = FREAD;
 
 	get_vnode_fids(vp, fg, NULL);
 
@@ -726,7 +728,7 @@ int
 zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
     int fflags, int opflags, mode_t createmode, const char *name,
     struct slash_fidgen *fg, mdsio_fid_t *mfp, struct srt_stat *sstb,
-    void **finfo, sl_log_update_t logfunc, sl_getslfid_cb_t getslfid)
+    void *finfop, sl_log_update_t logfunc, sl_getslfid_cb_t getslfid)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -807,9 +809,13 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 		vnode_t *new_vp;
 
+		mdsio_cb_pre_create();
+
 		/* FIXME: check filesystem boundaries */
 		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode,
 			   &new_vp, cred, 0, NULL, NULL, logfunc);		/* zfs_create() */
+
+		mdsio_cb_post_create();
 
 		if (error)
 			goto out;
@@ -865,14 +871,15 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 	}
 
 	/* XXX it should not be an error if we can't cache the vnode */
-	*finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
-	if (*finfo == NULL) {
+	file_info_t *finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
+	if (finfo == NULL) {
 		error = ENOMEM;
 		goto out;
 	}
+	*(void **)finfop = finfo;
 
-	((file_info_t *)(*finfo))->vp = vp;
-	((file_info_t *)(*finfo))->flags = flags;
+	finfo->vp = vp;
+	finfo->flags = flags;
 
 	get_vnode_fids(vp, fg, mfp);
 
@@ -1621,7 +1628,10 @@ zfsslash2_link(mdsio_fid_t ino, mdsio_fid_t newparent, const char *newname,
 	ASSERT(svp != NULL);
 	ASSERT(tdvp != NULL);
 
+	mdsio_cb_pre_create();
 	error = VOP_LINK(tdvp, svp, (char *)newname, cred, NULL, 0, logfunc);	/* zfs_link() */
+	mdsio_cb_post_create();
+
 	vnode_t *vp = NULL;
 	if (error)
 		goto out;
