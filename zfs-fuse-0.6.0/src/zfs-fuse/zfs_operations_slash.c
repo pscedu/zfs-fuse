@@ -1332,7 +1332,7 @@ zfsslash2_write_cursor(void *buf, size_t size, void *finfo)
 	uio.uio_resid = iovec.iov_len;
 	uio.uio_loffset = 0;
 
-	int error = VOP_WRITE(vp, &uio, 0x12345678, &zrootcreds, NULL, NULL, NULL);
+	int error = VOP_WRITE(vp, &uio, 0x12345678, &zrootcreds, NULL, NULL, NULL);	/* zfs_write() */
 
 	ZFS_EXIT(zfsvfs);
 
@@ -1680,7 +1680,7 @@ zfsslash2_last_synced_txg(void)
 {
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
 	/* return the last synced txg via the SPA (Storage Pool Allocator) layer */
-	return (spa_load_txg(zfsvfs->z_os->os->os_spa));
+	return (spa_first_txg(zfsvfs->z_os->os->os_spa));
 }
 
 void
