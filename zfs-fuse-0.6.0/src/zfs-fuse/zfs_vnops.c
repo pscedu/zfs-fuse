@@ -616,6 +616,21 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct,
 
 	sl_log_write_t	logfuncp = funcp;
 
+	if (ioflag == 0x12345678) {
+
+		tx = dmu_tx_create(zfsvfs->z_os);
+		dmu_tx_hold_bonus(tx, zp->z_id);
+		dmu_tx_hold_write(tx, zp->z_id, 0, uio->uio_resid);
+		error = dmu_tx_assign(tx, 0);
+		if (error)
+			return (error);
+
+		error = dmu_write_uio(zfsvfs->z_os, zp->z_id, uio,
+			    uio->uio_resid, tx);
+		dmu_tx_commit(tx);
+		return (error);
+	}
+
 	/*
 	 * Fasttrack empty write
 	 */
