@@ -56,6 +56,7 @@
 #include <sys/zfs_acl.h>
 #include <sys/zfs_ioctl.h>
 #include <sys/fs/zfs.h>
+#include <sys/dsl_pool.h>
 #include <sys/dmu.h>
 #include <sys/spa.h>
 #include <sys/txg.h>
@@ -624,6 +625,8 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct,
 		error = dmu_tx_assign(tx, 0);
 		if (error)
 			return (error);
+
+		txg_slash2_wait(dmu_tx_pool(tx));
 
 		error = dmu_write_uio(zfsvfs->z_os, zp->z_id, uio,
 			    uio->uio_resid, tx);

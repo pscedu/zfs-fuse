@@ -60,6 +60,9 @@ typedef struct tx_state {
 	kcondvar_t	tx_timeout_cv;
 	kcondvar_t	tx_exit_cv;	/* wait for all threads to exit */
 
+	kcondvar_t	tx_slash2_cv;
+	kmutex_t	tx_slash2_lock;	
+
 	uint8_t		tx_threads;	/* number of threads */
 	uint8_t		tx_exiting;	/* set when we're exiting */
 

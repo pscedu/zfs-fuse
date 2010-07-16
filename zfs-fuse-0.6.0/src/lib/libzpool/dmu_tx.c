@@ -1167,3 +1167,10 @@ dmu_tx_get_txg(dmu_tx_t *tx)
 	ASSERT(tx->tx_txg != 0);
 	return (tx->tx_txg);
 }
+
+
+struct dsl_pool *
+dmu_tx_pool(dmu_tx_t *tx)
+{
+	return (tx->tx_pool);
+}
