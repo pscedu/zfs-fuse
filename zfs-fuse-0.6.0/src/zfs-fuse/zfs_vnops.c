@@ -617,7 +617,7 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct,
 
 	sl_log_write_t	logfuncp = funcp;
 
-	if (ioflag == 0x12345678) {
+	if (ioflag == SLASH2_CURSOR_FLAG) {
 
 		tx = dmu_tx_create(zfsvfs->z_os);
 		dmu_tx_hold_bonus(tx, zp->z_id);
