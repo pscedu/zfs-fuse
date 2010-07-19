@@ -890,7 +890,13 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 	if (txg_how && txstate->tx_txg_count == 0)
 		sched_yield();
 	
-	ASSERT(txg_how == 0 && txstate->tx_txg_count == 0);
+	/* Make sure that when txg_how == 0, it will be the first */
+	if (txg_how == 0)
+		ASSERT(txstate->tx_txg_count == 0);
+	else {
+		ASSERT(txg_how > 0);
+		ASSERT(txstate->tx_txg_count > 0);
+	}
 
 	tx->tx_txg = txg_hold_open(tx->tx_pool, &tx->tx_txgh);
 	tx->tx_needassign_txh = NULL;
