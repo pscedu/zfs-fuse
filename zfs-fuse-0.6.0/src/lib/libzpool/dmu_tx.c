@@ -38,6 +38,7 @@
 typedef void (*dmu_tx_hold_func_t)(dmu_tx_t *tx, struct dnode *dn,
     uint64_t arg1, uint64_t arg2);
 
+static int dmu_tx_wait_flag = 0;
 
 dmu_tx_t *
 dmu_tx_create_dd(dsl_dir_t *dd)
@@ -55,11 +56,17 @@ dmu_tx_create_dd(dsl_dir_t *dd)
 	return (tx);
 }
 
+void
+dmu_tx_set_wait(void)
+{
+	dmu_tx_wait_flag = 1;
+}
+
 dmu_tx_t *
 dmu_tx_create_wait(objset_t *os)
 {
 	dmu_tx_t *tx = dmu_tx_create_dd(os->os->os_dsl_dataset->ds_dir);
-	tx->tx_wait = 1;
+	tx->tx_wait = dmu_tx_wait_flag;
 	tx->tx_objset = os;
 	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os->os_dsl_dataset);
 	return (tx);
@@ -874,7 +881,9 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 	spa_t *spa = tx->tx_pool->dp_spa;
 	uint64_t memory, asize, fsize, usize;
 	uint64_t towrite, tofree, tooverwrite, tounref, tohold, fudge;
+#ifdef ZFS_SLASHLIB
 	tx_state_t *txstate;
+#endif
 
 	ASSERT3U(tx->tx_txg, ==, 0);
 
@@ -898,7 +907,8 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 		return (ERESTART);
 	}
 
-	if (tx->tx_wait) { 
+#ifdef ZFS_SLASHLIB
+	if (tx->tx_wait) {
 		txstate = &tx->tx_pool->dp_tx;
 		if (txg_how && txstate->tx_txg_count == 0)
 			sched_yield();
@@ -911,7 +921,7 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 			ASSERT(txstate->tx_txg_count > 0);
 		}
 	}
-
+#endif
 	tx->tx_txg = txg_hold_open(tx->tx_pool, &tx->tx_txgh);
 	tx->tx_needassign_txh = NULL;
 
@@ -993,7 +1003,10 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 			return (err);
 	}
 
-	txstate->tx_txg_count++;
+#ifdef ZFS_SLASHLIB
+	if (tx->tx_wait)
+		txstate->tx_txg_count++;
+#endif
 
 	return (0);
 }
