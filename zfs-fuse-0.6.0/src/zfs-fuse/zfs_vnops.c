@@ -619,7 +619,7 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct,
 
 	if (ioflag == SLASH2_CURSOR_FLAG) {
 
-		tx = dmu_tx_create(zfsvfs->z_os);
+		tx = dmu_tx_create_wait(zfsvfs->z_os);
 		dmu_tx_hold_bonus(tx, zp->z_id);
 		dmu_tx_hold_write(tx, zp->z_id, 0, uio->uio_resid);
 		error = dmu_tx_assign(tx, 0);
@@ -775,7 +775,7 @@ again:
 		/*
 		 * Start a transaction.
 		 */
-		tx = dmu_tx_create(zfsvfs->z_os);
+		tx = dmu_tx_create_wait(zfsvfs->z_os);
 		dmu_tx_hold_bonus(tx, zp->z_id);
 		dmu_tx_hold_write(tx, zp->z_id, woff, MIN(n, max_blksz));
 		error = dmu_tx_assign(tx, TXG_NOWAIT);
@@ -1321,7 +1321,7 @@ top:
 			goto out;
 		}
 
-		tx = dmu_tx_create(os);
+		tx = dmu_tx_create_wait(os);
 		dmu_tx_hold_bonus(tx, DMU_NEW_OBJECT);
 		fuid_dirtied = zfsvfs->z_fuid_dirty;
 		if (fuid_dirtied)
@@ -1550,7 +1550,7 @@ top:
 	 * other holds on the vnode.  So we dmu_tx_hold() the right things to
 	 * allow for either case.
 	 */
-	tx = dmu_tx_create(zfsvfs->z_os);
+	tx = dmu_tx_create_wait(zfsvfs->z_os);
 	dmu_tx_hold_zap(tx, dzp->z_id, FALSE, name);
 	dmu_tx_hold_bonus(tx, zp->z_id);
 	if (may_delete_now) {
@@ -1778,7 +1778,7 @@ top:
 	/*
 	 * Add a new entry to the directory.
 	 */
-	tx = dmu_tx_create(zfsvfs->z_os);
+	tx = dmu_tx_create_wait(zfsvfs->z_os);
 	dmu_tx_hold_zap(tx, dzp->z_id, TRUE, dirname);
 	dmu_tx_hold_zap(tx, DMU_NEW_OBJECT, FALSE, NULL);
 	fuid_dirtied = zfsvfs->z_fuid_dirty;
@@ -1929,7 +1929,7 @@ top:
 	 */
 	rw_enter(&zp->z_parent_lock, RW_WRITER);
 
-	tx = dmu_tx_create(zfsvfs->z_os);
+	tx = dmu_tx_create_wait(zfsvfs->z_os);
 	dmu_tx_hold_zap(tx, dzp->z_id, FALSE, name);
 	dmu_tx_hold_bonus(tx, zp->z_id);
 	dmu_tx_hold_zap(tx, zfsvfs->z_unlinkedobj, FALSE, NULL);
@@ -2809,7 +2809,7 @@ top:
 	 */
 	mask = vap->va_mask;
 
-	tx = dmu_tx_create(zfsvfs->z_os);
+	tx = dmu_tx_create_wait(zfsvfs->z_os);
 	dmu_tx_hold_bonus(tx, zp->z_id);
 
 	if (mask & AT_MODE) {
@@ -3369,7 +3369,7 @@ top:
 		vnevent_rename_dest_dir(tdvp, ct);
 	}
 
-	tx = dmu_tx_create(zfsvfs->z_os);
+	tx = dmu_tx_create_wait(zfsvfs->z_os);
 	dmu_tx_hold_bonus(tx, szp->z_id);	/* nlink changes */
 	dmu_tx_hold_bonus(tx, sdzp->z_id);	/* nlink changes */
 	dmu_tx_hold_zap(tx, sdzp->z_id, FALSE, snm);
@@ -3517,7 +3517,7 @@ top:
 		ZFS_EXIT(zfsvfs);
 		return (EDQUOT);
 	}
-	tx = dmu_tx_create(zfsvfs->z_os);
+	tx = dmu_tx_create_wait(zfsvfs->z_os);
 	fuid_dirtied = zfsvfs->z_fuid_dirty;
 	dmu_tx_hold_write(tx, DMU_NEW_OBJECT, 0, MAX(1, len));
 	dmu_tx_hold_bonus(tx, dzp->z_id);
@@ -3764,7 +3764,7 @@ top:
 		return (error);
 	}
 
-	tx = dmu_tx_create(zfsvfs->z_os);
+	tx = dmu_tx_create_wait(zfsvfs->z_os);
 	dmu_tx_hold_bonus(tx, szp->z_id);
 	dmu_tx_hold_zap(tx, dzp->z_id, TRUE, name);
 	error = dmu_tx_assign(tx, TXG_NOWAIT);
@@ -3899,7 +3899,7 @@ zfs_putapage(vnode_t *vp, page_t *pp, u_offset_t *offp,
 		goto out;
 	}
 top:
-	tx = dmu_tx_create(zfsvfs->z_os);
+	tx = dmu_tx_create_wait(zfsvfs->z_os);
 	dmu_tx_hold_write(tx, zp->z_id, off, len);
 	dmu_tx_hold_bonus(tx, zp->z_id);
 	err = dmu_tx_assign(tx, TXG_NOWAIT);
@@ -4080,7 +4080,7 @@ zfs_inactive(vnode_t *vp, cred_t *cr, caller_context_t *ct)
 	}
 
 	if (zp->z_atime_dirty && zp->z_unlinked == 0) {
-		dmu_tx_t *tx = dmu_tx_create(zfsvfs->z_os);
+		dmu_tx_t *tx = dmu_tx_create_wait(zfsvfs->z_os);
 
 		dmu_tx_hold_bonus(tx, zp->z_id);
 		error = dmu_tx_assign(tx, TXG_WAIT);

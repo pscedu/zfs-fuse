@@ -61,6 +61,7 @@ struct dmu_tx {
 	struct dmu_tx_hold *tx_needassign_txh;
 	uint8_t tx_anyobj;
 	int tx_err;
+	int tx_wait;
 #ifdef ZFS_DEBUG
 	uint64_t tx_space_towrite;
 	uint64_t tx_space_tofree;

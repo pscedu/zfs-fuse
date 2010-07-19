@@ -56,9 +56,20 @@ dmu_tx_create_dd(dsl_dir_t *dd)
 }
 
 dmu_tx_t *
+dmu_tx_create_wait(objset_t *os)
+{
+	dmu_tx_t *tx = dmu_tx_create_dd(os->os->os_dsl_dataset->ds_dir);
+	tx->tx_wait = 1;
+	tx->tx_objset = os;
+	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os->os_dsl_dataset);
+	return (tx);
+}
+
+dmu_tx_t *
 dmu_tx_create(objset_t *os)
 {
 	dmu_tx_t *tx = dmu_tx_create_dd(os->os->os_dsl_dataset->ds_dir);
+	tx->tx_wait = 0;
 	tx->tx_objset = os;
 	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os->os_dsl_dataset);
 	return (tx);
@@ -887,16 +898,18 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 		return (ERESTART);
 	}
 
-	txstate = &tx->tx_pool->dp_tx;
-	if (txg_how && txstate->tx_txg_count == 0)
-		sched_yield();
+	if (tx->tx_wait) { 
+		txstate = &tx->tx_pool->dp_tx;
+		if (txg_how && txstate->tx_txg_count == 0)
+			sched_yield();
 	
-	/* Make sure that when txg_how == 0, it will be the first */
-	if (txg_how == 0)
-		ASSERT(txstate->tx_txg_count == 0);
-	else {
-		ASSERT(txg_how > 0);
-		ASSERT(txstate->tx_txg_count > 0);
+		/* Make sure that when txg_how == 0, it will be the first */
+		if (txg_how == 0)
+			ASSERT(txstate->tx_txg_count == 0);
+		else {
+			ASSERT(txg_how > 0);
+			ASSERT(txstate->tx_txg_count > 0);
+		}
 	}
 
 	tx->tx_txg = txg_hold_open(tx->tx_pool, &tx->tx_txgh);
@@ -1174,7 +1187,6 @@ dmu_tx_get_txg(dmu_tx_t *tx)
 	ASSERT(tx->tx_txg != 0);
 	return (tx->tx_txg);
 }
-
 
 struct dsl_pool *
 dmu_tx_pool(dmu_tx_t *tx)
