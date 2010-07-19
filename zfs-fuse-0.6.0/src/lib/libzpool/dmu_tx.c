@@ -910,7 +910,7 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 #ifdef ZFS_SLASHLIB
 	if (tx->tx_wait) {
 		txstate = &tx->tx_pool->dp_tx;
-		if (txg_how && txstate->tx_txg_count == 0)
+		while (txg_how && txstate->tx_txg_count == 0)
 			sched_yield();
 	
 		/* Make sure that when txg_how == 0, it will be the first */
