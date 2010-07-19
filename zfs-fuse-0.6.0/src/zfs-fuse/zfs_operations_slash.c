@@ -1338,7 +1338,7 @@ zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
 }
 
 int
-zfsslash2_write_cursor(void *buf, size_t size, void *finfo)
+zfsslash2_write_cursor(void *buf, size_t size, void *finfo, sl_log_write_t funcp)
 {
 	file_info_t *info = finfo;
 
@@ -1360,7 +1360,7 @@ zfsslash2_write_cursor(void *buf, size_t size, void *finfo)
 	uio.uio_resid = iovec.iov_len;
 	uio.uio_loffset = 0;
 
-	int error = VOP_WRITE(vp, &uio, SLASH2_CURSOR_FLAG, &zrootcreds, NULL, NULL, NULL);	/* zfs_write() */
+	int error = VOP_WRITE(vp, &uio, SLASH2_CURSOR_FLAG, &zrootcreds, NULL, funcp, buf);	/* zfs_write() */
 
 	ZFS_EXIT(zfsvfs);
 

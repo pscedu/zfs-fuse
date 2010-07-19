@@ -628,6 +628,8 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct,
 
 		txg_slash2_wait(dmu_tx_pool(tx));
 
+		logfuncp(datap,  dmu_tx_get_txg(tx));
+
 		error = dmu_write_uio(zfsvfs->z_os, zp->z_id, uio,
 			    uio->uio_resid, tx);
 		if (error)

@@ -42,7 +42,7 @@ int	zfsslash2_symlink(const char *, mdsio_fid_t, const char *, const struct slas
 int	zfsslash2_unlink(mdsio_fid_t, const char *, const struct slash_creds *, sl_log_update_t);
 int	zfsslash2_write(const struct slash_creds *, const void *, size_t, size_t *, off_t, void *, sl_log_write_t, void *);
 
-int	zfsslash2_write_cursor(void *, size_t, void *);
+int	zfsslash2_write_cursor(void *, size_t, void *, sl_log_write_t);
 
 int	do_init(void);
 void	do_exit(void);
