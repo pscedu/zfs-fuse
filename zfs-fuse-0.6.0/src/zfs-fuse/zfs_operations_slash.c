@@ -1360,7 +1360,7 @@ zfsslash2_write_cursor(void *buf, size_t size, void *finfo)
 	uio.uio_resid = iovec.iov_len;
 	uio.uio_loffset = 0;
 
-	int error = VOP_WRITE(vp, &uio, 0x12345678, &zrootcreds, NULL, NULL, NULL);	/* zfs_write() */
+	int error = VOP_WRITE(vp, &uio, SLASH2_CURSOR_FLAG, &zrootcreds, NULL, NULL, NULL);	/* zfs_write() */
 
 	ZFS_EXIT(zfsvfs);
 
