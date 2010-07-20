@@ -63,6 +63,7 @@ dmu_tx_create_special(objset_t *os)
 	tx->tx_wait = 1;
 	tx->tx_objset = os;
 	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os->os_dsl_dataset);
+	ASSERT(special_tx == NULL);
 	special_tx = tx;
 	return (tx);
 }
@@ -74,7 +75,6 @@ dmu_tx_create_wait(objset_t *os)
 	tx->tx_wait = 1;
 	tx->tx_objset = os;
 	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os->os_dsl_dataset);
-	special_tx = tx;
 	return (tx);
 }
 
