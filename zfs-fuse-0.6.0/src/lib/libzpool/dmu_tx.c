@@ -38,7 +38,7 @@
 typedef void (*dmu_tx_hold_func_t)(dmu_tx_t *tx, struct dnode *dn,
     uint64_t arg1, uint64_t arg2);
 
-static int dmu_tx_wait_flag = 0;
+static dmu_tx_t *special_tx = NULL;
 
 dmu_tx_t *
 dmu_tx_create_dd(dsl_dir_t *dd)
@@ -56,19 +56,25 @@ dmu_tx_create_dd(dsl_dir_t *dd)
 	return (tx);
 }
 
-void
-dmu_tx_set_wait(void)
+dmu_tx_t *
+dmu_tx_create_special(objset_t *os)
 {
-	dmu_tx_wait_flag = 1;
+	dmu_tx_t *tx = dmu_tx_create_dd(os->os->os_dsl_dataset->ds_dir);
+	tx->tx_wait = 1;
+	tx->tx_objset = os;
+	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os->os_dsl_dataset);
+	special_tx = tx;
+	return (tx);
 }
 
 dmu_tx_t *
 dmu_tx_create_wait(objset_t *os)
 {
 	dmu_tx_t *tx = dmu_tx_create_dd(os->os->os_dsl_dataset->ds_dir);
-	tx->tx_wait = dmu_tx_wait_flag;
+	tx->tx_wait = 1;
 	tx->tx_objset = os;
 	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os->os_dsl_dataset);
+	special_tx = tx;
 	return (tx);
 }
 
@@ -908,18 +914,20 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 	}
 
 #ifdef ZFS_SLASHLIB
+	/*
+ 	 * The same zfs_vnops.c code is used with and without our slash2
+ 	 * code. So I need this #ifdef.  In addition, ZFS uses some
+ 	 * internal transaction at mount time (e.g., spa_history_log()).
+ 	 * Therefore, I also need this tx_wait hack.
+ 	 */
 	if (tx->tx_wait) {
 		txstate = &tx->tx_pool->dp_tx;
-		while (txg_how && txstate->tx_txg_count == 0)
-			sched_yield();
-	
-		/* Make sure that when txg_how == 0, it will be the first */
-		if (txg_how == 0)
-			ASSERT(txstate->tx_txg_count == 0);
-		else {
-			ASSERT(txg_how > 0);
+		if (tx != special_tx) {
+			while (txstate->tx_txg_count == 0)
+				sched_yield();
 			ASSERT(txstate->tx_txg_count > 0);
-		}
+		} else
+			ASSERT(txstate->tx_txg_count == 0);
 	}
 #endif
 	tx->tx_txg = txg_hold_open(tx->tx_pool, &tx->tx_txgh);
@@ -1166,6 +1174,9 @@ dmu_tx_commit(dmu_tx_t *tx)
 	refcount_destroy_many(&tx->tx_space_freed,
 	    refcount_count(&tx->tx_space_freed));
 #endif
+
+	if (tx == special_tx)
+		special_tx = NULL;
 	kmem_free(tx, sizeof (dmu_tx_t));
 }
 
@@ -1191,6 +1202,8 @@ dmu_tx_abort(dmu_tx_t *tx)
 	refcount_destroy_many(&tx->tx_space_freed,
 	    refcount_count(&tx->tx_space_freed));
 #endif
+	if (tx == special_tx)
+		special_tx = NULL;
 	kmem_free(tx, sizeof (dmu_tx_t));
 }
 

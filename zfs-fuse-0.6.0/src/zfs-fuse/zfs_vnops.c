@@ -619,16 +619,16 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct,
 
 	if (ioflag == SLASH2_CURSOR_FLAG) {
 
-		tx = dmu_tx_create_wait(zfsvfs->z_os);
+		tx = dmu_tx_create_special(zfsvfs->z_os);
 		dmu_tx_hold_bonus(tx, zp->z_id);
 		dmu_tx_hold_write(tx, zp->z_id, 0, uio->uio_resid);
-		error = dmu_tx_assign(tx, 0);
+		error = dmu_tx_assign(tx, TXG_WAIT);
 		if (error)
 			return (error);
 
 		txg_slash2_wait(dmu_tx_pool(tx));
 
-		logfuncp(datap,  dmu_tx_get_txg(tx));
+		logfuncp(datap, dmu_tx_get_txg(tx));
 
 		error = dmu_write_uio(zfsvfs->z_os, zp->z_id, uio,
 			    uio->uio_resid, tx);
