@@ -1750,7 +1750,7 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char 
 	vp = pvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_mkdir(): fail to look up fid %"PRIx64, fid);
+		fprintf(stderr, "zfsslash2_replay_mkdir(): fail to look up fid %"PRIx64"\n", fid);
 		goto out;
 	}
 
@@ -1799,12 +1799,12 @@ zfsslash2_replay_link(slfid_t pfid, slfid_t fid, char *name)
 	pvp = svp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_link(): fail to look up fid %"PRIx64, fid);
+		fprintf(stderr, "zfsslash2_replay_link(): fail to look up fid %"PRIx64"\n", fid);
 		goto out;
 	}
 	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &svp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_link(): fail to look up fid %"PRIx64, fid);
+		fprintf(stderr, "zfsslash2_replay_link(): fail to look up fid %"PRIx64"\n", fid);
 		goto out;
 	}
 	error = VOP_LINK(pvp, svp, (char *)name, &zrootcreds, NULL, 0, NULL);	/* zfs_link() */
@@ -1831,7 +1831,7 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *n
 	pvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_mkdir(): fail to look up fid %"PRIx64, fid);
+		fprintf(stderr, "zfsslash2_replay_mkdir(): fail to look up fid %"PRIx64"\n", fid);
 		goto out;
 	}
 
@@ -1877,7 +1877,7 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *
 	pvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_create(): fail to look up fid %"PRIx64, fid);
+		fprintf(stderr, "zfsslash2_replay_create(): fail to look up fid %"PRIx64"\n", fid);
 		goto out;
 	}
 
@@ -1918,7 +1918,7 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 	dvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_mkdir(): fail to look up fid %"PRIx64, fid);
+		fprintf(stderr, "zfsslash2_replay_mkdir(): fail to look up fid %"PRIx64"\n", fid);
 		goto out;
 	}
 
@@ -1927,7 +1927,7 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 		goto out;
 
 	if (VTOZ(vp)->z_phys->zp_s2id != fid) {
-		fprintf(stderr, "zfsslash2_replay_rmdir(): target ID mismatch %"PRIx64" vs. %"PRIx64,
+		fprintf(stderr, "zfsslash2_replay_rmdir(): target ID mismatch %"PRIx64" vs. %"PRIx64"\n",
 			VTOZ(vp)->z_phys->zp_s2id, fid);
 		error = EINVAL;
 		goto out;
@@ -1963,7 +1963,7 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name)
 	vp = dvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_unlink(): fail to look up fid %"PRIx64, fid);
+		fprintf(stderr, "zfsslash2_replay_unlink(): fail to look up fid %"PRIx64"\n", fid);
 		goto out;
 	}
 	error = VOP_LOOKUP(dvp, (char *)name, &vp, NULL, 0, NULL, &zrootcreds,
@@ -1971,7 +1971,7 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name)
 	if (error)
 		goto out;
 	if (VTOZ(vp)->z_phys->zp_s2id != fid) {
-		fprintf(stderr, "zfsslash2_replay_unlink(): target ID mismatch %"PRIx64" vs. %"PRIx64,
+		fprintf(stderr, "zfsslash2_replay_unlink(): target ID mismatch %"PRIx64" vs. %"PRIx64"\n",
 			VTOZ(vp)->z_phys->zp_s2id, fid);
 		error = EINVAL;
 		goto out;
@@ -2043,12 +2043,12 @@ zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t newparent, con
 	p_vp = np_vp = NULL;
 	error = zfsslash2_fidlink(parent, FIDLINK_LOOKUP, NULL, &p_vp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64, parent);
+		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64"\n", parent);
 		goto out;
 	}
 	error = zfsslash2_fidlink(newparent, FIDLINK_LOOKUP, NULL, &np_vp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64, newparent);
+		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64"\n", newparent);
 		goto out;
 	}
 
