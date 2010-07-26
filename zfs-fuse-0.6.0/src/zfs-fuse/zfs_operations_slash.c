@@ -499,15 +499,11 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 
 		fstat.st_ino = tfg.fg_fid;
 		fstat.st_mode = 0;
-
-		outbuf_resid -= dsize;
-		fuse_add_direntry(NULL, outbuf + outbuf_off,
-		    dsize, entry.dirent.d_name, &fstat, entry.dirent.d_off);
-
-		outbuf_off += dsize;
-
 		if (nstbprefetch) {
 			attr->rc = zfsslash2_stat(tvp, &attr->attr, cred);
+			if (!attr->rc)
+				fstat.st_mode = attr->attr.sst_mode;
+
 			nstbprefetch--;
 #if 0
 			fprintf(stderr, "slash fid: %#"PRIx64", "
@@ -516,7 +512,22 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 			    entry.dirent.d_name, attr->attr.sst_mode);
 #endif
 			attr++;
+
+		} else {
+			struct srt_stat sstb;
+			int statrc;
+
+			statrc = zfsslash2_stat(tvp, &sstb, cred);
+			if (!statrc)
+				fstat.st_mode = sstb.sst_mode;
 		}
+
+		outbuf_resid -= dsize;
+		fuse_add_direntry(NULL, outbuf + outbuf_off,
+		    dsize, entry.dirent.d_name, &fstat, entry.dirent.d_off);
+
+		outbuf_off += dsize;
+
 		if (nents)
 			(*nents)++;
  next_entry:
