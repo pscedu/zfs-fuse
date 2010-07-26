@@ -809,13 +809,9 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 		vnode_t *new_vp;
 
-		mdsio_cb_pre_create();
-
 		/* FIXME: check filesystem boundaries */
 		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode,
 			   &new_vp, cred, 0, NULL, NULL, logfunc);		/* zfs_create() */
-
-		mdsio_cb_post_create();
 
 		if (error)
 			goto out;
