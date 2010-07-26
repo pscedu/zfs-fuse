@@ -1624,9 +1624,7 @@ zfsslash2_link(mdsio_fid_t ino, mdsio_fid_t newparent, const char *newname,
 	ASSERT(svp != NULL);
 	ASSERT(tdvp != NULL);
 
-	mdsio_cb_pre_create();
 	error = VOP_LINK(tdvp, svp, (char *)newname, cred, NULL, 0, logfunc);	/* zfs_link() */
-	mdsio_cb_post_create();
 
 	vnode_t *vp = NULL;
 	if (error)
