@@ -44,6 +44,10 @@ struct dsl_pool;
 struct dnode;
 struct dsl_dir;
 
+#define	TX_NONE		0x0
+#define	TX_WAIT		0x1
+#define	TX_SPECIAL	0x2
+
 struct dmu_tx {
 	/*
 	 * No synchronization is needed because a tx can only be handled
@@ -61,7 +65,7 @@ struct dmu_tx {
 	struct dmu_tx_hold *tx_needassign_txh;
 	uint8_t tx_anyobj;
 	int tx_err;
-	int tx_wait;
+	int tx_flags;
 #ifdef ZFS_DEBUG
 	uint64_t tx_space_towrite;
 	uint64_t tx_space_tofree;

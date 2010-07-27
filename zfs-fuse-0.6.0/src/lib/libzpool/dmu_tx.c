@@ -38,8 +38,6 @@
 typedef void (*dmu_tx_hold_func_t)(dmu_tx_t *tx, struct dnode *dn,
     uint64_t arg1, uint64_t arg2);
 
-static dmu_tx_t *special_tx = NULL;
-
 dmu_tx_t *
 dmu_tx_create_dd(dsl_dir_t *dd)
 {
@@ -60,11 +58,9 @@ dmu_tx_t *
 dmu_tx_create_special(objset_t *os)
 {
 	dmu_tx_t *tx = dmu_tx_create_dd(os->os->os_dsl_dataset->ds_dir);
-	tx->tx_wait = 1;
+	tx->tx_flags = TX_WAIT | TX_SPECIAL;
 	tx->tx_objset = os;
 	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os->os_dsl_dataset);
-	ASSERT(special_tx == NULL);
-	special_tx = tx;
 	return (tx);
 }
 
@@ -72,7 +68,7 @@ dmu_tx_t *
 dmu_tx_create_wait(objset_t *os)
 {
 	dmu_tx_t *tx = dmu_tx_create_dd(os->os->os_dsl_dataset->ds_dir);
-	tx->tx_wait = 1;
+	tx->tx_flags = TX_WAIT;
 	tx->tx_objset = os;
 	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os->os_dsl_dataset);
 	return (tx);
@@ -82,7 +78,7 @@ dmu_tx_t *
 dmu_tx_create(objset_t *os)
 {
 	dmu_tx_t *tx = dmu_tx_create_dd(os->os->os_dsl_dataset->ds_dir);
-	tx->tx_wait = 0;
+	tx->tx_flags = TX_NONE;
 	tx->tx_objset = os;
 	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os->os_dsl_dataset);
 	return (tx);
@@ -920,9 +916,9 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
  	 * internal transaction at mount time (e.g., spa_history_log()).
  	 * Therefore, I also need this tx_wait hack.
  	 */
-	if (tx->tx_wait) {
+	if (tx->tx_flags & TX_WAIT) {
 		txstate = &tx->tx_pool->dp_tx;
-		if (tx != special_tx) {
+		if (tx->tx_flags & TX_SPECIAL) {
 			while (txstate->tx_txg_count == 0)
 				sched_yield();
 			ASSERT(txstate->tx_txg_count > 0);
@@ -1012,7 +1008,7 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 	}
 
 #ifdef ZFS_SLASHLIB
-	if (tx->tx_wait)
+	if (tx->tx_flags & TX_WAIT)
 		txstate->tx_txg_count++;
 #endif
 
@@ -1175,8 +1171,6 @@ dmu_tx_commit(dmu_tx_t *tx)
 	    refcount_count(&tx->tx_space_freed));
 #endif
 
-	if (tx == special_tx)
-		special_tx = NULL;
 	kmem_free(tx, sizeof (dmu_tx_t));
 }
 
@@ -1202,8 +1196,6 @@ dmu_tx_abort(dmu_tx_t *tx)
 	refcount_destroy_many(&tx->tx_space_freed,
 	    refcount_count(&tx->tx_space_freed));
 #endif
-	if (tx == special_tx)
-		special_tx = NULL;
 	kmem_free(tx, sizeof (dmu_tx_t));
 }
 
