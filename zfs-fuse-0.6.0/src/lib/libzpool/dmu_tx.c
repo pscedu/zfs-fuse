@@ -1008,6 +1008,11 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 	}
 
 #ifdef ZFS_SLASHLIB
+	/*
+ 	 * Theoretically, I should use a lock to make the increments
+ 	 * atomic.  But I really only care about zero versus non-zero.
+ 	 * So I escape for now.
+ 	 */
 	if (tx->tx_flags & TX_WAIT)
 		txstate->tx_txg_count++;
 #endif
