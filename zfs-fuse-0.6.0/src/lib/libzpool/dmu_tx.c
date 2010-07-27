@@ -918,7 +918,7 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
  	 */
 	if (tx->tx_flags & TX_WAIT) {
 		txstate = &tx->tx_pool->dp_tx;
-		if (tx->tx_flags & TX_SPECIAL) {
+		if (!(tx->tx_flags & TX_SPECIAL)) {
 			while (txstate->tx_txg_count == 0)
 				sched_yield();
 			ASSERT(txstate->tx_txg_count > 0);
