@@ -330,6 +330,12 @@ txg_sync_thread(dsl_pool_t *dp)
 			txg_thread_wait(tx, &cpr, &tx->tx_sync_more_cv, timer);
 			delta = lbolt - start;
 			timer = (delta > timeout ? 0 : timeout - delta);
+
+			/* wait longer if I am the only transaction */
+			if (tx->tx_txg_count == 1) {
+				start = lbolt;
+				timer = timeout;
+			}
 		}
 
 		/*
