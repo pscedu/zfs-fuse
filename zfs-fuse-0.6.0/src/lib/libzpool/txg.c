@@ -247,8 +247,13 @@ txg_rele_to_sync(txg_handle_t *th)
 	th->th_cpu = NULL;	/* defensive */
 }
 
+/*
+ *  This function is called BEFORE actual assignment happens
+ *  to make sure that our special transaction is the first 
+ *  in a transaction group to go.
+ */
 void
-txg_assign_wait1(dsl_pool_t *dp, int wait)
+txg_assign_before(dsl_pool_t *dp, int wait)
 {
 	tx_state_t *tx = &dp->dp_tx;
 	if (wait) {
@@ -259,8 +264,14 @@ txg_assign_wait1(dsl_pool_t *dp, int wait)
 		ASSERT(tx->tx_txg_count == 0);
 }
 
+/*
+ * This function is called AFTER actual assignment happens
+ * to allow other transactions in the same group to consume 
+ * resources.  It also make our special transaction to wait
+ * until the transaction group quiesce time.
+ */
 void
-txg_assign_wait2(dsl_pool_t *dp, int wait)
+txg_assign_after(dsl_pool_t *dp, int wait)
 {
 	uint64_t txg;
 	tx_state_t *tx = &dp->dp_tx;

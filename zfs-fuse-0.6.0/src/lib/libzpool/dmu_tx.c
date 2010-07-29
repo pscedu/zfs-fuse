@@ -914,7 +914,7 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
  	 * Therefore, I also need this tx_flags hack.
  	 */
 	if (tx->tx_flags & TX_WAIT) 
-		txg_assign_wait1(tx->tx_pool, !(tx->tx_flags & TX_SPECIAL));
+		txg_assign_before(tx->tx_pool, !(tx->tx_flags & TX_SPECIAL));
 #endif
 	tx->tx_txg = txg_hold_open(tx->tx_pool, &tx->tx_txgh);
 	tx->tx_needassign_txh = NULL;
@@ -999,7 +999,7 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 
 #ifdef ZFS_SLASHLIB
 	if (tx->tx_flags & TX_WAIT) 
-		txg_assign_wait2(tx->tx_pool, (tx->tx_flags & TX_SPECIAL));
+		txg_assign_after(tx->tx_pool, (tx->tx_flags & TX_SPECIAL));
 #endif
 
 	return (0);
