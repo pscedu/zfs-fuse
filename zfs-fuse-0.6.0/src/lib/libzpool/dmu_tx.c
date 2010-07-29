@@ -1077,6 +1077,9 @@ dmu_tx_assign(dmu_tx_t *tx, uint64_t txg_how)
 	ASSERT(txg_how != 0);
 	ASSERT(!dsl_pool_sync_context(tx->tx_pool));
 
+	if (tx->tx_flags & TX_SPECIAL)
+		ASSERT(!tx->tx_err);
+
 	while ((err = dmu_tx_try_assign(tx, txg_how)) != 0) {
 		dmu_tx_unassign(tx);
 
