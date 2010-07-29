@@ -267,7 +267,7 @@ txg_assign_before(dsl_pool_t *dp, int wait)
 /*
  * This function is called AFTER actual assignment happens
  * to allow other transactions in the same group to consume 
- * resources.  It also make our special transaction to wait
+ * resources.  It also make our special transaction wait
  * until the transaction group quiesce time.
  */
 void

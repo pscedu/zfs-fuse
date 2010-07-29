@@ -44,6 +44,12 @@ struct dsl_pool;
 struct dnode;
 struct dsl_dir;
 
+/*
+ * Flags used by slash2 to make cursor update the first transaction to go
+ * in a transaction group.  Note that ZFS may start some internal transactions
+ * that do not use these flags.  That is Okay, they can form their own group
+ * or join our group.  ZFS always commit transaction groups in order.
+ */
 #define	TX_NONE		0x0
 #define	TX_WAIT		0x1
 #define	TX_SPECIAL	0x2
