@@ -623,8 +623,10 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct,
 		dmu_tx_hold_bonus(tx, zp->z_id);
 		dmu_tx_hold_write(tx, zp->z_id, 0, uio->uio_resid);
 		error = dmu_tx_assign(tx, TXG_WAIT);
-		if (error)
+		if (error) {
+			dmu_tx_abort(tx);
 			return (error);
+		}
 
 		txg_slash2_wait(dmu_tx_pool(tx));
 
