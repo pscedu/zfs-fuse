@@ -883,9 +883,6 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 	spa_t *spa = tx->tx_pool->dp_spa;
 	uint64_t memory, asize, fsize, usize;
 	uint64_t towrite, tofree, tooverwrite, tounref, tohold, fudge;
-#ifdef ZFS_SLASHLIB
-	tx_state_t *txstate;
-#endif
 
 	ASSERT3U(tx->tx_txg, ==, 0);
 
