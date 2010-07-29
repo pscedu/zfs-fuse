@@ -248,16 +248,32 @@ txg_rele_to_sync(txg_handle_t *th)
 }
 
 void
-txg_slash2_wait(dsl_pool_t *dp)
+txg_assign_wait1(dsl_pool_t *dp, int wait)
+{
+	tx_state_t *tx = &dp->dp_tx;
+	if (wait) {
+		while (tx->tx_txg_count == 0)
+			sched_yield();
+		ASSERT(tx->tx_txg_count > 0);
+	} else 
+		ASSERT(tx->tx_txg_count == 0);
+}
+
+void
+txg_assign_wait2(dsl_pool_t *dp, int wait)
 {
 	uint64_t txg;
 	tx_state_t *tx = &dp->dp_tx;
 
-	txg = tx->tx_open_txg;
 	mutex_enter(&tx->tx_slash2_lock);
-	cv_wait(&tx->tx_slash2_cv, &tx->tx_slash2_lock);
+	tx->tx_txg_count++;
+	if (wait) {
+		txg = tx->tx_open_txg;
+		ASSERT(tx->tx_txg_count == 1);
+		cv_wait(&tx->tx_slash2_cv, &tx->tx_slash2_lock);
+		ASSERT(txg == tx->tx_open_txg - 1);
+	} 
 	mutex_exit(&tx->tx_slash2_lock);
-	ASSERT(txg == tx->tx_open_txg - 1);
 }
 
 static void

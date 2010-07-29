@@ -113,7 +113,6 @@ void dmu_tx_commit(dmu_tx_t *tx);
 void dmu_tx_abort(dmu_tx_t *tx);
 uint64_t dmu_tx_get_txg(dmu_tx_t *tx);
 void dmu_tx_wait(dmu_tx_t *tx);
-struct dsl_pool *dmu_tx_pool(dmu_tx_t *tx);
 
 /*
  * These routines are defined in dmu_spa.h, and are called by the SPA.

@@ -914,17 +914,10 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
  	 * The same zfs_vnops.c code is used with and without our slash2
  	 * code. So I need this #ifdef.  In addition, ZFS uses some
  	 * internal transaction at mount time (e.g., spa_history_log()).
- 	 * Therefore, I also need this tx_wait hack.
+ 	 * Therefore, I also need this tx_flags hack.
  	 */
-	if (tx->tx_flags & TX_WAIT) {
-		txstate = &tx->tx_pool->dp_tx;
-		if (!(tx->tx_flags & TX_SPECIAL)) {
-			while (txstate->tx_txg_count == 0)
-				sched_yield();
-			ASSERT(txstate->tx_txg_count > 0);
-		} else
-			ASSERT(txstate->tx_txg_count == 0);
-	}
+	if (tx->tx_flags & TX_WAIT) 
+		txg_assign_wait1(tx->tx_pool, !(tx->tx_flags & TX_SPECIAL));
 #endif
 	tx->tx_txg = txg_hold_open(tx->tx_pool, &tx->tx_txgh);
 	tx->tx_needassign_txh = NULL;
@@ -1008,13 +1001,8 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 	}
 
 #ifdef ZFS_SLASHLIB
-	/*
- 	 * Theoretically, I should use a lock to make the increments
- 	 * atomic.  But I really only care about zero versus non-zero.
- 	 * So I escape for now.
- 	 */
-	if (tx->tx_flags & TX_WAIT)
-		txstate->tx_txg_count++;
+	if (tx->tx_flags & TX_WAIT) 
+		txg_assign_wait2(tx->tx_pool, (tx->tx_flags & TX_SPECIAL));
 #endif
 
 	return (0);
@@ -1076,9 +1064,6 @@ dmu_tx_assign(dmu_tx_t *tx, uint64_t txg_how)
 	ASSERT(tx->tx_txg == 0);
 	ASSERT(txg_how != 0);
 	ASSERT(!dsl_pool_sync_context(tx->tx_pool));
-
-	if (tx->tx_flags & TX_SPECIAL)
-		ASSERT(!tx->tx_err);
 
 	while ((err = dmu_tx_try_assign(tx, txg_how)) != 0) {
 		dmu_tx_unassign(tx);
@@ -1212,10 +1197,4 @@ dmu_tx_get_txg(dmu_tx_t *tx)
 {
 	ASSERT(tx->tx_txg != 0);
 	return (tx->tx_txg);
-}
-
-struct dsl_pool *
-dmu_tx_pool(dmu_tx_t *tx)
-{
-	return (tx->tx_pool);
 }

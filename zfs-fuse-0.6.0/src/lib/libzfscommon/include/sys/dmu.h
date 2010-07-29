@@ -444,8 +444,6 @@ int dmu_tx_assign(dmu_tx_t *tx, uint64_t txg_how);
 void dmu_tx_wait(dmu_tx_t *tx);
 void dmu_tx_commit(dmu_tx_t *tx);
 
-struct dsl_pool *dmu_tx_pool(dmu_tx_t *tx);
-
 /*
  * Free up the data blocks for a defined range of a file.  If size is
  * zero, the range from offset to end-of-file is freed.
