@@ -247,6 +247,23 @@ txg_rele_to_sync(txg_handle_t *th)
 	th->th_cpu = NULL;	/* defensive */
 }
 
+void
+txg_wait_quiesce(dsl_pool_t *dp)
+{
+	uint64_t txg;
+	tx_state_t *tx = &dp->dp_tx;
+
+	mutex_enter(&tx->tx_slash2_lock);
+
+	txg = tx->tx_open_txg;
+	tx->tx_txg_count++;
+	ASSERT(tx->tx_txg_count == 1);
+	cv_wait(&tx->tx_slash2_cv, &tx->tx_slash2_lock);
+	ASSERT(txg == tx->tx_open_txg - 1);
+
+	mutex_exit(&tx->tx_slash2_lock);
+}
+
 /*
  *  This function is called BEFORE actual assignment happens
  *  to make sure that our special transaction is the first 
@@ -277,13 +294,8 @@ txg_assign_after(dsl_pool_t *dp, int wait)
 	tx_state_t *tx = &dp->dp_tx;
 
 	mutex_enter(&tx->tx_slash2_lock);
-	tx->tx_txg_count++;
-	if (wait) {
-		txg = tx->tx_open_txg;
-		ASSERT(tx->tx_txg_count == 1);
-		cv_wait(&tx->tx_slash2_cv, &tx->tx_slash2_lock);
-		ASSERT(txg == tx->tx_open_txg - 1);
-	} 
+	if (wait)
+		tx->tx_txg_count++;
 	mutex_exit(&tx->tx_slash2_lock);
 }
 

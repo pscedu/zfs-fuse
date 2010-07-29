@@ -999,7 +999,7 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 
 #ifdef ZFS_SLASHLIB
 	if (tx->tx_flags & TX_WAIT) 
-		txg_assign_after(tx->tx_pool, (tx->tx_flags & TX_SPECIAL));
+		txg_assign_after(tx->tx_pool, !(tx->tx_flags & TX_SPECIAL));
 #endif
 
 	return (0);
@@ -1194,4 +1194,10 @@ dmu_tx_get_txg(dmu_tx_t *tx)
 {
 	ASSERT(tx->tx_txg != 0);
 	return (tx->tx_txg);
+}
+
+struct dsl_pool *
+dmu_tx_pool(dmu_tx_t *tx)
+{
+	return (tx->tx_pool);
 }

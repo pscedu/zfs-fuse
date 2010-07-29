@@ -627,6 +627,7 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct,
 			dmu_tx_abort(tx);
 			return (error);
 		}
+		txg_wait_quiesce(dmu_tx_pool(tx));
 
 		logfuncp(datap, dmu_tx_get_txg(tx));
 
