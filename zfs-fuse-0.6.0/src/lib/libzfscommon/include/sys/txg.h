@@ -74,9 +74,7 @@ extern void txg_rele_to_sync(txg_handle_t *txghp);
 extern void txg_suspend(struct dsl_pool *dp);
 extern void txg_resume(struct dsl_pool *dp);
 
-extern void txg_wait_quiesce(struct dsl_pool *dp);
-extern void txg_assign_before(struct dsl_pool *dp, int wait);
-extern void txg_assign_after(struct dsl_pool *dp, int wait);
+extern void txg_slash2_wait(struct dsl_pool *dp);
 
 /*
  * Delay the caller by the specified number of ticks or until

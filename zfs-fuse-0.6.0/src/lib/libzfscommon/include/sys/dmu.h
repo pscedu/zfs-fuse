@@ -434,8 +434,6 @@ dmu_tx_t *dmu_tx_create(objset_t *os);
 dmu_tx_t *dmu_tx_create_wait(objset_t *os);
 dmu_tx_t *dmu_tx_create_special(objset_t *os);
 
-struct dsl_pool *dmu_tx_pool(dmu_tx_t *tx);
-
 void dmu_tx_hold_write(dmu_tx_t *tx, uint64_t object, uint64_t off, int len);
 void dmu_tx_hold_free(dmu_tx_t *tx, uint64_t object, uint64_t off,
     uint64_t len);
@@ -445,6 +443,8 @@ void dmu_tx_abort(dmu_tx_t *tx);
 int dmu_tx_assign(dmu_tx_t *tx, uint64_t txg_how);
 void dmu_tx_wait(dmu_tx_t *tx);
 void dmu_tx_commit(dmu_tx_t *tx);
+
+struct dsl_pool *dmu_tx_pool(dmu_tx_t *tx);
 
 /*
  * Free up the data blocks for a defined range of a file.  If size is
