@@ -798,10 +798,22 @@ zfs_mknode(znode_t *dzp, vattr_t *vap, dmu_tx_t *tx, cred_t *cr,
 		ZFS_TIME_ENCODE(&now, pzp->zp_atime);
 	}
 
+	if (vap->va_mask & AT_SLASH2ATIME) {
+		ZFS_TIME_ENCODE(&vap->va_s2atime, pzp->zp_s2atime);
+	} else {
+		ZFS_TIME_ENCODE(&now, pzp->zp_s2atime);
+	}
+
 	if (vap->va_mask & AT_MTIME) {
 		ZFS_TIME_ENCODE(&vap->va_mtime, pzp->zp_mtime);
 	} else {
 		ZFS_TIME_ENCODE(&now, pzp->zp_mtime);
+	}
+
+	if (vap->va_mask & AT_SLASH2MTIME) {
+		ZFS_TIME_ENCODE(&vap->va_s2mtime, pzp->zp_s2mtime);
+	} else {
+		ZFS_TIME_ENCODE(&now, pzp->zp_s2mtime);
 	}
 
 	pzp->zp_mode = MAKEIMODE(vap->va_type, vap->va_mode);
@@ -1112,6 +1124,13 @@ zfs_time_stamper_locked(znode_t *zp, uint_t flag, dmu_tx_t *tx)
 		if (zp->z_zfsvfs->z_use_fuids)
 			zp->z_phys->zp_flags |= ZFS_ARCHIVE;
 	}
+
+	if (flag & AT_SLASH2ATIME)
+		ZFS_TIME_ENCODE(&now, zp->z_phys->zp_s2atime);
+
+	if (flag & AT_SLASH2MTIME)
+		ZFS_TIME_ENCODE(&now, zp->z_phys->zp_s2mtime);
+
 }
 
 /*
@@ -1316,7 +1335,6 @@ zfs_trunc(znode_t *zp, uint64_t end)
 	dmu_tx_t *tx;
 	rl_t *rl;
 	int error;
-	uint32_t oldgen;
 
 	/*
 	 * We will change zp_size, lock the whole file.
@@ -1352,12 +1370,6 @@ top:
 	}
 	dmu_buf_will_dirty(zp->z_dbuf, tx);
 
-	/*
-	 * Slash2 Generation needs to be bumped upon truncate to 0.
-	 *  XXX need an upcall to slash2 journal for GC.
-	 */
-	oldgen = zp->z_phys->zp_s2gen;
-	zp->z_phys->zp_s2gen++;
 	zp->z_phys->zp_size = end;
 
 	dmu_tx_commit(tx);

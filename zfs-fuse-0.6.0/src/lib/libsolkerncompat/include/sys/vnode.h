@@ -177,7 +177,10 @@ typedef struct vattr {
 	uint_t       va_seq;     /* sequence number */
 	u_offset_t   va_s2size;  /* slash2 file size in bytes */
 	uint32_t     va_s2gen;
-	uint32_t     va_ptruncgen;
+	uint32_t     va_ptruncgen;	
+	timestruc_t  va_s2atime;   /* time of last access (slash2) */
+	timestruc_t  va_s2mtime;   /* time of last modification (slash2) */
+	uint32_t     va_s2utimgen;
 } vattr_t;
 
 /*
@@ -237,6 +240,9 @@ struct pollhead;
 #define AT_XVATTR  0x10000
 #define AT_SLASH2SIZE	0x20000
 #define AT_PTRUNCGEN	0x40000
+#define AT_SLASH2ATIME	0x80000
+#define AT_SLASH2MTIME	0x100000
+#define AT_SLASH2CTIME	0x200000
 
 #define AT_ALL   (AT_TYPE|AT_MODE|AT_UID|AT_GID|AT_FSID|AT_NODEID|\
                  AT_NLINK|AT_SIZE|AT_ATIME|AT_MTIME|AT_CTIME|\
@@ -267,6 +273,7 @@ enum create { CRCREAT, CRMKNOD, CRMKDIR }; /* reason for create */
 #define ATTR_REAL       0x10    /* yield attributes of the real vp */
 #define ATTR_NOACLCHECK 0x20    /* Don't check ACL when checking permissions */
 #define ATTR_TRIGGER    0x40    /* Mount first if vnode is a trigger mount */
+#define ATTR_S2UTIME    0x80    /* slash2 utime(2) request */
 
 /* Vnode Events - Used by VOP_VNEVENT */
 typedef enum vnevent	{
@@ -490,7 +497,7 @@ extern int	fop_close(vnode_t *, int, int, offset_t, cred_t *,
 				caller_context_t *);
 extern int	fop_read(vnode_t *, uio_t *, int, cred_t *, caller_context_t *);
 extern int	fop_write(vnode_t *, uio_t *, int, cred_t *,
-				caller_context_t *, void *, void *);
+               		        caller_context_t *, void *, void *);
 extern int	fop_ioctl(vnode_t *, int, intptr_t, int, cred_t *, int *,
 				caller_context_t *);
 extern int	fop_setfl(vnode_t *, int, int, cred_t *, caller_context_t *);

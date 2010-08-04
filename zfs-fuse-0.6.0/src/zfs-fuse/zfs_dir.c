@@ -705,7 +705,7 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	mutex_enter(&dzp->z_lock);
 	dzp->z_phys->zp_size++;			/* one dirent added */
 	dzp->z_phys->zp_links += zp_is_dir;	/* ".." link from zp */
-	zfs_time_stamper_locked(dzp, CONTENT_MODIFIED, tx);
+	zfs_time_stamper_locked(dzp, CONTENT_MODIFIED | S2CONTENT_MODIFIED, tx);
 	mutex_exit(&dzp->z_lock);
 
 	value = zfs_dirent(zp);
@@ -789,7 +789,7 @@ zfs_link_destroy(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag,
 	mutex_enter(&dzp->z_lock);
 	dzp->z_phys->zp_size--;			/* one dirent removed */
 	dzp->z_phys->zp_links -= zp_is_dir;	/* ".." link from zp */
-	zfs_time_stamper_locked(dzp, CONTENT_MODIFIED, tx);
+	zfs_time_stamper_locked(dzp, CONTENT_MODIFIED | S2CONTENT_MODIFIED, tx);
 	mutex_exit(&dzp->z_lock);
 
 	if (zp->z_zfsvfs->z_norm) {

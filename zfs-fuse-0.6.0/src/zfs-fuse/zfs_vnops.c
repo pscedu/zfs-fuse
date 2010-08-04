@@ -179,8 +179,11 @@ zfs_vattr_to_stat(struct srt_stat *stat, vattr_t *vap)
 	stat->sst_uid = vap->va_uid;
 	stat->sst_gid = vap->va_gid;
 	stat->sst_mode = vap->va_mode;
-	TIMESTRUC_TO_TIME(vap->va_atime, &stat->sst_atime);
-	TIMESTRUC_TO_TIME(vap->va_mtime, &stat->sst_mtime);
+	stat->sst_gen = vap->va_s2gen;
+	stat->sst_ptruncgen = vap->va_ptruncgen;
+	stat->sst_size = vap->va_s2size;
+	TIMESTRUC_TO_TIME(vap->va_s2atime, &stat->sst_atime);
+	TIMESTRUC_TO_TIME(vap->va_s2mtime, &stat->sst_mtime);
 	TIMESTRUC_TO_TIME(vap->va_ctime, &stat->sst_ctime);
 }
 
@@ -596,8 +599,8 @@ out:
  */
 /* ARGSUSED */
 static int
-zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, caller_context_t *ct,
-    void *funcp, void *datap)
+zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, 
+	  caller_context_t *ct, void *funcp, void *datap)
 {
 	znode_t		*zp = VTOZ(vp);
 	rlim64_t	limit = uio->uio_llimit;
@@ -870,8 +873,9 @@ again:
 		 * Update time stamp.  NOTE: This marks the bonus buffer as
 		 * dirty, so we don't have to do it again for zp_size.
 		 */
-		zfs_time_stamper(zp, CONTENT_MODIFIED, tx);
-
+		zfs_time_stamper(zp, (CONTENT_MODIFIED | 
+				      ((ioflag & SLASH_IGNORE_MTIME) ?
+				       0 : S2CONTENT_MODIFIED)), tx);
 		/*
 		 * Update the file size (zp_size) if it has changed;
 		 * account for possible concurrent updates.
@@ -2348,6 +2352,7 @@ zfs_getattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 	vap->va_s2size = pzp->zp_s2size;
 	vap->va_s2gen = pzp->zp_s2gen;
 	vap->va_ptruncgen = pzp->zp_ptruncgen;
+	vap->va_s2utimgen = pzp->zp_s2utimgen;
 	vap->va_rdev = vp->v_rdev;
 	vap->va_seq = zp->z_seq;
 
@@ -2457,6 +2462,10 @@ zfs_getattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 	ZFS_TIME_DECODE(&vap->va_atime, pzp->zp_atime);
 	ZFS_TIME_DECODE(&vap->va_mtime, pzp->zp_mtime);
 	ZFS_TIME_DECODE(&vap->va_ctime, pzp->zp_ctime);
+	/* Get the slash2 times.
+	 */
+	ZFS_TIME_DECODE(&vap->va_s2atime, pzp->zp_s2atime);
+	ZFS_TIME_DECODE(&vap->va_s2mtime, pzp->zp_s2mtime);
 
 	mutex_exit(&zp->z_lock);
 
@@ -2511,6 +2520,7 @@ zfs_setattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 	znode_t		*attrzp;
 	int		need_policy = FALSE;
 	int		err;
+	int             full_truncate = 0;
 	zfs_fuid_info_t *fuidp = NULL;
 	xvattr_t *xvap = (xvattr_t *)vap;	/* vap may be an xvattr_t * */
 	xoptattr_t	*xoap;
@@ -2934,8 +2944,27 @@ top:
 	if (mask & AT_MTIME)
 		ZFS_TIME_ENCODE(&vap->va_mtime, pzp->zp_mtime);
 
-	if (mask & AT_SLASH2SIZE)
-		pzp->zp_s2size = vap->va_s2size;
+	if (mask & AT_SLASH2ATIME)
+		ZFS_TIME_ENCODE(&vap->va_s2atime, pzp->zp_s2atime);
+
+	if (mask & AT_SLASH2MTIME) {
+		ZFS_TIME_ENCODE(&vap->va_s2mtime, pzp->zp_s2mtime);
+		pzp->zp_s2utimgen++;
+	}
+
+	if (mask & AT_SLASH2SIZE) {
+		pzp->zp_s2size = vap->va_s2size;		
+		/*
+		 * Slash2 Generation needs to be bumped upon truncate to 0.
+		 *  XXX need an upcall to slash2 journal for GC.
+		 */
+		if (!vap->va_s2size) {
+			full_truncate = 1;
+			/* Full truncate */
+			//oldgen = zp->z_phys->zp_s2gen;
+			pzp->zp_s2gen++;		
+		}
+	}
 
 	if (mask & AT_PTRUNCGEN)
 		pzp->zp_ptruncgen = vap->va_ptruncgen;
@@ -3024,6 +3053,8 @@ out:
 			txg = dmu_tx_get_txg(tx);
 			vap->va_uid = pzp->zp_uid;
 			vap->va_gid = pzp->zp_gid;
+			vap->va_s2gen = pzp->zp_s2gen;
+			vap->va_ptruncgen = pzp->zp_ptruncgen;
 			zfs_vattr_to_stat(&stat, vap);
 
 			logfunc(NS_OP_SETATTR, txg, 0, 0, zp->z_phys->zp_s2id, &stat, NULL, NULL);

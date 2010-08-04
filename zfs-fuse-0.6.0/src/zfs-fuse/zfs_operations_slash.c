@@ -220,10 +220,11 @@ zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 		sstb->sst_size = vattr.va_s2size;
 	sstb->sst_blksize = vattr.va_blksize;
 	sstb->sst_blocks = vattr.va_nblocks;
-	TIMESTRUC_TO_TIME(vattr.va_atime, &sstb->sst_atime);
-	TIMESTRUC_TO_TIME(vattr.va_mtime, &sstb->sst_mtime);
+	TIMESTRUC_TO_TIME(vattr.va_s2atime, &sstb->sst_atime);
+	TIMESTRUC_TO_TIME(vattr.va_s2mtime, &sstb->sst_mtime);
 	TIMESTRUC_TO_TIME(vattr.va_ctime, &sstb->sst_ctime);
 	sstb->sst_ptruncgen = vattr.va_ptruncgen;
+	sstb->sst_utimgen = vattr.va_s2utimgen;
 
 	/* subtract 1 for immutable namespace link */
 	if (sstb->sst_nlink > 1)
@@ -1210,12 +1211,12 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		}
 	}
 	if (to_set & SRM_SETATTRF_ATIME) {
-		vattr.va_mask |= AT_ATIME;
-		TIME_TO_TIMESTRUC(sstb_in->sst_atime, &vattr.va_atime);
+		vattr.va_mask |= AT_SLASH2ATIME;
+		TIME_TO_TIMESTRUC(sstb_in->sst_atime, &vattr.va_s2atime);
 	}
 	if (to_set & SRM_SETATTRF_MTIME) {
-		vattr.va_mask |= AT_MTIME;
-		TIME_TO_TIMESTRUC(sstb_in->sst_mtime, &vattr.va_mtime);
+		vattr.va_mask |= AT_SLASH2MTIME;
+		TIME_TO_TIMESTRUC(sstb_in->sst_mtime, &vattr.va_s2mtime);
 	}
 	if (to_set & SRM_SETATTRF_FSIZE) {
 		vattr.va_mask |= AT_SLASH2SIZE;
@@ -1226,7 +1227,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		vattr.va_ptruncgen = sstb_in->sst_ptruncgen;
 	}
 
-	int flags = (to_set & (SRM_SETATTRF_ATIME | SRM_SETATTRF_MTIME)) ? ATTR_UTIME : 0;
+	int flags = (to_set & (SRM_SETATTRF_ATIME | SRM_SETATTRF_MTIME)) ? ATTR_S2UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL, logfunc);	/* zfs_setattr() */
 
  out:
@@ -1304,8 +1305,8 @@ zfsslash2_unlink(mdsio_fid_t parent, const char *name,
  */
 int
 zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
-    size_t size, size_t *nb, off_t off, void *finfo,
-    sl_log_write_t funcp, void *datap)
+	size_t size, size_t *nb, off_t off, int update_mtime, void *finfo,
+	sl_log_write_t funcp, void *datap)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	file_info_t *info = finfo;
@@ -1331,7 +1332,9 @@ zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
 	uio.uio_resid = iovec.iov_len;
 	uio.uio_loffset = off;
 
-	int error = VOP_WRITE(vp, &uio, info->flags, cred, NULL, funcp, datap);	/* zfs_write */
+	int error = VOP_WRITE(vp, &uio, 
+		      (info->flags | (update_mtime ? 0 : SLASH_IGNORE_MTIME)), 
+		      cred, NULL, funcp, datap);	/* zfs_write */
 
 	ZFS_EXIT(zfsvfs);
 
@@ -1766,8 +1769,8 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char 
 	vattr.va_fid = fid;
 
 	vattr.va_mask |= AT_ATIME|AT_MTIME;
-	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
-	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
+	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_s2atime);
+	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_s2mtime);
 
 	cred.cr_uid = stat->sst_uid;
 	cred.cr_gid = stat->sst_gid;
@@ -1848,8 +1851,8 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *n
 
 	/* zfs_mknode() respects our ATIME and MTIME, but not CTIME */
 	vattr.va_mask |= AT_ATIME|AT_MTIME;
-	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
-	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
+	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_s2atime);
+	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_s2mtime);
 
 	cred.cr_uid = stat->sst_uid;
 	cred.cr_gid = stat->sst_gid;
@@ -1894,8 +1897,8 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *
 
 	/* zfs_mknode() respects our ATIME and MTIME, but not CTIME */
 	vattr.va_mask |= AT_ATIME|AT_MTIME;
-	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
-	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
+	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_s2atime);
+	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_s2mtime);
 
 	cred.cr_uid = stat->sst_uid;
 	cred.cr_gid = stat->sst_gid;
@@ -2026,8 +2029,8 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
 	vattr.va_mode = stat->sst_mode;
 	vattr.va_uid = stat->sst_uid;
 	vattr.va_gid = stat->sst_gid;
-	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_atime);
-	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_mtime);
+	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_s2atime);
+	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_s2mtime);
 	TIME_TO_TIMESTRUC(stat->sst_ctime, &vattr.va_ctime);
 
 	flag = (mask & (AT_ATIME | AT_MTIME)) ? ATTR_UTIME : 0;
