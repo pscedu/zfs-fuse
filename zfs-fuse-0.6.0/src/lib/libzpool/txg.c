@@ -71,6 +71,7 @@ txg_init(dsl_pool_t *dp, uint64_t txg)
 	cv_init(&tx->tx_exit_cv, NULL, CV_DEFAULT, NULL);
 
 	cv_init(&tx->tx_slash2_cv, NULL, CV_DEFAULT, NULL);
+	cv_init(&tx->tx_slash2_cv1, NULL, CV_DEFAULT, NULL);
 
 	tx->tx_open_txg = txg;
 	tx->tx_txg_count = 0;
@@ -275,9 +276,9 @@ txg_quiesce(dsl_pool_t *dp, uint64_t txg)
 
 	ASSERT(txg == tx->tx_open_txg);
 	tx->tx_open_txg++;
-	tx->tx_txg_count = 0;
-
+	
 	mutex_enter(&tx->tx_slash2_lock);
+	tx->tx_txg_count = 0;
 	cv_broadcast(&tx->tx_slash2_cv);
 	mutex_exit(&tx->tx_slash2_lock);
 

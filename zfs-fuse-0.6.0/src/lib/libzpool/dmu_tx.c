@@ -918,12 +918,25 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
  	 */
 	if (tx->tx_flags & TX_WAIT) {
 		txstate = &tx->tx_pool->dp_tx;
+	retry:
+		mutex_enter(&txstate->tx_slash2_lock);
 		if (!(tx->tx_flags & TX_SPECIAL)) {
-			while (txstate->tx_txg_count == 0)
-				sched_yield();
-			ASSERT(txstate->tx_txg_count > 0);
-		} else
+			if (!txstate->tx_txg_count) {
+				cv_wait(&txstate->tx_slash2_cv1, 
+					&txstate->tx_slash2_lock);
+				if (!txstate->tx_txg_count) {
+					mutex_exit(&txstate->tx_slash2_lock);
+					goto retry;
+				} else
+					txstate->tx_txg_count++;
+			}
+
+		} else {
 			ASSERT(txstate->tx_txg_count == 0);
+			txstate->tx_txg_count = 1;
+			cv_broadcast(&txstate->tx_slash2_cv1);
+		}
+		mutex_exit(&txstate->tx_slash2_lock);
 	}
 #endif
 	tx->tx_txg = txg_hold_open(tx->tx_pool, &tx->tx_txgh);
@@ -1006,16 +1019,6 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 		if (err)
 			return (err);
 	}
-
-#ifdef ZFS_SLASHLIB
-	/*
- 	 * Theoretically, I should use a lock to make the increments
- 	 * atomic.  But I really only care about zero versus non-zero.
- 	 * So I escape for now.
- 	 */
-	if (tx->tx_flags & TX_WAIT)
-		txstate->tx_txg_count++;
-#endif
 
 	return (0);
 }
