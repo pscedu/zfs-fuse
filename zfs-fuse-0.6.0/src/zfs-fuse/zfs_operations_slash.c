@@ -44,11 +44,13 @@
 
 #include "util.h"
 
+#include "zfs_slashlib.h"
+
+#include "creds.h"
 #include "fid.h"
 #include "slashd/mdsio.h"
-#include "slashrpc.h"
+#include "sljournal.h"
 #include "sltypes.h"
-#include "zfs_slashlib.h"
 
 kmem_cache_t	*file_info_cache;
 cred_t		 zrootcreds;
@@ -1159,7 +1161,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		 * (Solaris calls VOP_SPACE instead of VOP_SETATTR on
 		 * ftruncate).
 		 */
-		if (to_set & SRM_SETATTRF_SIZE) {
+		if (to_set & SETATTR_MASKF_SIZE) {
 			/* Check if file is opened for writing */
 			if ((info->flags & FWRITE) == 0) {
 				error = EBADF;
@@ -1183,7 +1185,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			if (error)
 				goto out;
 
-			to_set &= ~SRM_SETATTRF_SIZE;
+			to_set &= ~SETATTR_MASKF_SIZE;
 			if (to_set == 0)
 				goto out;
 		}
@@ -1193,11 +1195,11 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 	vattr_t vattr = { 0 };
 
-	if (to_set & SRM_SETATTRF_MODE) {
+	if (to_set & SETATTR_MASKF_MODE) {
 		vattr.va_mask |= AT_MODE;
 		vattr.va_mode = sstb_in->sst_mode;
 	}
-	if (to_set & SRM_SETATTRF_UID) {
+	if (to_set & SETATTR_MASKF_UID) {
 		vattr.va_mask |= AT_UID;
 		vattr.va_uid = sstb_in->sst_uid;
 		if (vattr.va_uid > MAXUID) {
@@ -1205,7 +1207,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			goto out;
 		}
 	}
-	if (to_set & SRM_SETATTRF_GID) {
+	if (to_set & SETATTR_MASKF_GID) {
 		vattr.va_mask |= AT_GID;
 		vattr.va_gid = sstb_in->sst_gid;
 		if (vattr.va_gid > MAXUID) {
@@ -1213,26 +1215,26 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			goto out;
 		}
 	}
-	if (to_set & SRM_SETATTRF_ATIME) {
+	if (to_set & SETATTR_MASKF_ATIME) {
 		vattr.va_mask |= AT_SLASH2ATIME;
 		vattr.va_s2atime.tv_sec = sstb_in->sst_atime;
 		vattr.va_s2atime.tv_nsec = sstb_in->sst_atime_ns;
 	}
-	if (to_set & SRM_SETATTRF_MTIME) {
+	if (to_set & SETATTR_MASKF_MTIME) {
 		vattr.va_mask |= AT_SLASH2MTIME;
 		vattr.va_s2mtime.tv_sec = sstb_in->sst_mtime;
 		vattr.va_s2mtime.tv_nsec = sstb_in->sst_mtime_ns;
 	}
-	if (to_set & SRM_SETATTRF_FSIZE) {
+	if (to_set & SETATTR_MASKF_FSIZE) {
 		vattr.va_mask |= AT_SLASH2SIZE;
 		vattr.va_s2size = sstb_in->sst_size;
 	}
-	if (to_set & SRM_SETATTRF_PTRUNCGEN) {
+	if (to_set & SETATTR_MASKF_PTRUNCGEN) {
 		vattr.va_mask |= AT_PTRUNCGEN;
 		vattr.va_ptruncgen = sstb_in->sst_ptruncgen;
 	}
 
-	int flags = (to_set & (SRM_SETATTRF_ATIME | SRM_SETATTRF_MTIME)) ? ATTR_S2UTIME : 0;
+	int flags = (to_set & (SETATTR_MASKF_ATIME | SETATTR_MASKF_MTIME)) ? ATTR_S2UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL, logfunc);	/* zfs_setattr() */
 
  out:
@@ -1471,7 +1473,7 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 	if (strlen(name) > MAXNAMELEN)
 		return ENAMETOOLONG;
 
-	if (strlen(name) + strlen(link) > MAX_NAME_BUF_SIZE)
+	if (strlen(name) + strlen(link) > SLJ_NAMES_MAX)
 		return ENAMETOOLONG;
 
 	int error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
@@ -1543,7 +1545,7 @@ zfsslash2_rename(mdsio_fid_t parent, const char *name,
 		return ENAMETOOLONG;
 	if (strlen(newname) > MAXNAMELEN)
 		return ENAMETOOLONG;
-	if (strlen(name) + strlen(newname) > MAX_NAME_BUF_SIZE)
+	if (strlen(name) + strlen(newname) > SLJ_NAMES_MAX)
 		return ENAMETOOLONG;
 
 	int error = zfs_zget(zfsvfs, parent, &p_znode, B_FALSE);
