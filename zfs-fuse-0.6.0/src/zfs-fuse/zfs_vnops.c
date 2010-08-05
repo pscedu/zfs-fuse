@@ -182,9 +182,12 @@ zfs_vattr_to_stat(struct srt_stat *stat, vattr_t *vap)
 	stat->sst_gen = vap->va_s2gen;
 	stat->sst_ptruncgen = vap->va_ptruncgen;
 	stat->sst_size = vap->va_s2size;
-	TIMESTRUC_TO_TIME(vap->va_s2atime, &stat->sst_atime);
-	TIMESTRUC_TO_TIME(vap->va_s2mtime, &stat->sst_mtime);
-	TIMESTRUC_TO_TIME(vap->va_ctime, &stat->sst_ctime);
+	stat->sst_atime = vap->va_s2atime.tv_sec;
+	stat->sst_atime_ns = vap->va_s2atime.tv_nsec;
+	stat->sst_mtime = vap->va_s2mtime.tv_sec;
+	stat->sst_mtime_ns = vap->va_s2mtime.tv_nsec;
+	stat->sst_ctime = vap->va_ctime.tv_sec;
+	stat->sst_ctime_ns = vap->va_ctime.tv_nsec;
 }
 
 /* ARGSUSED */
@@ -1377,8 +1380,11 @@ top:
 			zfs_vattr_to_stat(&stat, vap);
 
 			stat.sst_atime = zp->z_phys->zp_atime[0];
+			stat.sst_atime_ns = zp->z_phys->zp_atime[1];
 			stat.sst_mtime = zp->z_phys->zp_mtime[0];
+			stat.sst_mtime_ns = zp->z_phys->zp_mtime[1];
 			stat.sst_ctime = zp->z_phys->zp_ctime[0];
+			stat.sst_ctime_ns = zp->z_phys->zp_ctime[1];
 
 			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2id, 0,
 				vap->va_fid, &stat, name, NULL);

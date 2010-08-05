@@ -220,9 +220,12 @@ zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
 		sstb->sst_size = vattr.va_s2size;
 	sstb->sst_blksize = vattr.va_blksize;
 	sstb->sst_blocks = vattr.va_nblocks;
-	TIMESTRUC_TO_TIME(vattr.va_s2atime, &sstb->sst_atime);
-	TIMESTRUC_TO_TIME(vattr.va_s2mtime, &sstb->sst_mtime);
-	TIMESTRUC_TO_TIME(vattr.va_ctime, &sstb->sst_ctime);
+	sstb->sst_atime = vattr.va_s2atime.tv_sec;
+	sstb->sst_atime_ns = vattr.va_s2atime.tv_nsec;
+	sstb->sst_mtime = vattr.va_s2mtime.tv_sec;
+	sstb->sst_mtime_ns = vattr.va_s2mtime.tv_nsec;
+	sstb->sst_ctime = vattr.va_ctime.tv_sec;
+	sstb->sst_ctime_ns = vattr.va_ctime.tv_nsec;
 	sstb->sst_ptruncgen = vattr.va_ptruncgen;
 	sstb->sst_utimgen = vattr.va_s2utimgen;
 
@@ -1212,11 +1215,13 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 	}
 	if (to_set & SRM_SETATTRF_ATIME) {
 		vattr.va_mask |= AT_SLASH2ATIME;
-		TIME_TO_TIMESTRUC(sstb_in->sst_atime, &vattr.va_s2atime);
+		vattr.va_s2atime.tv_sec = sstb_in->sst_atime;
+		vattr.va_s2atime.tv_nsec = sstb_in->sst_atime_ns;
 	}
 	if (to_set & SRM_SETATTRF_MTIME) {
 		vattr.va_mask |= AT_SLASH2MTIME;
-		TIME_TO_TIMESTRUC(sstb_in->sst_mtime, &vattr.va_s2mtime);
+		vattr.va_s2mtime.tv_sec = sstb_in->sst_mtime;
+		vattr.va_s2mtime.tv_nsec = sstb_in->sst_mtime_ns;
 	}
 	if (to_set & SRM_SETATTRF_FSIZE) {
 		vattr.va_mask |= AT_SLASH2SIZE;
@@ -1332,8 +1337,8 @@ zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
 	uio.uio_resid = iovec.iov_len;
 	uio.uio_loffset = off;
 
-	int error = VOP_WRITE(vp, &uio, 
-		      (info->flags | (update_mtime ? 0 : SLASH_IGNORE_MTIME)), 
+	int error = VOP_WRITE(vp, &uio,
+		      (info->flags | (update_mtime ? 0 : SLASH_IGNORE_MTIME)),
 		      cred, NULL, funcp, datap);	/* zfs_write */
 
 	ZFS_EXIT(zfsvfs);
@@ -1769,8 +1774,10 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char 
 	vattr.va_fid = fid;
 
 	vattr.va_mask |= AT_ATIME|AT_MTIME;
-	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_s2atime);
-	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_s2mtime);
+	vattr.va_s2atime.tv_sec = stat->sst_atime;
+	vattr.va_s2atime.tv_nsec = stat->sst_atime_ns;
+	vattr.va_s2mtime.tv_sec = stat->sst_mtime;
+	vattr.va_s2mtime.tv_nsec = stat->sst_mtime_ns;
 
 	cred.cr_uid = stat->sst_uid;
 	cred.cr_gid = stat->sst_gid;
@@ -1851,8 +1858,10 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *n
 
 	/* zfs_mknode() respects our ATIME and MTIME, but not CTIME */
 	vattr.va_mask |= AT_ATIME|AT_MTIME;
-	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_s2atime);
-	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_s2mtime);
+	vattr.va_s2atime.tv_sec = stat->sst_atime;
+	vattr.va_s2atime.tv_nsec = stat->sst_atime_ns;
+	vattr.va_s2mtime.tv_sec = stat->sst_mtime;
+	vattr.va_s2mtime.tv_nsec = stat->sst_mtime_ns;
 
 	cred.cr_uid = stat->sst_uid;
 	cred.cr_gid = stat->sst_gid;
@@ -1897,8 +1906,10 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *
 
 	/* zfs_mknode() respects our ATIME and MTIME, but not CTIME */
 	vattr.va_mask |= AT_ATIME|AT_MTIME;
-	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_s2atime);
-	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_s2mtime);
+	vattr.va_s2atime.tv_sec = stat->sst_atime;
+	vattr.va_s2atime.tv_nsec = stat->sst_atime_ns;
+	vattr.va_s2mtime.tv_sec = stat->sst_mtime;
+	vattr.va_s2mtime.tv_nsec = stat->sst_mtime_ns;
 
 	cred.cr_uid = stat->sst_uid;
 	cred.cr_gid = stat->sst_gid;
@@ -2029,9 +2040,12 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
 	vattr.va_mode = stat->sst_mode;
 	vattr.va_uid = stat->sst_uid;
 	vattr.va_gid = stat->sst_gid;
-	TIME_TO_TIMESTRUC(stat->sst_atime, &vattr.va_s2atime);
-	TIME_TO_TIMESTRUC(stat->sst_mtime, &vattr.va_s2mtime);
-	TIME_TO_TIMESTRUC(stat->sst_ctime, &vattr.va_ctime);
+//	vattr.va_ctime.tv_sec = stat->sst_ctime;
+//	vattr.va_ctime.tv_nsec = stat->sst_ctime_ns;
+	vattr.va_s2atime.tv_sec = stat->sst_atime;
+	vattr.va_s2atime.tv_nsec = stat->sst_atime_ns;
+	vattr.va_s2mtime.tv_sec = stat->sst_mtime;
+	vattr.va_s2mtime.tv_nsec = stat->sst_mtime_ns;
 
 	flag = (mask & (AT_ATIME | AT_MTIME)) ? ATTR_UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL, NULL);		/* zfs_setattr() */
