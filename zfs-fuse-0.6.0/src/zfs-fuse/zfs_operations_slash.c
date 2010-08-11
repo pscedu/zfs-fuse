@@ -1340,7 +1340,7 @@ zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
 	uio.uio_loffset = off;
 
 	int error = VOP_WRITE(vp, &uio,
-		      (info->flags | (update_mtime ? 0 : SLASH_IGNORE_MTIME)),
+		      (info->flags | (update_mtime ? 0 : SLASH2_IGNORE_MTIME)),
 		      cred, NULL, funcp, datap);	/* zfs_write */
 
 	ZFS_EXIT(zfsvfs);

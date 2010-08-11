@@ -878,7 +878,7 @@ again:
 		 * dirty, so we don't have to do it again for zp_size.
 		 */
 		zfs_time_stamper(zp, (CONTENT_MODIFIED | 
-				      ((ioflag & SLASH_IGNORE_MTIME) ?
+				      ((ioflag & SLASH2_IGNORE_MTIME) ?
 				       0 : S2CONTENT_MODIFIED)), tx);
 		/*
 		 * Update the file size (zp_size) if it has changed;
