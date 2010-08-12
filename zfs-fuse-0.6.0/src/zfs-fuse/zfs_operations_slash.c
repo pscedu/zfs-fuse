@@ -57,13 +57,13 @@ cred_t		 zrootcreds;
 vfs_t		*zfsVfs;			/* initialized by do_mount() */
 
 /* flags for zfsslash2_fidlink() */
-#define	FIDLINK_CREATE		0x01
-#define	FIDLINK_LOOKUP		0x02
-#define	FIDLINK_REMOVE		0x04
-#define	FIDLINK_DIR		0x08
+#define	FIDLINK_CREATE		(1 << 0)
+#define	FIDLINK_LOOKUP		(1 << 1)
+#define	FIDLINK_REMOVE		(1 << 2)
+#define	FIDLINK_DIR		(1 << 3)
 
-#define SL_PATH_PREFIX	".sl"
-#define SL_PATH_FIDNS	".slfidns"
+#define SL_PATH_PREFIX		".sl"
+#define SL_PATH_FIDNS		".slfidns"
 
 /**
  * get_vnode_fids - Get SLASH FID + generation (external) and the
@@ -191,31 +191,30 @@ zfsslash2_statfs(struct statvfs *stat)
 	return (0);
 }
 
-int
-zfsslash2_stat(vnode_t *vp, struct srt_stat *sstb, cred_t *cred)
+static int
+fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb, cred_t *cred)
 {
-	struct slash_fidgen fg;
-
 	ASSERT(vp != NULL);
-	ASSERT(sstb != NULL);
 
 	vattr_t vattr;
+
+	if (sstb)
+		memset(sstb, 0, sizeof(*sstb));
+	get_vnode_fids(vp, sstb ? &sstb->sst_fg : NULL, mfp);
+
+	if (sstb == NULL)
+		return (0);
 
 	int error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);	/* zfs_getattr() */
 	if (error)
 		return error;
 
-	get_vnode_fids(vp, &fg, NULL);
-
-	memset(sstb, 0, sizeof(*sstb));
 	sstb->sst_dev = vattr.va_fsid;
-	sstb->sst_ino = fg.fg_fid;
 	sstb->sst_mode = VTTOIF(vattr.va_type) | vattr.va_mode;
 	sstb->sst_nlink = vattr.va_nlink;
 	sstb->sst_uid = vattr.va_uid;
 	sstb->sst_gid = vattr.va_gid;
 	sstb->sst_rdev = vattr.va_rdev;
-	sstb->sst_gen = vattr.va_s2gen;
 	if (S_ISDIR(sstb->sst_mode))
 		sstb->sst_size = vattr.va_blksize * vattr.va_nblocks;
 	else
@@ -260,7 +259,7 @@ zfsslash2_getattr(mdsio_fid_t ino, const struct slash_creds *slcrp,
 	vnode_t *vp = ZTOV(znode);
 	ASSERT(vp != NULL);
 
-	error = zfsslash2_stat(vp, sstb, cred);
+	error = fill_sstb(vp, NULL, sstb, cred);
 
 	VN_RELE(vp);
 	ZFS_EXIT(zfsvfs);
@@ -270,8 +269,8 @@ zfsslash2_getattr(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 int
 zfsslash2_lookup(mdsio_fid_t parent, const char *name,
-    struct slash_fidgen *fg, mdsio_fid_t *mfp,
-    const struct slash_creds *slcrp, struct srt_stat *sstb)
+    mdsio_fid_t *mfp, const struct slash_creds *slcrp,
+    struct srt_stat *sstb)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -306,12 +305,10 @@ zfsslash2_lookup(mdsio_fid_t parent, const char *name,
 		goto out;
 	}
 
-	if (sstb)
-		error = zfsslash2_stat(vp, sstb, cred);
+	if (sstb || mfp)
+		error = fill_sstb(vp, mfp, sstb, cred);
 	if (error)
 		goto out;
-
-	get_vnode_fids(vp, fg, mfp);
 
  out:
 	if (vp != NULL)
@@ -326,7 +323,7 @@ zfsslash2_lookup(mdsio_fid_t parent, const char *name,
  */
 int
 zfsslash2_opendir(mdsio_fid_t ino, const struct slash_creds *slcrp,
-    struct slash_fidgen *fg, void *finfop)
+    struct slash_fidgen *fgp, void *finfop)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -378,7 +375,7 @@ zfsslash2_opendir(mdsio_fid_t ino, const struct slash_creds *slcrp,
 	finfo->vp = vp;
 	finfo->flags = FREAD;
 
-	get_vnode_fids(vp, fg, NULL);
+	get_vnode_fids(vp, fgp, NULL);
 
  out:
 	if (error)
@@ -439,7 +436,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 	} entry;
 
 	struct stat fstat = { 0 };
-	struct srm_getattr_rep *attr = attrs;
+	struct srt_stat *attr = attrs, sstb;
 
 	iovec_t iovec;
 	uio_t uio;
@@ -460,6 +457,11 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 
 	if (nents)
 		*nents = 0;
+
+	int rc;
+
+	if (!nstbprefetch)
+		attr = &sstb;
 
 	for (;;) {
 		iovec.iov_base = entry.buf;
@@ -498,34 +500,17 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		if (hide_vnode(vp, tvp, entry.dirent.d_name))
 			goto next_entry;
 
-		struct slash_fidgen tfg;
-		mdsio_fid_t tmf;
+		/* XXX look at fidcache first */
+		rc = fill_sstb(tvp, NULL, attr, cred);
+		if (rc)
+			attr->sst_fid = FID_ANY;
+		else
+			fstat.st_mode = attr->sst_mode;
+		fstat.st_ino = attr->sst_fid;
 
-		get_vnode_fids(tvp, &tfg, &tmf);
-
-		fstat.st_ino = tfg.fg_fid;
-		fstat.st_mode = 0;
 		if (nstbprefetch) {
-			attr->rc = zfsslash2_stat(tvp, &attr->attr, cred);
-			if (!attr->rc)
-				fstat.st_mode = attr->attr.sst_mode;
-
 			nstbprefetch--;
-#if 0
-			fprintf(stderr, "slash fid: %#"PRIx64", "
-			    "zfs ino: %#"PRIx64", name: %s, mode: 0%o\n",
-			    attr->attr.sst_ino, entry.dirent.d_ino,
-			    entry.dirent.d_name, attr->attr.sst_mode);
-#endif
 			attr++;
-
-		} else {
-			struct srt_stat sstb;
-			int statrc;
-
-			statrc = zfsslash2_stat(tvp, &sstb, cred);
-			if (!statrc)
-				fstat.st_mode = sstb.sst_mode;
 		}
 
 		outbuf_resid -= dsize;
@@ -702,7 +687,6 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
     struct srt_stat *sstb, mdsio_fid_t *mfp)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
-	struct slash_fidgen fg;
 	vnode_t *vp;
 	int error;
 
@@ -710,11 +694,10 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
 	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP, NULL, &vp);
 	if (error)
 		return (error);
-	if (sstb)
-		error = zfsslash2_stat(vp, sstb, cred);
+	if (sstb || mfp)
+		error = fill_sstb(vp, mfp, sstb, cred);
 	if (error)
 		goto out;
-	get_vnode_fids(vp, &fg, mfp);
 
  out:
 	VN_RELE(vp);
@@ -730,7 +713,6 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
  * @opflags: operation flags (see MDSIO_OPENCRF_*).
  * @createmode: permission set new file should take on.
  * @name: link base name to use in parent directory if creating.
- * @fg: value-result FID+GEN of file if creating.
  * @mfp: value-result ZFS inum if creating.
  * @sstb: value-result stat buffer of file.
  * @finfo: value-result handle to ZFS structure; used as a descriptor to
@@ -744,8 +726,8 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
 int
 zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
     int fflags, int opflags, mode_t createmode, const char *name,
-    struct slash_fidgen *fg, mdsio_fid_t *mfp, struct srt_stat *sstb,
-    void *finfop, sl_log_update_t logfunc, sl_getslfid_cb_t getslfid)
+    mdsio_fid_t *mfp, struct srt_stat *sstb, void *finfop,
+    sl_log_update_t logfunc, sl_getslfid_cb_t getslfid)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -877,8 +859,8 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		goto out;
 	}
 
-	if (sstb) {
-		error = zfsslash2_stat(vp, sstb, cred);
+	if (sstb || mfp) {
+		error = fill_sstb(vp, mfp, sstb, cred);
 		if (error)
 			goto out;
 	}
@@ -893,8 +875,6 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 	finfo->vp = vp;
 	finfo->flags = flags;
-
-	get_vnode_fids(vp, fg, mfp);
 
  out:
 	if (error) {
@@ -999,15 +979,10 @@ zfsslash2_read(const struct slash_creds *slcrp, void *buf, size_t size,
 	return (error);
 }
 
-/*
- * fg is used as an in and out parameter.  If it is not FID_ANY, then
- * the caller has passed in a pre-determined SLASH_ID for us to use.
- */
 int
 zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
     const struct slash_creds *slcrp, struct srt_stat *sstb,
-    struct slash_fidgen *fg, mdsio_fid_t *mfp,
-    sl_log_update_t logfunc, sl_getslfid_cb_t getslfid)
+    mdsio_fid_t *mfp, sl_log_update_t logfunc, sl_getslfid_cb_t getslfid)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1040,7 +1015,8 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_mask = AT_TYPE | AT_MODE;
 	vattr.va_fid = getslfid();
 
-	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0, NULL, logfunc); /* zfs_mkdir() */
+	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, cred, NULL, 0,
+	    NULL, logfunc); /* zfs_mkdir() */
 	if (error)
 		goto out;
 
@@ -1050,12 +1026,10 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	if (error)
 		goto out;
 
-	if (sstb)
-		error = zfsslash2_stat(vp, sstb, cred);
+	if (sstb || mfp)
+		error = fill_sstb(vp, mfp, sstb, cred);
 	if (error)
 		goto out;
-
-	get_vnode_fids(vp, fg, mfp);
 
  out:
 	if (vp != NULL)
@@ -1138,7 +1112,6 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 	int error;
 
 	if (!info) {
-
 		error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
 		if (error) {
 			ZFS_EXIT(zfsvfs);
@@ -1161,7 +1134,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		 * (Solaris calls VOP_SPACE instead of VOP_SETATTR on
 		 * ftruncate).
 		 */
-		if (to_set & SETATTR_MASKF_SIZE) {
+		if (to_set & SETATTR_MASKF_METASIZE) {
 			/* Check if file is opened for writing */
 			if ((info->flags & FWRITE) == 0) {
 				error = EBADF;
@@ -1183,10 +1156,6 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			/* FIXME: check locks */
 			error = VOP_SPACE(vp, F_FREESP, &bf, info->flags, 0, cred, NULL);
 			if (error)
-				goto out;
-
-			to_set &= ~SETATTR_MASKF_SIZE;
-			if (to_set == 0)
 				goto out;
 		}
 	}
@@ -1225,7 +1194,12 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		vattr.va_s2mtime.tv_sec = sstb_in->sst_mtime;
 		vattr.va_s2mtime.tv_nsec = sstb_in->sst_mtime_ns;
 	}
-	if (to_set & SETATTR_MASKF_FSIZE) {
+	if (to_set & SETATTR_MASKF_CTIME) {
+		vattr.va_mask |= AT_CTIME;
+		vattr.va_ctime.tv_sec = sstb_in->sst_ctime;
+		vattr.va_ctime.tv_nsec = sstb_in->sst_ctime_ns;
+	}
+	if (to_set & SETATTR_MASKF_DATASIZE) {
 		vattr.va_mask |= AT_SLASH2SIZE;
 		vattr.va_s2size = sstb_in->sst_size;
 	}
@@ -1233,13 +1207,18 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		vattr.va_mask |= AT_PTRUNCGEN;
 		vattr.va_ptruncgen = sstb_in->sst_ptruncgen;
 	}
+	if (to_set & SETATTR_MASKF_PTRUNCGEN) {
+		vattr.va_mask |= AT_SLASH2GEN;
+		vattr.va_s2gen = sstb_in->sst_fg.fg_gen;
+	}
 
 	int flags = (to_set & (SETATTR_MASKF_ATIME | SETATTR_MASKF_MTIME)) ? ATTR_S2UTIME : 0;
-	error = VOP_SETATTR(vp, &vattr, flags, cred, NULL, logfunc);	/* zfs_setattr() */
+	if (to_set)
+		error = VOP_SETATTR(vp, &vattr, flags, cred, NULL, logfunc);	/* zfs_setattr() */
 
  out:
 	if (!error && sstb_out)
-		error = zfsslash2_stat(vp, sstb_out, cred);
+		error = fill_sstb(vp, NULL, sstb_out, cred);
 
 	/* Do not release if vp was an opened inode */
 	if (release)
@@ -1443,7 +1422,7 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 	e.generation = VTOZ(vp)->z_phys->zp_gen;
 
 	if (sstb)
-		error = zfsslash2_stat(vp, &e.attr, &cred);
+		error = fill_sstb(vp, &e.attr, &cred);
 
  out:
 	if (vp != NULL)
@@ -1460,8 +1439,7 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 int
 zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
     const struct slash_creds *slcrp, struct srt_stat *sstb,
-    struct slash_fidgen *fg, mdsio_fid_t *mfp, sl_getslfid_cb_t getslfid,
-    sl_log_update_t logfunc)
+    mdsio_fid_t *mfp, sl_getslfid_cb_t getslfid, sl_log_update_t logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1495,7 +1473,8 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 	vattr.va_mask = AT_TYPE | AT_MODE;
 	vattr.va_fid = getslfid();
 
-	error = VOP_SYMLINK(dvp, (char *)name, &vattr, (char *)link, cred, NULL, 0, logfunc); /* zfs_symlink() */
+	error = VOP_SYMLINK(dvp, (char *)name, &vattr, (char *)link,
+	    cred, NULL, 0, logfunc); /* zfs_symlink() */
 
 	vnode_t *vp = NULL;
 
@@ -1512,12 +1491,10 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 
 	ASSERT(vp != NULL);
 
-	if (sstb)
-		error = zfsslash2_stat(vp, sstb, cred);
+	if (sstb || mfp)
+		error = fill_sstb(vp, mfp, sstb, cred);
 	if (error)
 		goto out;
-
-	get_vnode_fids(vp, fg, mfp);
 
  out:
 	if (vp != NULL)
@@ -1607,8 +1584,8 @@ zfsslash2_fsync(const struct slash_creds *slcrp, int datasync,
 }
 
 int
-zfsslash2_link(mdsio_fid_t ino, mdsio_fid_t newparent, const char *newname,
-    struct slash_fidgen *fg, const struct slash_creds *slcrp,
+zfsslash2_link(mdsio_fid_t ino, mdsio_fid_t newparent,
+    const char *newname, const struct slash_creds *slcrp,
     struct srt_stat *sstb, sl_log_update_t logfunc)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
@@ -1658,11 +1635,9 @@ zfsslash2_link(mdsio_fid_t ino, mdsio_fid_t newparent, const char *newname,
 	ASSERT(vp != NULL);
 
 	if (sstb)
-		error = zfsslash2_stat(vp, sstb, cred);
+		error = fill_sstb(vp, NULL, sstb, cred);
 	if (error)
 		goto out;
-
-	get_vnode_fids(vp, fg, NULL);
 
  out:
 	if (vp != NULL)
@@ -2024,7 +1999,7 @@ out:
 }
 
 int
-zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
+zfsslash2_replay_setattr(slfid_t fid, struct srt_stat *stat, uint mask)
 {
 	int error;
 	vnode_t *vp;
@@ -2052,7 +2027,7 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat * stat, uint mask)
 	flag = (mask & (AT_ATIME | AT_MTIME)) ? ATTR_UTIME : 0;
 	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL, NULL);		/* zfs_setattr() */
 
-out:
+ out:
 	if (vp)
 		VN_RELE(vp);
 	return (error);

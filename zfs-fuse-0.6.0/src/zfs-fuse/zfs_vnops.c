@@ -78,9 +78,9 @@
 #include <sys/attr.h>
 #include "zfsfuse_socket.h"
 
-#include "sltypes.h"
-#include "slashd/mdsio.h"
+#include "zfs_slashlib.h"
 #include "slashd/namespace.h"
+#include "sljournal.h"
 
 /*
  * Programming rules.
@@ -173,13 +173,19 @@
  */
 
 static void
-zfs_vattr_to_stat(struct srt_stat *stat, vattr_t *vap)
+zfs_vattr_to_stat(struct srt_stat *stat, const vattr_t *vap)
 {
-	stat->sst_mask = vap->va_mask;
+	stat->sst_fid = vap->va_fid;
+	stat->sst_gen = vap->va_s2gen;
+
 	stat->sst_uid = vap->va_uid;
 	stat->sst_gid = vap->va_gid;
+	stat->sst_rdev = vap->va_rdev;
+	stat->sst_utimgen = vap->va_s2utimgen;
 	stat->sst_mode = vap->va_mode;
-	stat->sst_gen = vap->va_s2gen;
+//	stat->sst_blocks = vap->va_s2nblocks;
+//	stat->sst_blksize = vap->va_s2blksize;
+//	stat->sst_nlink = vap->va_s2nlink;
 	stat->sst_ptruncgen = vap->va_ptruncgen;
 	stat->sst_size = vap->va_s2size;
 	stat->sst_atime = vap->va_s2atime.tv_sec;
@@ -1369,8 +1375,8 @@ top:
 		    vsecp, acl_ids.z_fuidp, vap);
 
 		if (logfunc) {
-			uint64_t txg;
 			struct srt_stat stat;
+			uint64_t txg;
 
 			txg = dmu_tx_get_txg(tx);
 			vap->va_uid = acl_ids.z_fuid;
@@ -1379,15 +1385,8 @@ top:
 
 			zfs_vattr_to_stat(&stat, vap);
 
-			stat.sst_atime = zp->z_phys->zp_atime[0];
-			stat.sst_atime_ns = zp->z_phys->zp_atime[1];
-			stat.sst_mtime = zp->z_phys->zp_mtime[0];
-			stat.sst_mtime_ns = zp->z_phys->zp_mtime[1];
-			stat.sst_ctime = zp->z_phys->zp_ctime[0];
-			stat.sst_ctime_ns = zp->z_phys->zp_ctime[1];
-
 			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2id, 0,
-				vap->va_fid, &stat, name, NULL);
+			    &stat, vap->va_mask, name, NULL);
 		}
 
 		zfs_acl_ids_free(&acl_ids);
@@ -1652,11 +1651,14 @@ top:
 	zfs_log_remove(zilog, tx, txtype, dzp, name);
 
 	if (logfunc) {
+		struct srt_stat sstb;
 		uint64_t txg;
 
 		txg = dmu_tx_get_txg(tx);
 
-		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2id, 0, zp->z_phys->zp_s2id, NULL, name, NULL);
+		sstb.sst_fid = zp->z_phys->zp_s2id;
+		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2id, 0,
+		    &sstb, 0, name, NULL);
 	}
 	dmu_tx_commit(tx);
 out:
@@ -1835,8 +1837,8 @@ top:
 	    acl_ids.z_fuidp, vap);
 
 	if (logfunc) {
-		uint64_t txg;
 		struct srt_stat stat;
+		uint64_t txg;
 
 		txg = dmu_tx_get_txg(tx);
 		vap->va_uid = acl_ids.z_fuid;
@@ -1847,7 +1849,8 @@ top:
 		ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
 		zfs_vattr_to_stat(&stat, vap);
 
-		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2id, 0, zp->z_phys->zp_s2id, &stat, dirname, NULL);
+		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2id, 0,
+		    &stat, vap->va_mask, dirname, NULL);
 	}
 	zfs_acl_ids_free(&acl_ids);
 	dmu_tx_commit(tx);
@@ -1971,11 +1974,13 @@ top:
 	}
 
 	if (logfunc) {
+		struct srt_stat sstb;
 		uint64_t txg;
 
 		txg = dmu_tx_get_txg(tx);
-
-		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2id, 0, zp->z_phys->zp_s2id, NULL, name, NULL);
+		sstb.sst_fid = zp->z_phys->zp_s2id;
+		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2id, 0,
+		    &sstb, 0, name, NULL);
 	}
 	dmu_tx_commit(tx);
 
@@ -3054,8 +3059,8 @@ out:
 		dmu_tx_abort(tx);
 	else {
 		if (logfunc) {
-			uint64_t txg;
 			struct srt_stat stat;
+			uint64_t txg;
 
 			txg = dmu_tx_get_txg(tx);
 			vap->va_uid = pzp->zp_uid;
@@ -3064,7 +3069,8 @@ out:
 			vap->va_ptruncgen = pzp->zp_ptruncgen;
 			zfs_vattr_to_stat(&stat, vap);
 
-			logfunc(NS_OP_SETATTR, txg, 0, 0, zp->z_phys->zp_s2id, &stat, NULL, NULL);
+			logfunc(NS_OP_SETATTR, txg, 0, 0, &stat,
+			    vap->va_mask, NULL, NULL);
 		}
 		dmu_tx_commit(tx);
 	}
@@ -3448,12 +3454,15 @@ top:
 			error = zfs_link_destroy(sdl, szp, tx, ZRENAMING, NULL);
 			ASSERT(error == 0);
 			if (logfunc) {
+				struct srt_stat sstb;
 				uint64_t txg;
 
 				txg = dmu_tx_get_txg(tx);
-				logfunc(NS_OP_RENAME, txg, sdzp->z_phys->zp_s2id,
-					tdzp->z_phys->zp_s2id, szp->z_phys->zp_s2id,
-					NULL, snm, tnm);
+				sstb.sst_fid = szp->z_phys->zp_s2id;
+				logfunc(NS_OP_RENAME, txg,
+				    sdzp->z_phys->zp_s2id,
+				    tdzp->z_phys->zp_s2id, &sstb, 0,
+				    snm, tnm);
 			}
 
 			zfs_log_rename(zilog, tx,
@@ -3624,8 +3633,8 @@ top:
 			txtype |= TX_CI;
 		zfs_log_symlink(zilog, tx, txtype, dzp, zp, name, link);
 		if (logfunc) {
-			uint64_t txg;
 			struct srt_stat stat;
+			uint64_t txg;
 
 			txg = dmu_tx_get_txg(tx);
 
@@ -3637,7 +3646,7 @@ top:
 			ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
 			zfs_vattr_to_stat(&stat, vap);
 			logfunc(NS_OP_SYMLINK, txg, dzp->z_phys->zp_s2id,
-				0, zp->z_phys->zp_s2id, &stat, name, link);
+			    0, &stat, vap->va_mask, name, link);
 		}
 	}
 
@@ -3828,10 +3837,13 @@ top:
 		zfs_log_link(zilog, tx, txtype, dzp, szp, name);
 
 		if (logfunc) {
+			struct srt_stat sstb;
 			uint64_t txg;
 
 			txg = dmu_tx_get_txg(tx);
-			logfunc(NS_OP_LINK, txg, dzp->z_phys->zp_s2id, 0, szp->z_phys->zp_s2id, NULL, name, NULL);
+			sstb.sst_fid = szp->z_phys->zp_s2id;
+			logfunc(NS_OP_LINK, txg, dzp->z_phys->zp_s2id,
+			    0, &sstb, 0, name, NULL);
 		}
 	}
 
