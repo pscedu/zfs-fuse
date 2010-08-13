@@ -469,7 +469,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		uio.uio_resid = iovec.iov_len;
 		uio.uio_loffset = next;
 
-		error = VOP_READDIR(vp, &uio, cred, &eofp, NULL, 0);	/* zfs_readdir() */
+		error = VOP_READDIR(vp, &uio, cred, &eofp, NULL, V_RDDIR_ONEENTRY);	/* zfs_readdir() */
 		if (error)
 			goto out;
 

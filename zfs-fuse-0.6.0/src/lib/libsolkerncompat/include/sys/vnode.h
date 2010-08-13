@@ -96,6 +96,7 @@ typedef enum vtype {
  * Flags for VOP_READDIR
  */
 #define V_RDDIR_ENTFLAGS 0x01 /* request dirent flags */
+#define V_RDDIR_ONEENTRY 0x02 /* slash2: request only one entry */
 
 /*
  * Flags for VOP_RWLOCK/VOP_RWUNLOCK

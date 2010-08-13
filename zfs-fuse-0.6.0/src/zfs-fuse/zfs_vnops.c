@@ -2238,6 +2238,9 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 			offset += 1;
 		}
 		*next = offset;
+
+		if (flags & V_RDDIR_ONEENTRY)
+			break;
 	}
 	zp->z_zn_prefetch = B_FALSE; /* a lookup will re-enable pre-fetching */
 
