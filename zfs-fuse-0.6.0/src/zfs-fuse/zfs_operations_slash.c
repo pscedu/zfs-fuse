@@ -194,12 +194,12 @@ zfsslash2_statfs(struct statvfs *stat)
 static int
 fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb, cred_t *cred)
 {
-	ASSERT(vp != NULL);
 
 	int error;
 	vattr_t vattr;
 	struct slash_fidgen fg;
 
+	ASSERT(vp != NULL);
 	get_vnode_fids(vp, &fg, mfp);
 
 	if (sstb == NULL)
@@ -463,8 +463,10 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 
 	int rc;
 
-	if (!nstbprefetch)
+	if (!nstbprefetch) {
+		ASSERT(!attrs);
 		attr = &sstb;
+	}
 
 	for (;;) {
 		iovec.iov_base = entry.buf;
