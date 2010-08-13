@@ -196,22 +196,29 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb, cred_t *cred)
 {
 	ASSERT(vp != NULL);
 
+	int error;
 	vattr_t vattr;
+	struct slash_fidgen fg;
 
-	if (sstb)
-		memset(sstb, 0, sizeof(*sstb));
-	get_vnode_fids(vp, sstb ? &sstb->sst_fg : NULL, mfp);
+	get_vnode_fids(vp, &fg, mfp);
 
 	if (sstb == NULL)
 		return (0);
 
-	int error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);	/* zfs_getattr() */
+	error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);	/* zfs_getattr() */
 	if (error)
 		return error;
 
+	/* keep the order of these fields to avoid missing one */
+	sstb->sst_fg = fg;
 	sstb->sst_dev = vattr.va_fsid;
+	sstb->sst_ptruncgen = vattr.va_ptruncgen;
+	sstb->sst_utimgen = vattr.va_s2utimgen;
+	sstb->sst__pad0 = 0;
+
 	sstb->sst_mode = VTTOIF(vattr.va_type) | vattr.va_mode;
-	sstb->sst_nlink = vattr.va_nlink;
+	/* subtract 1 for immutable namespace link */
+	sstb->sst_nlink = (vattr.va_nlink > 1) ? (vattr.va_nlink - 1) : vattr.va_nlink;
 	sstb->sst_uid = vattr.va_uid;
 	sstb->sst_gid = vattr.va_gid;
 	sstb->sst_rdev = vattr.va_rdev;
@@ -221,18 +228,14 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb, cred_t *cred)
 		sstb->sst_size = vattr.va_s2size;
 	sstb->sst_blksize = vattr.va_blksize;
 	sstb->sst_blocks = vattr.va_nblocks;
+
 	sstb->sst_atime = vattr.va_s2atime.tv_sec;
 	sstb->sst_atime_ns = vattr.va_s2atime.tv_nsec;
 	sstb->sst_mtime = vattr.va_s2mtime.tv_sec;
 	sstb->sst_mtime_ns = vattr.va_s2mtime.tv_nsec;
 	sstb->sst_ctime = vattr.va_ctime.tv_sec;
 	sstb->sst_ctime_ns = vattr.va_ctime.tv_nsec;
-	sstb->sst_ptruncgen = vattr.va_ptruncgen;
-	sstb->sst_utimgen = vattr.va_s2utimgen;
 
-	/* subtract 1 for immutable namespace link */
-	if (sstb->sst_nlink > 1)
-		sstb->sst_nlink--;
 	return 0;
 }
 
