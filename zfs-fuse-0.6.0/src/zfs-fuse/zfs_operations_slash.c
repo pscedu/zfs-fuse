@@ -412,7 +412,7 @@ zfsslash2_release(const struct slash_creds *slcrp, void *finfo)
 }
 
 /*
- * Two buffers are passed in by our callers: outbuf points to the
+ * At most two buffers are passed in by our callers: outbuf points to the
  * readdir result, attrs points to prefeteched attributes.
  */
 int
@@ -439,7 +439,9 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 	} entry;
 
 	struct stat fstat = { 0 };
-	struct srt_stat *attr = attrs, sstb;
+	struct srt_stat *attr = attrs;
+
+	ASSERT((!nstbprefetch && !attrs) || (nstbprefetch && attrs));
 
 	iovec_t iovec;
 	uio_t uio;
@@ -460,13 +462,6 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 
 	if (nents)
 		*nents = 0;
-
-	int rc;
-
-	if (!nstbprefetch) {
-		ASSERT(!attrs);
-		attr = &sstb;
-	}
 
 	for (;;) {
 		iovec.iov_base = entry.buf;
@@ -505,17 +500,42 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		if (hide_vnode(vp, tvp, entry.dirent.d_name))
 			goto next_entry;
 
-		/* XXX look at fidcache first */
-		rc = fill_sstb(tvp, NULL, attr, cred);
-		if (rc)
-			attr->sst_fid = FID_ANY;
-		else
-			fstat.st_mode = attr->sst_mode;
-		fstat.st_ino = attr->sst_fid;
-
 		if (nstbprefetch) {
+			/* XXX look at fidcache first */
+			if (fill_sstb(tvp, NULL, attr, cred))
+				attr->sst_fid = FID_ANY;
 			nstbprefetch--;
 			attr++;
+		}
+		if (VTOZ(tvp)->z_id == MDSIO_FID_ROOT)
+			fstat.st_ino = SLFID_ROOT;
+		else
+			fstat.st_ino = VTOZ(tvp)->z_phys->zp_s2id;
+
+		switch (tvp->v_type) {
+		    case VREG:
+			fstat.st_mode |= S_IFREG;
+			break;
+		    case VDIR:
+			fstat.st_mode |= S_IFDIR;
+			break;
+		    case VBLK:
+			fstat.st_mode |= S_IFBLK;
+			break;
+		    case VCHR:
+			fstat.st_mode |= S_IFCHR;
+			break;
+		    case VLNK:
+			fstat.st_mode |= S_IFLNK;
+			break;
+		    case VSOCK:
+			fstat.st_mode |= S_IFSOCK;
+			break;
+		    case VFIFO:
+			fstat.st_mode |= S_IFIFO; 
+			break;
+		    default:
+			fprintf(stderr, "unknow file type %d\n", tvp->v_type);
 		}
 
 		outbuf_resid -= dsize;
