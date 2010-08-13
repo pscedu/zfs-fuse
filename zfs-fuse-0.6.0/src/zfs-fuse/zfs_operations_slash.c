@@ -512,6 +512,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		else
 			fstat.st_ino = VTOZ(tvp)->z_phys->zp_s2id;
 
+		fstat.st_mode = 0;
 		switch (tvp->v_type) {
 		    case VREG:
 			fstat.st_mode |= S_IFREG;
