@@ -1190,6 +1190,8 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 	vattr_t vattr = { 0 };
 
+	vattr.va_fid = VTOZ(vp)->z_phys->zp_s2id;
+
 	if (to_set & SETATTR_MASKF_MODE) {
 		vattr.va_mask |= AT_MODE;
 		vattr.va_mode = sstb_in->sst_mode;
