@@ -1784,11 +1784,10 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char 
 	vattr.va_s2mtime.tv_sec = stat->sst_mtime;
 	vattr.va_s2mtime.tv_nsec = stat->sst_mtime_ns;
 
-	cred.cr_uid = stat->sst_uid;
-	cred.cr_gid = stat->sst_gid;
+	vattr.va_uid = stat->sst_uid;
+	vattr.va_gid = stat->sst_gid;
 
-	error = VOP_SYMLINK(pvp, (char *)name, &vattr, (char *)link, &cred, NULL, 0, NULL);	/* zfs_symlink() */
-
+	error = VOP_SYMLINK(pvp, (char *)name, &vattr, (char *)link, &zrootcreds, NULL, 0, NULL); /* zfs_symlink() */
 	if (error)
 		goto out;
 
@@ -1868,10 +1867,10 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *n
 	vattr.va_s2mtime.tv_sec = stat->sst_mtime;
 	vattr.va_s2mtime.tv_nsec = stat->sst_mtime_ns;
 
-	cred.cr_uid = stat->sst_uid;
-	cred.cr_gid = stat->sst_gid;
+	vattr.va_uid = stat->sst_uid;
+	vattr.va_gid = stat->sst_gid;
 
-	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &cred, NULL, 0, NULL, NULL); /* zfs_mkdir() */
+	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &zrootcreds, NULL, 0, NULL, NULL); /* zfs_mkdir() */
 	if (error)
 		goto out;
 
@@ -1916,10 +1915,10 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *
 	vattr.va_s2mtime.tv_sec = stat->sst_mtime;
 	vattr.va_s2mtime.tv_nsec = stat->sst_mtime_ns;
 
-	cred.cr_uid = stat->sst_uid;
-	cred.cr_gid = stat->sst_gid;
+	vattr.va_uid = stat->sst_uid;
+	vattr.va_gid = stat->sst_gid;
 
-	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, 0, &tvp, &cred, 0, NULL, NULL, NULL); /* zfs_create() */
+	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, 0, &tvp, &zrootcreds, 0, NULL, NULL, NULL); /* zfs_create() */
 	if (error)
 		goto out;
 	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
