@@ -1768,7 +1768,7 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char 
 	vp = pvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_mkdir(): fail to look up fid %"PRIx64"\n", fid);
+		fprintf(stderr, "zfsslash2_replay_symlink(): fail to look up fid %"PRIx64"\n", fid);
 		goto out;
 	}
 
@@ -1941,7 +1941,7 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 	dvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_mkdir(): fail to look up fid %"PRIx64"\n", fid);
+		fprintf(stderr, "zfsslash2_replay_rmdir(): fail to look up fid %"PRIx64"\n", fid);
 		goto out;
 	}
 
