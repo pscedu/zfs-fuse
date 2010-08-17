@@ -683,7 +683,7 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 			vattr.va_mask = AT_TYPE | AT_MODE;
 			vattr.va_fid = fid;
 			error = VOP_MKDIR(dvp, id_name, &vattr, vpp,
-				&zrootcreds, NULL, 0, NULL, NULL);
+				&zrootcreds, NULL, 0, NULL, NULL);	/* zfs_mkdir() */
 		}
 		goto out;
 	}
