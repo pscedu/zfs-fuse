@@ -3457,14 +3457,17 @@ top:
 			error = zfs_link_destroy(sdl, szp, tx, ZRENAMING, NULL);
 			ASSERT(error == 0);
 			if (logfunc) {
-				struct srt_stat sstb;
 				uint64_t txg;
+				struct srt_stat stat;
 
 				txg = dmu_tx_get_txg(tx);
-				sstb.sst_fid = szp->z_phys->zp_s2id;
+				stat.sst_uid = cr->cr_uid;
+				stat.sst_gid = cr->cr_gid;
+				stat.sst_fid = szp->z_phys->zp_s2id;
+
 				logfunc(NS_OP_RENAME, txg,
 				    sdzp->z_phys->zp_s2id,
-				    tdzp->z_phys->zp_s2id, &sstb, 0,
+				    tdzp->z_phys->zp_s2id, &stat, 0,
 				    snm, tnm);
 			}
 
