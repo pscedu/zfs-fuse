@@ -1722,6 +1722,11 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
  * There are two big differences between these functions and those above: (1) we have to start
  * from the immutable by-id namespace (that's why we start with zfsslash2_fidlink() instead of
  * zfs_zget()); (2) we don't need to log a replayed operation.
+ *
+ * It seems to me that I simply can't, as root, create a file owned by an arbitrary regular user 
+ * directly. There are also some limitations on changing owner and group membership.  As a result, 
+ * all replay operations are done with their original credentials captured when the corresponding
+ * operation was requested.  Note that we only log when ZFS declares the operation is doable.
  */
 
 uint64_t
