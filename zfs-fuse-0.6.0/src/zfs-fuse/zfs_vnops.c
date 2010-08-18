@@ -1974,13 +1974,16 @@ top:
 	}
 
 	if (logfunc) {
-		struct srt_stat sstb;
 		uint64_t txg;
+		struct srt_stat stat;
 
 		txg = dmu_tx_get_txg(tx);
-		sstb.sst_fid = zp->z_phys->zp_s2id;
+		stat.sst_uid = cr->cr_uid;
+		stat.sst_gid = cr->cr_gid;
+		stat.sst_fid = zp->z_phys->zp_s2id;
+
 		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2id, 0,
-		    &sstb, 0, name, NULL);
+		    &stat, 0, name, NULL);
 	}
 	dmu_tx_commit(tx);
 
