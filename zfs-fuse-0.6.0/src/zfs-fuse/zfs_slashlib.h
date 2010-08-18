@@ -53,7 +53,7 @@ void	do_exit(void);
 #define zfs_exit	do_exit
 
 int	zfsslash2_replay_create(slfid_t, slfid_t, struct srt_stat *, char *);
-int	zfsslash2_replay_link(slfid_t, slfid_t, char *, struct srt_stat *);
+int	zfsslash2_replay_link(slfid_t, slfid_t, struct srt_stat *, char *);
 int	zfsslash2_replay_mkdir(slfid_t, slfid_t, struct srt_stat *, char *);
 int	zfsslash2_replay_rename(slfid_t, const char *, slfid_t, const char *, struct srt_stat *);
 int	zfsslash2_replay_rmdir(slfid_t, slfid_t, char *, struct srt_stat *);

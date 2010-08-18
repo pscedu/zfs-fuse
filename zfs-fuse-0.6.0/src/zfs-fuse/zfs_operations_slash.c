@@ -1813,7 +1813,7 @@ out:
 }
 
 int
-zfsslash2_replay_link(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *stat)
+zfsslash2_replay_link(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *name)
 {
 	int error;
 	vnode_t *pvp, *svp;
