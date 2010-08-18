@@ -52,13 +52,13 @@ void	do_exit(void);
 #define zfs_init	do_init
 #define zfs_exit	do_exit
 
-int	zfsslash2_replay_create(slfid_t, slfid_t, struct srt_stat *, char *);
-int	zfsslash2_replay_link(slfid_t, slfid_t, struct srt_stat *, char *);
-int	zfsslash2_replay_mkdir(slfid_t, slfid_t, struct srt_stat *, char *);
+int	zfsslash2_replay_create(slfid_t, slfid_t, char *, struct srt_stat *stat);
+int	zfsslash2_replay_link(slfid_t, slfid_t, char *, struct srt_stat *stat);
+int	zfsslash2_replay_mkdir(slfid_t, slfid_t, char *, struct srt_stat *stat);
 int	zfsslash2_replay_rename(slfid_t, const char *, slfid_t, const char *, struct srt_stat *);
 int	zfsslash2_replay_rmdir(slfid_t, slfid_t, char *, struct srt_stat *);
-int	zfsslash2_replay_setattr(slfid_t, struct srt_stat *, uint);
-int	zfsslash2_replay_symlink(slfid_t, slfid_t, struct srt_stat *, char *, char *);
+int	zfsslash2_replay_setattr(slfid_t, uint, struct srt_stat *);
+int	zfsslash2_replay_symlink(slfid_t, slfid_t, char *, char *, struct srt_stat *stat);
 int	zfsslash2_replay_unlink(slfid_t, slfid_t, char *, struct srt_stat *);
 
 uint64_t	zfsslash2_last_synced_txg(void);

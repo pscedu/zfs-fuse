@@ -1760,7 +1760,7 @@ zfsslash2_return_synced(void)
 }
 
 int
-zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *name, char *link)
+zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, char *name, char *link, struct srt_stat *stat)
 {
 	int error;
 	vnode_t *vp, *pvp;
@@ -1813,7 +1813,7 @@ out:
 }
 
 int
-zfsslash2_replay_link(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *name)
+zfsslash2_replay_link(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *stat)
 {
 	int error;
 	vnode_t *pvp, *svp;
@@ -1849,7 +1849,7 @@ out:
 }
 
 int
-zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *name)
+zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *stat)
 {
 	int error;
 	vnode_t *pvp;
@@ -1899,7 +1899,7 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *n
 }
 
 int
-zfsslash2_replay_create(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *name)
+zfsslash2_replay_create(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *stat)
 {
 	int error;
 	vnode_t *pvp;
@@ -2054,7 +2054,7 @@ out:
 }
 
 int
-zfsslash2_replay_setattr(slfid_t fid, struct srt_stat *stat, uint mask)
+zfsslash2_replay_setattr(slfid_t fid, uint mask, struct srt_stat *stat)
 {
 	int error;
 	vnode_t *vp;
