@@ -1773,10 +1773,11 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char 
 	}
 
 	memset(&vattr, 0, sizeof(vattr));
+	vattr.va_fid = fid;
+
 	vattr.va_type = VLNK;
 	vattr.va_mode = stat->sst_mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
-	vattr.va_fid = fid;
 
 	vattr.va_mask |= AT_ATIME|AT_MTIME;
 	vattr.va_s2atime.tv_sec = stat->sst_atime;
@@ -1784,10 +1785,11 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char 
 	vattr.va_s2mtime.tv_sec = stat->sst_mtime;
 	vattr.va_s2mtime.tv_nsec = stat->sst_mtime_ns;
 
-	vattr.va_uid = stat->sst_uid;
-	vattr.va_gid = stat->sst_gid;
+	cred.req = NULL;
+	cred.cr_uid = stat->sst_uid;
+	cred.cr_gid = stat->sst_gid;
 
-	error = VOP_SYMLINK(pvp, (char *)name, &vattr, (char *)link, &zrootcreds, NULL, 0, NULL); /* zfs_symlink() */
+	error = VOP_SYMLINK(pvp, (char *)name, &vattr, (char *)link, &cred, NULL, 0, NULL); /* zfs_symlink() */
 	if (error)
 		goto out;
 
@@ -1806,11 +1808,12 @@ out:
 }
 
 int
-zfsslash2_replay_link(slfid_t pfid, slfid_t fid, char *name)
+zfsslash2_replay_link(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *stat)
 {
 	int error;
 	vnode_t *pvp, *svp;
 	vattr_t vattr;
+	cred_t cred;
 
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
@@ -1826,7 +1829,12 @@ zfsslash2_replay_link(slfid_t pfid, slfid_t fid, char *name)
 		fprintf(stderr, "zfsslash2_replay_link(): fail to look up fid %"PRIx64"\n", fid);
 		goto out;
 	}
-	error = VOP_LINK(pvp, svp, (char *)name, &zrootcreds, NULL, 0, NULL);	/* zfs_link() */
+
+	cred.req = NULL;
+	cred.cr_uid = stat->sst_uid;
+	cred.cr_gid = stat->sst_gid;
+
+	error = VOP_LINK(pvp, svp, (char *)name, &cred, NULL, 0, NULL);	/* zfs_link() */
 out:
 	if (svp)
 		VN_RELE(svp);
@@ -1855,10 +1863,11 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *n
 	}
 
 	memset(&vattr, 0, sizeof(vattr_t));
+	vattr.va_fid = fid;
+
 	vattr.va_type = VDIR;
 	vattr.va_mode = stat->sst_mode & PERMMASK;
 	vattr.va_mask = AT_TYPE|AT_MODE;
-	vattr.va_fid = fid;
 
 	/* zfs_mknode() respects our ATIME and MTIME, but not CTIME */
 	vattr.va_mask |= AT_ATIME|AT_MTIME;
@@ -1867,10 +1876,11 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *n
 	vattr.va_s2mtime.tv_sec = stat->sst_mtime;
 	vattr.va_s2mtime.tv_nsec = stat->sst_mtime_ns;
 
-	vattr.va_uid = stat->sst_uid;
-	vattr.va_gid = stat->sst_gid;
+	cred.req = NULL;
+	cred.cr_uid = stat->sst_uid;
+	cred.cr_gid = stat->sst_gid;
 
-	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &zrootcreds, NULL, 0, NULL, NULL); /* zfs_mkdir() */
+	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &cred, NULL, 0, NULL, NULL); /* zfs_mkdir() */
 	if (error)
 		goto out;
 
@@ -1903,10 +1913,11 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *
 	}
 
 	memset(&vattr, 0, sizeof(vattr_t));
+	vattr.va_fid = fid;
+
 	vattr.va_type = VREG;
 	vattr.va_mode = stat->sst_mode & PERMMASK;
 	vattr.va_mask = AT_TYPE|AT_MODE;
-	vattr.va_fid = fid;
 
 	/* zfs_mknode() respects our ATIME and MTIME, but not CTIME */
 	vattr.va_mask |= AT_ATIME|AT_MTIME;
@@ -1915,12 +1926,14 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *
 	vattr.va_s2mtime.tv_sec = stat->sst_mtime;
 	vattr.va_s2mtime.tv_nsec = stat->sst_mtime_ns;
 
-	vattr.va_uid = stat->sst_uid;
-	vattr.va_gid = stat->sst_gid;
+	cred.req = NULL;
+	cred.cr_uid = stat->sst_uid;
+	cred.cr_gid = stat->sst_gid;
 
-	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, 0, &tvp, &zrootcreds, 0, NULL, NULL, NULL); /* zfs_create() */
+	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, 0, &tvp, &cred, 0, NULL, NULL, NULL); /* zfs_create() */
 	if (error)
 		goto out;
+
 	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
 
  out:
@@ -1932,10 +1945,11 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, struct srt_stat *stat, char *
 }
 
 int
-zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
+zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *stat)
 {
 	int error;
 	vnode_t *dvp, *vp;
+	cred_t cred;
 
 	vp = NULL;
 	dvp = NULL;
@@ -1955,7 +1969,11 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 		error = EINVAL;
 		goto out;
 	}
-	error = VOP_RMDIR(dvp, name, NULL, &zrootcreds, NULL, 0, NULL);		/* zfs_rmdir() */
+
+	cred.req = NULL;
+	cred.cr_uid = stat->sst_uid;
+	cred.cr_gid = stat->sst_gid;
+	error = VOP_RMDIR(dvp, name, NULL, &cred, NULL, 0, NULL);		/* zfs_rmdir() */
 
 	/* Linux uses ENOTEMPTY when trying to remove a non-empty directory */
 	if (error == EEXIST)
@@ -1978,10 +1996,11 @@ out:
 }
 
 int
-zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name)
+zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *stat)
 {
 	int error;
 	vnode_t *vp, *dvp;
+	cred_t cred;
 
 	vp = dvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
@@ -2000,7 +2019,11 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name)
 		goto out;
 	}
 
-	error = VOP_REMOVE(dvp, (char *)name, &zrootcreds, NULL, 0, NULL);
+	cred.req = NULL;
+	cred.cr_uid = stat->sst_uid;
+	cred.cr_gid = stat->sst_gid;
+
+	error = VOP_REMOVE(dvp, (char *)name, &cred, NULL, 0, NULL);
 
 	if (error)
 		goto out;
@@ -2032,6 +2055,7 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat *stat, uint mask)
 	vnode_t *vp;
 	vattr_t vattr;
 	int flag;
+	cred_t cred;
 
 	vp = NULL;
 	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP, NULL, &vp);
@@ -2042,8 +2066,6 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat *stat, uint mask)
 
 	vattr.va_mask = mask;
 	vattr.va_mode = stat->sst_mode;
-	vattr.va_uid = stat->sst_uid;
-	vattr.va_gid = stat->sst_gid;
 //	vattr.va_ctime.tv_sec = stat->sst_ctime;
 //	vattr.va_ctime.tv_nsec = stat->sst_ctime_ns;
 	vattr.va_s2atime.tv_sec = stat->sst_atime;
@@ -2052,7 +2074,12 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat *stat, uint mask)
 	vattr.va_s2mtime.tv_nsec = stat->sst_mtime_ns;
 
 	flag = (mask & (AT_ATIME | AT_MTIME)) ? ATTR_UTIME : 0;
-	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL, NULL);		/* zfs_setattr() */
+
+	cred.req = NULL;
+	cred.cr_uid = stat->sst_uid;
+	cred.cr_gid = stat->sst_gid;
+
+	error = VOP_SETATTR(vp, &vattr, flag, &cred, NULL, NULL);		/* zfs_setattr() */
 
  out:
 	if (vp)
@@ -2061,10 +2088,11 @@ zfsslash2_replay_setattr(slfid_t fid, struct srt_stat *stat, uint mask)
 }
 
 int
-zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t newparent, const char *newname)
+zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t newparent, const char *newname, struct srt_stat *stat)
 {
 	int error;
 	vnode_t *p_vp, *np_vp;
+	cred_t cred;
 
 	p_vp = np_vp = NULL;
 	error = zfsslash2_fidlink(parent, FIDLINK_LOOKUP, NULL, &p_vp);
@@ -2078,7 +2106,11 @@ zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t newparent, con
 		goto out;
 	}
 
-	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname, &zrootcreds, NULL, 0, NULL);  /* zfs_rename() */
+	cred.req = NULL;
+	cred.cr_uid = stat->sst_uid;
+	cred.cr_gid = stat->sst_gid;
+
+	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname, &cred, NULL, 0, NULL);  /* zfs_rename() */
 out:
 	if (p_vp)
 		VN_RELE(p_vp);
