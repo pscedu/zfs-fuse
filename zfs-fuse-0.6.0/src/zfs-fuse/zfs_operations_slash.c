@@ -26,6 +26,9 @@
  * Use is subject to license terms.
  */
 
+#define PSC_SUBSYS SLMSS_ZFS
+#include "slashd/subsys_mds.h"
+
 #include <sys/statfs.h>
 #include <sys/statvfs.h>
 #include <sys/debug.h>
