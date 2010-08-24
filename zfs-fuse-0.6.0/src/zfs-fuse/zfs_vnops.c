@@ -3075,8 +3075,16 @@ out:
 			vap->va_ptruncgen = pzp->zp_ptruncgen;
 			zfs_vattr_to_stat(&stat, vap);
 
+			/*
+			 * At this time, SLASH only journals certain
+			 * stat(2) fields, so don't pass changes in fields
+			 * we dont't store.
+			 */
 			logfunc(NS_OP_SETATTR, txg, 0, 0, &stat,
-			    vap->va_mask, NULL, NULL);
+			    vap->va_mask & (AT_UID | AT_GID | AT_TYPE |
+			    AT_MODE | AT_ATIME | AT_MTIME | AT_CTIME |
+			    AT_SIZE), NULL, NULL);
+
 		}
 		dmu_tx_commit(tx);
 	}
