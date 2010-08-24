@@ -533,7 +533,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 			fstat.st_mode |= S_IFSOCK;
 			break;
 		    case VFIFO:
-			fstat.st_mode |= S_IFIFO; 
+			fstat.st_mode |= S_IFIFO;
 			break;
 		    default:
 			fprintf(stderr, "unknow file type %d\n", tvp->v_type);
@@ -1723,8 +1723,8 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
  * from the immutable by-id namespace (that's why we start with zfsslash2_fidlink() instead of
  * zfs_zget()); (2) we don't need to log a replayed operation.
  *
- * It seems to me that I simply can't, as root, create a file owned by an arbitrary regular user 
- * directly. There are also some limitations on changing owner and group membership.  As a result, 
+ * It seems to me that I simply can't, as root, create a file owned by an arbitrary regular user
+ * directly. There are also some limitations on changing owner and group membership.  As a result,
  * all replay operations are done with their original credentials captured when the corresponding
  * operation was requested.  Note that we only log when ZFS declares the operation is doable.
  */
@@ -2065,7 +2065,7 @@ zfsslash2_replay_setattr(slfid_t fid, uint mask, struct srt_stat *stat)
 	vp = NULL;
 	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP, NULL, &vp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_setattr(): fail to look up fid %"PRIx64"\n", fid);
+		psclog_debug("fail to look up fid "SLPRI_FID, fid);
 		goto out;
 	}
 
@@ -2093,7 +2093,8 @@ zfsslash2_replay_setattr(slfid_t fid, uint mask, struct srt_stat *stat)
 }
 
 int
-zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t newparent, const char *newname, struct srt_stat *stat)
+zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t
+    newparent, const char *newname, struct srt_stat *stat)
 {
 	int error;
 	vnode_t *p_vp, *np_vp;
