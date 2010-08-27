@@ -1732,14 +1732,6 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
  * operation was requested.  Note that we only log when ZFS declares the operation is doable.
  */
 
-uint64_t
-zfsslash2_last_synced_txg(void)
-{
-	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
-	/* return the last synced txg via the SPA (Storage Pool Allocator) layer */
-	return (spa_first_txg(zfsvfs->z_os->os->os_spa));
-}
-
 void
 zfsslash2_wait_synced(uint64_t txg)
 {
