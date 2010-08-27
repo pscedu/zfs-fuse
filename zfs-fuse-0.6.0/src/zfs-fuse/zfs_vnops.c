@@ -640,7 +640,6 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr,
 			return (error);
 		}
 
-		logfuncp(datap, dmu_tx_get_txg(tx));
 		txg_slash2_wait(dmu_tx_pool(tx));
 		logfuncp(datap, dmu_tx_get_txg(tx));
 
