@@ -1364,7 +1364,7 @@ top:
 		if (fuid_dirtied)
 			zfs_fuid_sync(zfsvfs, tx);
 
-		zp->z_phys->zp_s2id = vap->va_fid;
+		zp->z_phys->zp_s2fid = vap->va_fid;
 		(void) zfs_link_create(dl, zp, tx, ZNEW);
 
 		txtype = zfs_log_create_txtype(Z_FILE, vsecp, vap);
@@ -1384,7 +1384,7 @@ top:
 
 			zfs_vattr_to_stat(&stat, vap);
 
-			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2id, 0,
+			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2fid, 0,
 			    &stat, vap->va_mask, name, NULL);
 		}
 
@@ -1655,8 +1655,8 @@ top:
 
 		txg = dmu_tx_get_txg(tx);
 
-		sstb.sst_fid = zp->z_phys->zp_s2id;
-		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2id, 0,
+		sstb.sst_fid = zp->z_phys->zp_s2fid;
+		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2fid, 0,
 		    &sstb, 0, name, NULL);
 	}
 	dmu_tx_commit(tx);
@@ -1824,7 +1824,7 @@ top:
 	/*
 	 * Now put new name in parent dir.
 	 */
-	zp->z_phys->zp_s2id = vap->va_fid;
+	zp->z_phys->zp_s2fid = vap->va_fid;
 	(void) zfs_link_create(dl, zp, tx, ZNEW);
 
 	*vpp = ZTOV(zp);
@@ -1848,7 +1848,7 @@ top:
 		ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
 		zfs_vattr_to_stat(&stat, vap);
 
-		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2id, 0,
+		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2fid, 0,
 		    &stat, vap->va_mask, dirname, NULL);
 	}
 	zfs_acl_ids_free(&acl_ids);
@@ -1979,9 +1979,9 @@ top:
 		txg = dmu_tx_get_txg(tx);
 		stat.sst_uid = cr->cr_uid;
 		stat.sst_gid = cr->cr_gid;
-		stat.sst_fid = zp->z_phys->zp_s2id;
+		stat.sst_fid = zp->z_phys->zp_s2fid;
 
-		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2id, 0,
+		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2fid, 0,
 		    &stat, 0, name, NULL);
 	}
 	dmu_tx_commit(tx);
@@ -2214,7 +2214,7 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 			 * Add normal entry:
 			 */
 			odp->d_ino = objnum;
-			odp->d_s2ino = s2num;
+			odp->d_s2fid = s2num;
 			odp->d_reclen = reclen;
 			/* NOTE: d_off is the offset for the *next* entry */
 			next = &(odp->d_off);
@@ -3473,11 +3473,11 @@ top:
 				txg = dmu_tx_get_txg(tx);
 				stat.sst_uid = cr->cr_uid;
 				stat.sst_gid = cr->cr_gid;
-				stat.sst_fid = szp->z_phys->zp_s2id;
+				stat.sst_fid = szp->z_phys->zp_s2fid;
 
 				logfunc(NS_OP_RENAME, txg,
-				    sdzp->z_phys->zp_s2id,
-				    tdzp->z_phys->zp_s2id, &stat, 0,
+				    sdzp->z_phys->zp_s2fid,
+				    tdzp->z_phys->zp_s2fid, &stat, 0,
 				    snm, tnm);
 			}
 
@@ -3641,7 +3641,7 @@ top:
 	/*
 	 * Insert the new object into the directory.
 	 */
-	zp->z_phys->zp_s2id = vap->va_fid;
+	zp->z_phys->zp_s2fid = vap->va_fid;
 	(void) zfs_link_create(dl, zp, tx, ZNEW);
 	if (error == 0) {
 		uint64_t txtype = TX_SYMLINK;
@@ -3661,7 +3661,7 @@ top:
 			ZFS_TIME_DECODE(&vap->va_mtime, zp->z_phys->zp_mtime);
 			ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
 			zfs_vattr_to_stat(&stat, vap);
-			logfunc(NS_OP_SYMLINK, txg, dzp->z_phys->zp_s2id,
+			logfunc(NS_OP_SYMLINK, txg, dzp->z_phys->zp_s2fid,
 			    0, &stat, vap->va_mask, name, link);
 		}
 	}
@@ -3857,8 +3857,8 @@ top:
 			uint64_t txg;
 
 			txg = dmu_tx_get_txg(tx);
-			sstb.sst_fid = szp->z_phys->zp_s2id;
-			logfunc(NS_OP_LINK, txg, dzp->z_phys->zp_s2id,
+			sstb.sst_fid = szp->z_phys->zp_s2fid;
+			logfunc(NS_OP_LINK, txg, dzp->z_phys->zp_s2fid,
 			    0, &sstb, 0, name, NULL);
 		}
 	}

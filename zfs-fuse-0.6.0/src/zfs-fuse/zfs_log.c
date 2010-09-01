@@ -283,7 +283,7 @@ zfs_log_create(zilog_t *zilog, dmu_tx_t *tx, uint64_t txtype,
 	lr = (lr_create_t *)&itx->itx_lr;
 	lr->lr_doid = dzp->z_id;
 	lr->lr_foid = zp->z_id;
-	lr->lr_s2id = zp->z_phys->zp_s2id;
+	lr->lr_s2fid = zp->z_phys->zp_s2fid;
 	lr->lr_mode = zp->z_phys->zp_mode;
 	if (!IS_EPHEMERAL(zp->z_phys->zp_uid)) {
 		lr->lr_uid = (uint64_t)zp->z_phys->zp_uid;

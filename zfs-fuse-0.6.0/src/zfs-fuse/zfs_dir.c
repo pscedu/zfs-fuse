@@ -712,13 +712,13 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 
 	/*
 	 * In the new directory format, each entry has a tuple of two values.
-	 * For local files, the SLASH ID will be zero.
+	 * For local files, the SLASH FID will be zero.
 	 */
 	dirent.d_id = value;
-	if (zp->z_phys->zp_s2id)
-		dirent.d_s2id = zp->z_phys->zp_s2id;
+	if (zp->z_phys->zp_s2fid)
+		dirent.d_s2fid = zp->z_phys->zp_s2fid;
 	else
-		FID_SET_FLAGS(dirent.d_s2id, SLFIDF_LOCAL_DENTRY);
+		FID_SET_FLAGS(dirent.d_s2fid, SLFIDF_LOCAL_DENTRY);
 
 	/* FALLOWDIRLINK is only set by zfsslash2_fidlink() */
 	error = _zap_add(zp->z_zfsvfs->z_os, dzp->z_id,

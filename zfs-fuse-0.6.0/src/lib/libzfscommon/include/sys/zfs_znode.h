@@ -155,7 +155,7 @@ typedef struct znode_phys {
 	uint64_t zp_s2size;		/* 152 - slash2 file size */
 	uint32_t zp_ptruncgen;		/* 160 - slash2 partial truncate gen */
 	uint32_t zp_s2gen;		/* 164 - slash2 gen number (full truncate) */
-	uint64_t zp_s2id;		/* 168 - slash2 id */
+	uint64_t zp_s2fid;		/* 168 - slash2 fid */
 	uint64_t zp_s2atime[2];         /* 176 - slash2 atime */
 	uint64_t zp_s2mtime[2];         /* 192 - slash2 mtime */
 	uint32_t zp_s2utimgen;          /* 208 - slash2 utime gen # */

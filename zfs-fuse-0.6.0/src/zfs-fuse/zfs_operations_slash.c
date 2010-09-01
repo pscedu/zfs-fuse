@@ -79,7 +79,7 @@ get_vnode_fids(const vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
 		if (VTOZ(vp)->z_id == MDSIO_FID_ROOT)
 			fgp->fg_fid = SLFID_ROOT;
 		else
-			fgp->fg_fid = VTOZ(vp)->z_phys->zp_s2id;
+			fgp->fg_fid = VTOZ(vp)->z_phys->zp_s2fid;
 		fgp->fg_gen = VTOZ(vp)->z_phys->zp_s2gen;
 	}
 	if (mfp)
@@ -135,7 +135,7 @@ size_t fuse_add_direntry(fuse_req_t req, char *buf, size_t bufsize,
 static __inline int
 hide_vnode(vnode_t *dvp, vnode_t *vp, const char *cpn)
 {
-	if (FID_GET_FLAGS(VTOZ(vp)->z_phys->zp_s2id) & SLFIDF_HIDE_DENTRY)
+	if (FID_GET_FLAGS(VTOZ(vp)->z_phys->zp_s2fid) & SLFIDF_HIDE_DENTRY)
 		return (1);
 
 	if (VTOZ(dvp)->z_id == MDSIO_FID_ROOT &&
@@ -513,7 +513,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		if (VTOZ(tvp)->z_id == MDSIO_FID_ROOT)
 			fstat.st_ino = SLFID_ROOT;
 		else
-			fstat.st_ino = VTOZ(tvp)->z_phys->zp_s2id;
+			fstat.st_ino = VTOZ(tvp)->z_phys->zp_s2fid;
 
 		fstat.st_mode = 0;
 		switch (tvp->v_type) {
@@ -597,14 +597,14 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 		if (fid == 1) {
 #if 0
 /*
- * I have found a place in zfs_mknode() where I can write slash ID 1 into the
+ * I have found a place in zfs_mknode() where I can write SLASH FID 1 into the
  * root node.  This function is called by dsl_pool_create() twice, once by
  * zfs_create_fs(), once by zfs_create_share_dir().  Both time I see the
  * IS_ROOT_NODE flag is used.  I don't know why ZFS seems to create two root
  * nodes.  But the change seems to fix my problem and make the hack here
  * unneeded.  I discovered this with gdb while creating a zpool.
  */
-			VTOZ(dvp)->z_phys->zp_s2id = 1;
+			VTOZ(dvp)->z_phys->zp_s2fid = 1;
 #endif
 			*vpp = dvp;
 			return 0;
@@ -849,7 +849,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 		if ((opflags & MDSIO_OPENCRF_NOLINK) == 0) {
 			error = zfsslash2_fidlink(
-			    VTOZ(vp)->z_phys->zp_s2id,
+			    VTOZ(vp)->z_phys->zp_s2fid,
 			    FIDLINK_CREATE, vp, NULL);
 			if (error)
 				goto out;
@@ -1051,7 +1051,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 
 	ASSERT(vp != NULL);
 
-	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_CREATE, vp, NULL);
+	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid, FIDLINK_CREATE, vp, NULL);
 	if (error)
 		goto out;
 
@@ -1113,7 +1113,8 @@ zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
 		error = ENOTEMPTY;
 
 	if (!error)
-		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_REMOVE|FIDLINK_DIR, NULL, NULL);
+		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
+		    FIDLINK_REMOVE|FIDLINK_DIR, NULL, NULL);
 
 	VN_RELE(vp);
 	VN_RELE(dvp);
@@ -1193,7 +1194,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 	vattr_t vattr = { 0 };
 
-	vattr.va_fid = VTOZ(vp)->z_phys->zp_s2id;
+	vattr.va_fid = VTOZ(vp)->z_phys->zp_s2fid;
 
 	if (to_set & SETATTR_MASKF_MODE) {
 		vattr.va_mask |= AT_MODE;
@@ -1306,7 +1307,8 @@ zfsslash2_unlink(mdsio_fid_t parent, const char *name,
 	 * so remove the file.
 	 */
 	if (vattr.va_nlink == 1)
-		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_REMOVE, NULL, NULL);
+		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
+		    FIDLINK_REMOVE, NULL, NULL);
 
  out:
 	if (vp)
@@ -1516,7 +1518,7 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 	if (error)
 		goto out;
 
-	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_CREATE, vp, NULL);
+	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid, FIDLINK_CREATE, vp, NULL);
 	if (error)
 		goto out;
 
@@ -1797,7 +1799,8 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, char *name, char *link, stru
 	if (error)
 		goto out;
 
-	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_CREATE, vp, NULL);
+	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
+	    FIDLINK_CREATE, vp, NULL);
 
 out:
 	if (vp)
@@ -1963,9 +1966,9 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *s
 	if (error)
 		goto out;
 
-	if (VTOZ(vp)->z_phys->zp_s2id != fid) {
+	if (VTOZ(vp)->z_phys->zp_s2fid != fid) {
 		fprintf(stderr, "zfsslash2_replay_rmdir(): target ID mismatch %"PRIx64" vs. %"PRIx64"\n",
-			VTOZ(vp)->z_phys->zp_s2id, fid);
+			VTOZ(vp)->z_phys->zp_s2fid, fid);
 		error = EINVAL;
 		goto out;
 	}
@@ -1980,7 +1983,8 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *s
 		error = ENOTEMPTY;
 
 	if (!error) {
-		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_REMOVE|FIDLINK_DIR, NULL, NULL);
+		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
+		    FIDLINK_REMOVE | FIDLINK_DIR, NULL, NULL);
 		if (!error)
 			/*
 			 * The vnode is still there, but its underlying link count is zero.
@@ -1996,7 +2000,8 @@ out:
 }
 
 int
-zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *stat)
+zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name,
+    struct srt_stat *stat)
 {
 	int error;
 	vnode_t *vp, *dvp;
@@ -2012,9 +2017,9 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *
 			   NULL, NULL, NULL);
 	if (error)
 		goto out;
-	if (VTOZ(vp)->z_phys->zp_s2id != fid) {
+	if (VTOZ(vp)->z_phys->zp_s2fid != fid) {
 		fprintf(stderr, "zfsslash2_replay_unlink(): target ID mismatch %"PRIx64" vs. %"PRIx64"\n",
-			VTOZ(vp)->z_phys->zp_s2id, fid);
+			VTOZ(vp)->z_phys->zp_s2fid, fid);
 		error = EINVAL;
 		goto out;
 	}
@@ -2038,7 +2043,8 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *
 	 * so remove the file.
 	 */
 	if (vattr.va_nlink == 1)
-		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2id, FIDLINK_REMOVE, NULL, NULL);
+		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
+		    FIDLINK_REMOVE, NULL, NULL);
 
 out:
 	if (vp)
