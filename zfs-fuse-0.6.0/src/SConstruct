@@ -30,6 +30,8 @@ else:
 	elif debug == 3:
 		env.Append(CCFLAGS = Split('-finstrument-functions -DDEBUG'))
 
+env.Append(CCFLAGS = Split(ARGUMENTS.get('DEFINES', '')))
+
 env.Append(CCFLAGS = ['-I../../../psc_fsutil_libs/include'])
 env.Append(CCFLAGS = ['-I../../../slash_nara/include'])
 env.Append(CCFLAGS = ['-I../../../slash_nara'])
