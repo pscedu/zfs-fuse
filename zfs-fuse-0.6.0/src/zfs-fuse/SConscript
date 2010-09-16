@@ -21,7 +21,7 @@ ccflags = Split('-D_KERNEL')
 libs = Split('rt pthread fuse dl z aio')
 
 if (env['SLASHLIB']) == "1":
-	print "slashlib enabled %s\n" % (env['SLASHLIB'])
+	print "slashlib enabled %s" % (env['SLASHLIB'])
 	objects.append('zfs_operations_slash.c')
 	env.StaticLibrary('libzfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
 else:
