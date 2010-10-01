@@ -49,6 +49,8 @@
 
 #include "zfs_slashlib.h"
 
+#include "pfl/fs.h"
+
 #include "creds.h"
 #include "fid.h"
 #include "slashd/mdsio.h"
@@ -1165,7 +1167,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		 * (Solaris calls VOP_SPACE instead of VOP_SETATTR on
 		 * ftruncate).
 		 */
-		if (to_set & SETATTR_MASKF_METASIZE) {
+		if (to_set & SL_SETATTRF_METASIZE) {
 			/* Check if file is opened for writing */
 			if ((info->flags & FWRITE) == 0) {
 				error = EBADF;
@@ -1197,11 +1199,11 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 	vattr.va_fid = VTOZ(vp)->z_phys->zp_s2fid;
 
-	if (to_set & SETATTR_MASKF_MODE) {
+	if (to_set & PSCFS_SETATTRF_MODE) {
 		vattr.va_mask |= AT_MODE;
 		vattr.va_mode = sstb_in->sst_mode;
 	}
-	if (to_set & SETATTR_MASKF_UID) {
+	if (to_set & PSCFS_SETATTRF_UID) {
 		vattr.va_mask |= AT_UID;
 		vattr.va_uid = sstb_in->sst_uid;
 		if (vattr.va_uid > MAXUID) {
@@ -1209,7 +1211,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			goto out;
 		}
 	}
-	if (to_set & SETATTR_MASKF_GID) {
+	if (to_set & PSCFS_SETATTRF_GID) {
 		vattr.va_mask |= AT_GID;
 		vattr.va_gid = sstb_in->sst_gid;
 		if (vattr.va_gid > MAXUID) {
@@ -1217,37 +1219,39 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			goto out;
 		}
 	}
-	if (to_set & SETATTR_MASKF_ATIME) {
+	if (to_set & PSCFS_SETATTRF_ATIME) {
 		vattr.va_mask |= AT_SLASH2ATIME;
 		vattr.va_s2atime.tv_sec = sstb_in->sst_atime;
 		vattr.va_s2atime.tv_nsec = sstb_in->sst_atime_ns;
 	}
-	if (to_set & SETATTR_MASKF_MTIME) {
+	if (to_set & PSCFS_SETATTRF_MTIME) {
 		vattr.va_mask |= AT_SLASH2MTIME;
 		vattr.va_s2mtime.tv_sec = sstb_in->sst_mtime;
 		vattr.va_s2mtime.tv_nsec = sstb_in->sst_mtime_ns;
 	}
-	if (to_set & SETATTR_MASKF_CTIME) {
+	if (to_set & PSCFS_SETATTRF_CTIME) {
 		vattr.va_mask |= AT_CTIME;
 		vattr.va_ctime.tv_sec = sstb_in->sst_ctime;
 		vattr.va_ctime.tv_nsec = sstb_in->sst_ctime_ns;
 	}
-	if (to_set & SETATTR_MASKF_DATASIZE) {
+	if (to_set & PSCFS_SETATTRF_DATASIZE) {
 		vattr.va_mask |= AT_SLASH2SIZE;
 		vattr.va_s2size = sstb_in->sst_size;
 	}
-	if (to_set & SETATTR_MASKF_PTRUNCGEN) {
+	if (to_set & SL_SETATTRF_PTRUNCGEN) {
 		vattr.va_mask |= AT_PTRUNCGEN;
 		vattr.va_ptruncgen = sstb_in->sst_ptruncgen;
 	}
-	if (to_set & SETATTR_MASKF_PTRUNCGEN) {
+	if (to_set & SL_SETATTRF_GEN) {
 		vattr.va_mask |= AT_SLASH2GEN;
 		vattr.va_s2gen = sstb_in->sst_fg.fg_gen;
 	}
 
-	int flags = (to_set & (SETATTR_MASKF_ATIME | SETATTR_MASKF_MTIME)) ? ATTR_S2UTIME : 0;
+	int flags = (to_set & (PSCFS_SETATTRF_ATIME |
+	    PSCFS_SETATTRF_MTIME)) ? ATTR_S2UTIME : 0;
 	if (to_set)
-		error = VOP_SETATTR(vp, &vattr, flags, cred, NULL, logfunc);	/* zfs_setattr() */
+		error = VOP_SETATTR(vp, &vattr, flags, cred, NULL,
+		    logfunc);	/* zfs_setattr() */
 
  out:
 	if (!error && sstb_out)
