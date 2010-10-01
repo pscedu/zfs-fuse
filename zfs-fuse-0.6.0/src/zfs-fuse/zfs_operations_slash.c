@@ -543,6 +543,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		}
 
 		outbuf_resid -= dsize;
+		/* XXX move this to mount_slash */
 		fuse_add_direntry(NULL, outbuf + outbuf_off,
 		    dsize, entry.dirent.d_name, &fstat, entry.dirent.d_off);
 
