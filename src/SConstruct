@@ -16,7 +16,7 @@ env['CCFLAGS'] = Split('-pipe -Wall -std=c99 -Wno-switch -Wno-unused -Wno-missin
 
 debug = int(ARGUMENTS.get('debug', '1'))
 slashlib = int(ARGUMENTS.get('slashlib', '0'))
-rootdir = int(ARGUMENTS.get('ROOTDIR', '0'))
+rootdir = ARGUMENTS.get('ROOTDIR')
 
 if not debug:
 	env.Append(LINKFLAGS = ['-s'])
