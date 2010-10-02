@@ -43,6 +43,7 @@ extern "C" {
 #define	ZCILOOK		0x0020		/* case-insensitive lookup requested */
 #define	ZCIEXACT	0x0040		/* c-i requires c-s match (rename) */
 #define	ZHAVELOCK	0x0080		/* z_name_lock is already held */
+#define	ZPARENT		0x0100		/* slash2: update parent pointer */
 
 /* mknode flags */
 #define	IS_ROOT_NODE	0x01		/* create a root node */

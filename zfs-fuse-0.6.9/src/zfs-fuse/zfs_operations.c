@@ -281,7 +281,7 @@ static void zfsfuse_listxattr(fuse_req_t req, fuse_ino_t ino, size_t size)
 		uio.uio_resid = iovec.iov_len;
 		uio.uio_loffset = next;
 
-		error = VOP_READDIR(vp, &uio, &cred, &eofp, NULL, 0);
+		error = VOP_READDIR(vp, &uio, &cred, &eofp, NULL, 0);	/* zfs_readdir() */
 		if(error)
 			goto out;
 
@@ -705,12 +705,13 @@ static int zfsfuse_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t of
 		if(iovec.iov_base == entry.buf)
 			break;
 
-		fstat.st_ino = entry.dirent.d_ino;
-		fstat.st_mode = 0;
-
+		/* No more room */
 		int dsize = fuse_add_direntry(req, NULL, 0, entry.dirent.d_name, NULL, 0);
 		if(dsize > outbuf_resid)
 			break;
+
+		fstat.st_ino = entry.dirent.d_ino;
+		fstat.st_mode = 0;
 
 		outbuf_resid -= dsize;
 		fuse_add_direntry(req, outbuf + outbuf_off, 
@@ -809,6 +810,7 @@ static int zfsfuse_opencreate(fuse_req_t req, fuse_ino_t ino, struct fuse_file_i
 		 * Wish to create a file.
 		 */
 		vattr_t vattr;
+		memset(&vattr, 0, sizeof(vattr_t));
 		vattr.va_type = VREG;
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
@@ -823,7 +825,7 @@ static int zfsfuse_opencreate(fuse_req_t req, fuse_ino_t ino, struct fuse_file_i
 
 		vnode_t *new_vp;
 		/* FIXME: check filesystem boundaries */
-		error = VOP_CREATE(vp, (char *) name, &vattr, excl, mode, &new_vp, &cred, 0, NULL, NULL);
+		error = VOP_CREATE(vp, (char *) name, &vattr, excl, mode, &new_vp, &cred, 0, NULL, NULL, NULL);
 
 		if(error)
 			goto out;
@@ -1097,7 +1099,7 @@ static int zfsfuse_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name, mo
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	error = VOP_MKDIR(dvp, (char *) name, &vattr, &vp, &cred, NULL, 0, NULL);
+	error = VOP_MKDIR(dvp, (char *) name, &vattr, &vp, &cred, NULL, 0, NULL, NULL);  /* zfs_mkdir() */
 	if(error)
 		goto out;
 
@@ -1167,7 +1169,7 @@ static int zfsfuse_rmdir(fuse_req_t req, fuse_ino_t parent, const char *name)
 
 	/* FUSE doesn't care if we remove the current working directory
 	   so we just pass NULL as the cwd parameter (no problem for ZFS) */
-	error = VOP_RMDIR(dvp, (char *) name, NULL, &cred, NULL, 0);
+	error = VOP_RMDIR(dvp, (char *) name, NULL, &cred, NULL, 0, NULL);
 
 	/* Linux uses ENOTEMPTY when trying to remove a non-empty directory */
 	if(error == EEXIST)
@@ -1297,7 +1299,7 @@ static int zfsfuse_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr, in
 	}
 
 	int flags = (to_set & (FUSE_SET_ATTR_ATIME | FUSE_SET_ATTR_MTIME)) ? ATTR_UTIME : 0;
-	error = VOP_SETATTR(vp, &vattr, flags, &cred, NULL);
+	error = VOP_SETATTR(vp, &vattr, flags, &cred, NULL, NULL);
 
 out: ;
 	struct stat stat_reply;
@@ -1354,7 +1356,7 @@ static int zfsfuse_unlink(fuse_req_t req, fuse_ino_t parent, const char *name)
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	error = VOP_REMOVE(dvp, (char *) name, &cred, NULL, 0);
+	error = VOP_REMOVE(dvp, (char *) name, &cred, NULL, 0, NULL);
 
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
@@ -1402,7 +1404,7 @@ static int zfsfuse_write(fuse_req_t req, fuse_ino_t ino, const char *buf, size_t
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	int error = VOP_WRITE(vp, &uio, info->flags, &cred, NULL);
+	int error = VOP_WRITE(vp, &uio, info->flags, &cred, NULL, NULL, NULL);
 
 	ZFS_EXIT(zfsvfs);
 
@@ -1465,7 +1467,7 @@ static int zfsfuse_mknod(fuse_req_t req, fuse_ino_t parent, const char *name, mo
 	vnode_t *vp = NULL;
 
 	/* FIXME: check filesystem boundaries */
-	error = VOP_CREATE(dvp, (char *) name, &vattr, EXCL, 0, &vp, &cred, 0, NULL, NULL);
+	error = VOP_CREATE(dvp, (char *) name, &vattr, EXCL, 0, &vp, &cred, 0, NULL, NULL, NULL);
 
 	VN_RELE(dvp);
 
@@ -1540,7 +1542,7 @@ static int zfsfuse_symlink(fuse_req_t req, const char *link, fuse_ino_t parent, 
 	vattr.va_mode = 0777;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 
-	error = VOP_SYMLINK(dvp, (char *) name, &vattr, (char *) link, &cred, NULL, 0);
+	error = VOP_SYMLINK(dvp, (char *) name, &vattr, (char *) link, &cred, NULL, 0, NULL);
 
 	vnode_t *vp = NULL;
 
@@ -1632,7 +1634,7 @@ static int zfsfuse_rename(fuse_req_t req, fuse_ino_t parent, const char *name, f
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	error = VOP_RENAME(p_vp, (char *) name, np_vp, (char *) newname, &cred, NULL, 0);
+	error = VOP_RENAME(p_vp, (char *) name, np_vp, (char *) newname, &cred, NULL, 0, NULL);
 
 	VN_RELE(p_vp);
 	VN_RELE(np_vp);
@@ -1728,7 +1730,7 @@ static int zfsfuse_link(fuse_req_t req, fuse_ino_t ino, fuse_ino_t newparent, co
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	error = VOP_LINK(tdvp, svp, (char *) newname, &cred, NULL, 0);
+	error = VOP_LINK(tdvp, svp, (char *) newname, &cred, NULL, 0, NULL);
 
 	vnode_t *vp = NULL;
 

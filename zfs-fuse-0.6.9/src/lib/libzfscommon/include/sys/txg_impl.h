@@ -44,6 +44,7 @@ struct tx_cpu {
 typedef struct tx_state {
 	tx_cpu_t	*tx_cpu;	/* protects right to enter txg	*/
 	kmutex_t	tx_sync_lock;	/* protects tx_state_t */
+	uint64_t	tx_txg_count;
 	uint64_t	tx_open_txg;	/* currently open txg id */
 	uint64_t	tx_quiesced_txg; /* quiesced txg waiting for sync */
 	uint64_t	tx_syncing_txg;	/* currently syncing txg id */
@@ -58,6 +59,10 @@ typedef struct tx_state {
 	kcondvar_t	tx_quiesce_done_cv;
 	kcondvar_t	tx_timeout_cv;
 	kcondvar_t	tx_exit_cv;	/* wait for all threads to exit */
+
+	kcondvar_t	tx_slash2_cv;
+	kcondvar_t	tx_slash2_cv1;
+	kmutex_t	tx_slash2_lock;	
 
 	uint8_t		tx_threads;	/* number of threads */
 	uint8_t		tx_exiting;	/* set when we're exiting */

@@ -31,7 +31,6 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <fuse/fuse.h>
 #include <syslog.h>
 
 #include "zfs_ioctl.h"
@@ -40,6 +39,8 @@
 
 #include "semaphore.h"
 #include <sys/time.h>
+
+#include <fuse/fuse.h>
 
 #define MAX_CONNECTIONS 100
 #define IOCTLQUEUE_MAX_PENDING 256 // recommend to at least match MAX_CONNECTIONS so no regressions occur

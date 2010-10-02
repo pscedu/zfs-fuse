@@ -208,9 +208,13 @@ int zap_count_write(objset_t *os, uint64_t zapobj, const char *name,
  * If an attribute with the given name already exists, the call will
  * fail and return EEXIST.
  */
-int zap_add(objset_t *ds, uint64_t zapobj, const char *key,
+int _zap_add(objset_t *ds, uint64_t zapobj, const char *key,
     int integer_size, uint64_t num_integers,
-    const void *val, dmu_tx_t *tx);
+    const void *val, dmu_tx_t *tx, int flags);
+
+#define zap_add(d, z, n, i, nu, val, tx)	_zap_add(d, z, n, i, nu, val, tx, 0)
+#define zap_add_nochk(d, z, n, i, nu, val, tx)	_zap_add(d, z, n, i, nu, val, tx, 1)
+
 int zap_add_uint64(objset_t *ds, uint64_t zapobj, const uint64_t *key,
     int key_numints, int integer_size, uint64_t num_integers,
     const void *val, dmu_tx_t *tx);
@@ -308,6 +312,7 @@ typedef struct {
 	boolean_t za_normalization_conflict;
 	uint64_t za_num_integers;
 	uint64_t za_first_integer;	/* no sign extension for <8byte ints */
+	uint64_t za_second_integer;	/* used for directory handling */
 	char za_name[MAXNAMELEN];
 } zap_attribute_t;
 

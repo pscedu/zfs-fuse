@@ -464,14 +464,16 @@ vn_copypath(struct vnode *src, struct vnode *dst)
 
 int vn_fromfd(int fd, char *path, int flags, struct vnode **vpp, boolean_t fromfd)
 {
+	int save_errno;
 	vnode_t *vp;
 
 	*vpp = vp = kmem_cache_alloc(vnode_cache, KM_SLEEP);
 	memset(vp, 0, sizeof(vnode_t));
 
 	if (fstat64(fd, &vp->v_stat) == -1) {
+		save_errno = errno;
 		close(fd);
-		return (errno);
+		return (save_errno);
 	}
 
 	(void) fcntl(fd, F_SETFD, FD_CLOEXEC);
@@ -479,8 +481,11 @@ int vn_fromfd(int fd, char *path, int flags, struct vnode **vpp, boolean_t fromf
 	vp->v_fd = fd;
 	if(S_ISBLK(vp->v_stat.st_mode)) {
 		/* LINUX */
-		if(ioctl(fd, BLKGETSIZE64, &vp->v_size) != 0)
-			return errno;
+		if(ioctl(fd, BLKGETSIZE64, &vp->v_size) != 0) {
+			save_errno = errno;
+			close(fd);
+			return (save_errno);
+		}
 	} else
 		vp->v_size = vp->v_stat.st_size;
 	vp->v_path = strdup(path);
@@ -585,6 +590,49 @@ vn_openat(char *path, enum uio_seg x1, int flags, int mode, vnode_t **vpp, enum 
 	return (ret);
 }
 
+#if 0
+int
+vn_openat(char *path, enum uio_seg x1, int flags, int mode,
+    vnode_t **vpp, enum create x2, mode_t x3, vnode_t *startvp,
+    int pfd)
+{
+	int save_errno, fd, stflags = 0;
+	mode_t old_umask;
+	struct stat64 st;
+
+	if (flags & FNOFOLLOW)
+		stflags |= AT_SYMLINK_NOFOLLOW;
+
+	if (!(flags & FCREAT) && fstatat64(pfd, path, &st, stflags) == -1)
+		return (errno);
+
+	if (flags & FCREAT)
+		old_umask = umask(0);
+
+	if (!(flags & FCREAT) && S_ISBLK(st.st_mode)) {
+		flags |= O_DIRECT;
+		if (flags & FWRITE)
+			flags |= O_EXCL;
+	}
+
+	/*
+	 * The construct 'flags - FREAD' conveniently maps combinations of
+	 * FREAD and FWRITE to the corresponding O_RDONLY, O_WRONLY, and O_RDWR.
+	 */
+	fd = openat64(pfd, path, flags - FREAD, mode);
+	save_errno = errno;
+
+	if (flags & FCREAT)
+		umask(old_umask);
+
+	if (fd == -1)
+		return (save_errno);
+
+	/* isfromfd */
+	return (vn_fromfd(fd, path, flags, vpp, startvp != rootdir));
+}
+#endif
+
 /*
  * Read or write a vnode.  Called from kernel code.
  */
@@ -625,7 +673,7 @@ vn_rdwr(
 	if (rw == UIO_WRITE) {
 		uio.uio_fmode = FWRITE;
 		uio.uio_extflg = UIO_COPY_DEFAULT;
-		error = VOP_WRITE(vp, &uio, ioflag, cr, NULL);
+		error = VOP_WRITE(vp, &uio, ioflag, cr, NULL, NULL, NULL);
 	} else {
 		uio.uio_fmode = FREAD;
 		uio.uio_extflg = UIO_COPY_CACHED;
@@ -996,12 +1044,13 @@ fop_create(
 	cred_t *cr,
 	int flags,
 	caller_context_t *ct,
-	vsecattr_t *vsecp)   /* ACL to set during create */
+	vsecattr_t *vsecp,   /* ACL to set during create */
+	void *logfunc)
 {
 	int ret;
 
 	ret = (*(dvp)->v_op->vop_create)
-	    (dvp, name, vap, excl, mode, vpp, cr, flags, ct, vsecp);
+	    (dvp, name, vap, excl, mode, vpp, cr, flags, ct, vsecp, logfunc);
 	if (ret == 0 && *vpp) {
 		VOPSTATS_UPDATE(*vpp, create);
 		if ((*vpp)->v_path == NULL) {
@@ -1021,12 +1070,13 @@ fop_mkdir(
 	cred_t *cr,
 	caller_context_t *ct,
 	int flags,
-	vsecattr_t *vsecp)    /* ACL to set during create */
+	vsecattr_t *vsecp,    /* ACL to set during create */
+	void *logfunc)
 {
 	int ret;
 
 	ret = (*(dvp)->v_op->vop_mkdir)
-	    (dvp, dirname, vap, vpp, cr, ct, flags, vsecp);
+	    (dvp, dirname, vap, vpp, cr, ct, flags, vsecp, logfunc);
 	if (ret == 0 && *vpp) {
 		VOPSTATS_UPDATE(*vpp, mkdir);
 		if ((*vpp)->v_path == NULL) {
@@ -1046,12 +1096,13 @@ fop_symlink(
 	char *target,
 	cred_t *cr,
 	caller_context_t *ct,
-	int flags)
+	int flags,
+	void *logfunc)
 {
 	int	err;
 
 	err = (*(dvp)->v_op->vop_symlink)
-	    (dvp, linkname, vap, target, cr, ct, flags);
+	    (dvp, linkname, vap, target, cr, ct, flags, logfunc);
 	VOPSTATS_UPDATE(dvp, symlink);
 	return (err);
 }
@@ -1062,11 +1113,12 @@ fop_remove(
 	char *nm,
 	cred_t *cr,
 	caller_context_t *ct,
-	int flags)
+	int flags,
+	void *logfunc)
 {
 	int	err;
 
-	err = (*(dvp)->v_op->vop_remove)(dvp, nm, cr, ct, flags);
+	err = (*(dvp)->v_op->vop_remove)(dvp, nm, cr, ct, flags, logfunc);
 	VOPSTATS_UPDATE(dvp, remove);
 	return (err);
 }
@@ -1078,11 +1130,12 @@ fop_rmdir(
 	vnode_t *cdir,
 	cred_t *cr,
 	caller_context_t *ct,
-	int flags)
+	int flags,
+	void *logfunc)
 {
 	int	err;
 
-	err = (*(dvp)->v_op->vop_rmdir)(dvp, nm, cdir, cr, ct, flags);
+	err = (*(dvp)->v_op->vop_rmdir)(dvp, nm, cdir, cr, ct, flags, logfunc);
 	VOPSTATS_UPDATE(dvp, rmdir);
 	return (err);
 }
@@ -1094,11 +1147,12 @@ fop_link(
 	char *tnm,
 	cred_t *cr,
 	caller_context_t *ct,
-	int flags)
+	int flags,
+	void *logfunc)
 {
 	int	err;
 
-	err = (*(tdvp)->v_op->vop_link)(tdvp, svp, tnm, cr, ct, flags);
+	err = (*(tdvp)->v_op->vop_link)(tdvp, svp, tnm, cr, ct, flags, logfunc);
 	VOPSTATS_UPDATE(tdvp, link);
 	return (err);
 }
@@ -1111,11 +1165,12 @@ fop_rename(
 	char *tnm,
 	cred_t *cr,
 	caller_context_t *ct,
-	int flags)
+	int flags,
+	void *logfunc)
 {
 	int	err;
 
-	err = (*(sdvp)->v_op->vop_rename)(sdvp, snm, tdvp, tnm, cr, ct, flags);
+	err = (*(sdvp)->v_op->vop_rename)(sdvp, snm, tdvp, tnm, cr, ct, flags, logfunc);
 	VOPSTATS_UPDATE(sdvp, rename);
 	return (err);
 }
@@ -1143,11 +1198,12 @@ fop_setattr(
 	vattr_t *vap,
 	int flags,
 	cred_t *cr,
-	caller_context_t *ct)
+	caller_context_t *ct,
+	void *logfunc)
 {
 	int	err;
 
-	err = (*(vp)->v_op->vop_setattr)(vp, vap, flags, cr, ct);
+	err = (*(vp)->v_op->vop_setattr)(vp, vap, flags, cr, ct, logfunc);
 	VOPSTATS_UPDATE(vp, setattr);
 	return (err);
 }
@@ -1203,11 +1259,13 @@ fop_write(
 	uio_t *uiop,
 	int ioflag,
 	cred_t *cr,
-	caller_context_t *ct)
+	caller_context_t *ct,
+	void *funcp,
+	void *datap)
 {
 	int	err;
 
-	err = (*(vp)->v_op->vop_write)(vp, uiop, ioflag, cr, ct);
+	err = (*(vp)->v_op->vop_write)(vp, uiop, ioflag, cr, ct, funcp, datap);
 	VOPSTATS_UPDATE_IO(vp, write,
 	    write_bytes, (resid_start - uiop->uio_resid));
 	return (err);

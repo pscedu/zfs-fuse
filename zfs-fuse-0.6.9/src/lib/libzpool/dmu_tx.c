@@ -38,7 +38,6 @@
 typedef void (*dmu_tx_hold_func_t)(dmu_tx_t *tx, struct dnode *dn,
     uint64_t arg1, uint64_t arg2);
 
-
 dmu_tx_t *
 dmu_tx_create_dd(dsl_dir_t *dd)
 {
@@ -58,9 +57,30 @@ dmu_tx_create_dd(dsl_dir_t *dd)
 }
 
 dmu_tx_t *
+dmu_tx_create_special(objset_t *os)
+{
+	dmu_tx_t *tx = dmu_tx_create_dd(os->os->os_dsl_dataset->ds_dir);
+	tx->tx_flags = TX_WAIT | TX_SPECIAL;
+	tx->tx_objset = os;
+	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os->os_dsl_dataset);
+	return (tx);
+}
+
+dmu_tx_t *
+dmu_tx_create_wait(objset_t *os)
+{
+	dmu_tx_t *tx = dmu_tx_create_dd(os->os->os_dsl_dataset->ds_dir);
+	tx->tx_flags = TX_WAIT;
+	tx->tx_objset = os;
+	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os->os_dsl_dataset);
+	return (tx);
+}
+
+dmu_tx_t *
 dmu_tx_create(objset_t *os)
 {
 	dmu_tx_t *tx = dmu_tx_create_dd(os->os_dsl_dataset->ds_dir);
+	tx->tx_flags = TX_NONE;
 	tx->tx_objset = os;
 	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os_dsl_dataset);
 	return (tx);
@@ -867,6 +887,9 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 	spa_t *spa = tx->tx_pool->dp_spa;
 	uint64_t memory, asize, fsize, usize;
 	uint64_t towrite, tofree, tooverwrite, tounref, tohold, fudge;
+#ifdef ZFS_SLASHLIB
+	tx_state_t *txstate;
+#endif
 
 	ASSERT3U(tx->tx_txg, ==, 0);
 
@@ -890,6 +913,36 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 		return (ERESTART);
 	}
 
+#ifdef ZFS_SLASHLIB
+	/*
+ 	 * The same zfs_vnops.c code is used with and without our slash2
+ 	 * code. So I need this #ifdef.  In addition, ZFS uses some
+ 	 * internal transaction at mount time (e.g., spa_history_log()).
+ 	 * Therefore, I also need this tx_wait hack.
+ 	 */
+	if (tx->tx_flags & TX_WAIT) {
+		txstate = &tx->tx_pool->dp_tx;
+	retry:
+		mutex_enter(&txstate->tx_slash2_lock);
+		if (!(tx->tx_flags & TX_SPECIAL)) {
+			if (!txstate->tx_txg_count) {
+				cv_wait(&txstate->tx_slash2_cv1, 
+					&txstate->tx_slash2_lock);
+				if (!txstate->tx_txg_count) {
+					mutex_exit(&txstate->tx_slash2_lock);
+					goto retry;
+				} else
+					txstate->tx_txg_count++;
+			}
+
+		} else {
+			ASSERT(txstate->tx_txg_count == 0);
+			txstate->tx_txg_count = 1;
+			cv_broadcast(&txstate->tx_slash2_cv1);
+		}
+		mutex_exit(&txstate->tx_slash2_lock);
+	}
+#endif
 	tx->tx_txg = txg_hold_open(tx->tx_pool, &tx->tx_txgh);
 	tx->tx_needassign_txh = NULL;
 
@@ -1031,6 +1084,9 @@ dmu_tx_assign(dmu_tx_t *tx, uint64_t txg_how)
 	ASSERT(txg_how != 0);
 	ASSERT(!dsl_pool_sync_context(tx->tx_pool));
 
+	if (tx->tx_flags & TX_SPECIAL)
+		ASSERT(!tx->tx_err);
+
 	while ((err = dmu_tx_try_assign(tx, txg_how)) != 0) {
 		dmu_tx_unassign(tx);
 
@@ -1135,6 +1191,7 @@ dmu_tx_commit(dmu_tx_t *tx)
 	refcount_destroy_many(&tx->tx_space_freed,
 	    refcount_count(&tx->tx_space_freed));
 #endif
+
 	kmem_free(tx, sizeof (dmu_tx_t));
 }
 
@@ -1204,4 +1261,10 @@ dmu_tx_do_callbacks(list_t *cb_list, int error)
 		dcb->dcb_func(dcb->dcb_data, error);
 		kmem_free(dcb, sizeof (dmu_tx_callback_t));
 	}
+}
+
+struct dsl_pool *
+dmu_tx_pool(dmu_tx_t *tx)
+{
+	return (tx->tx_pool);
 }

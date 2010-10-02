@@ -154,14 +154,22 @@ typedef struct znode_phys {
 	uint64_t zp_uid;		/* 128 - file owner */
 	uint64_t zp_gid;		/* 136 - owning group */
 	uint64_t zp_zap;		/* 144 - extra attributes */
-	uint64_t zp_pad[3];		/* 152 - future */
-	zfs_acl_phys_t zp_acl;		/* 176 - 263 ACL */
+	uint64_t zp_s2size;		/* 152 - slash2 file size */
+	uint32_t zp_ptruncgen;		/* 160 - slash2 partial truncate gen */
+	uint32_t zp_s2gen;		/* 164 - slash2 gen number (full truncate) */
+	uint64_t zp_s2fid;		/* 168 - slash2 fid */
+	uint64_t zp_s2atime[2];         /* 176 - slash2 atime */
+	uint64_t zp_s2mtime[2];         /* 192 - slash2 mtime */
+	uint32_t zp_s2utimgen;          /* 208 - slash2 utime gen # */
+	uint32_t zp__pad;               /* 212 - pad */ 
+	zfs_acl_phys_t zp_acl;		/* 216 - 307 ACL */
 	/*
 	 * Data may pad out any remaining bytes in the znode buffer, eg:
 	 *
 	 * |<---------------------- dnode_phys (512) ------------------------>|
 	 * |<-- dnode (192) --->|<----------- "bonus" buffer (320) ---------->|
 	 *			|<---- znode (264) ---->|<---- data (56) ---->|
+	 *			|<---- s2 znode (308) ---->|<--- data (16) -->| << - Slash2 is using this!
 	 *
 	 * At present, we use this space for the following:
 	 *  - symbolic links
@@ -293,6 +301,8 @@ typedef struct znode {
 #define	ACCESSED		(AT_ATIME)
 #define	STATE_CHANGED		(AT_CTIME)
 #define	CONTENT_MODIFIED	(AT_MTIME | AT_CTIME)
+#define	S2CONTENT_MODIFIED	(AT_SLASH2MTIME | AT_SLASH2CTIME)
+
 
 #define	ZFS_ACCESSTIME_STAMP(zfsvfs, zp) \
 	if ((zfsvfs)->z_atime && !((zfsvfs)->z_vfs->vfs_flag & VFS_RDONLY)) \

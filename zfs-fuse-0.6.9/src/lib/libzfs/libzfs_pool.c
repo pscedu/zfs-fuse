@@ -24,6 +24,8 @@
  * Use is subject to license terms.
  */
 
+#include <sys/types.h>
+
 #include <ctype.h>
 #include <errno.h>
 #include <devid.h>

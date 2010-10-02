@@ -61,7 +61,7 @@
  */
 static int
 zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
-    boolean_t update, int *deflags, pathname_t *rpnp, uint64_t *zoid)
+    boolean_t update, int *deflags, pathname_t *rpnp, slash_dentry_t *dirent)
 {
 	int error;
 
@@ -81,14 +81,13 @@ zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
 		 * In the non-mixed case we only expect there would ever
 		 * be one match, but we need to use the normalizing lookup.
 		 */
-		error = zap_lookup_norm(zfsvfs->z_os, dzp->z_id, name, 8, 1,
-		    zoid, mt, buf, bufsz, &conflict);
+		error = zap_lookup_norm(zfsvfs->z_os, dzp->z_id, name, 8, 2,
+		    dirent, mt, buf, bufsz, &conflict);
 		if (!error && deflags)
 			*deflags = conflict ? ED_CASE_CONFLICT : 0;
 	} else {
-		error = zap_lookup(zfsvfs->z_os, dzp->z_id, name, 8, 1, zoid);
+		error = zap_lookup(zfsvfs->z_os, dzp->z_id, name, 8, 2, dirent);
 	}
-	*zoid = ZFS_DIRENT_OBJ(*zoid);
 
 	if (error == ENOENT && update)
 		dnlc_update(ZTOV(dzp), name, DNLC_NO_VNODE);
@@ -140,6 +139,7 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 	boolean_t	update;
 	boolean_t	exact;
 	uint64_t	zoid;
+	slash_dentry_t	dirent;
 	vnode_t		*vp = NULL;
 	int		error = 0;
 	int		cmpflags;
@@ -305,7 +305,9 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 			return (0);
 		} else {
 			error = zfs_match_find(zfsvfs, dzp, name, exact,
-			    update, direntflags, realpnp, &zoid);
+			    update, direntflags, realpnp, &dirent);
+			if (!error)
+				zoid = ZFS_DIRENT_OBJ(dirent.d_id);
 		}
 	}
 	if (error) {
@@ -686,6 +688,7 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	uint64_t value;
 	int zp_is_dir = (vp->v_type == VDIR);
 	int error;
+	slash_dentry_t dirent;
 
 	dmu_buf_will_dirty(zp->z_dbuf, tx);
 	mutex_enter(&zp->z_lock);
@@ -698,6 +701,20 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 		}
 		zp->z_phys->zp_links++;
 	}
+	/*
+	 * slash2:
+	 *
+	 * If we are creating a second link in the by-id namespace
+	 * don't overwrite its original parent. We don't care about
+	 * regular files because we don't need to look at their
+	 * zp_parent field to move up the tree.
+	 *
+	 * XXX We might create the first link in the by-id namespace
+	 * when applying updates from a remote MDS.  But we want to 
+	 * keep the link in the by-name namespace as soon as it is
+	 * available.
+	 */
+	if ((flag & ZPARENT) && zp_is_dir)
 	zp->z_phys->zp_parent = dzp->z_id;	/* dzp is now zp's parent */
 
 	if (!(flag & ZNEW))
@@ -708,12 +725,24 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	mutex_enter(&dzp->z_lock);
 	dzp->z_phys->zp_size++;			/* one dirent added */
 	dzp->z_phys->zp_links += zp_is_dir;	/* ".." link from zp */
-	zfs_time_stamper_locked(dzp, CONTENT_MODIFIED, tx);
+	zfs_time_stamper_locked(dzp, CONTENT_MODIFIED | S2CONTENT_MODIFIED, tx);
 	mutex_exit(&dzp->z_lock);
 
 	value = zfs_dirent(zp);
-	error = zap_add(zp->z_zfsvfs->z_os, dzp->z_id, dl->dl_name,
-	    8, 1, &value, tx);
+
+	/*
+	 * In the new directory format, each entry has a tuple of two values.
+	 * For local files, the SLASH FID will be zero.
+	 */
+	dirent.d_id = value;
+	if (zp->z_phys->zp_s2fid)
+		dirent.d_s2fid = zp->z_phys->zp_s2fid;
+	else
+		FID_SET_FLAGS(dirent.d_s2fid, SLFIDF_LOCAL_DENTRY);
+
+	/* FALLOWDIRLINK is only set by zfsslash2_fidlink() */
+	error = _zap_add(zp->z_zfsvfs->z_os, dzp->z_id,
+	    dl->dl_name, 8, 2, &dirent, tx, flag & FALLOWDIRLINK);
 	ASSERT(error == 0);
 
 	dnlc_update(ZTOV(dzp), dl->dl_name, vp);
@@ -780,7 +809,7 @@ zfs_link_destroy(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag,
 	mutex_enter(&dzp->z_lock);
 	dzp->z_phys->zp_size--;			/* one dirent removed */
 	dzp->z_phys->zp_links -= zp_is_dir;	/* ".." link from zp */
-	zfs_time_stamper_locked(dzp, CONTENT_MODIFIED, tx);
+	zfs_time_stamper_locked(dzp, CONTENT_MODIFIED | S2CONTENT_MODIFIED, tx);
 	mutex_exit(&dzp->z_lock);
 
 	if (zp->z_zfsvfs->z_norm) {

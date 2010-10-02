@@ -827,11 +827,24 @@ zfs_mknode(znode_t *dzp, vattr_t *vap, dmu_tx_t *tx, cred_t *cr,
 		ZFS_TIME_ENCODE(&now, pzp->zp_atime);
 	}
 
+	if (vap->va_mask & AT_SLASH2ATIME) {
+		ZFS_TIME_ENCODE(&vap->va_s2atime, pzp->zp_s2atime);
+	} else {
+		ZFS_TIME_ENCODE(&now, pzp->zp_s2atime);
+	}
+
 	if (vap->va_mask & AT_MTIME) {
 		ZFS_TIME_ENCODE(&vap->va_mtime, pzp->zp_mtime);
 	} else {
 		ZFS_TIME_ENCODE(&now, pzp->zp_mtime);
 	}
+
+	if (vap->va_mask & AT_SLASH2MTIME) {
+		ZFS_TIME_ENCODE(&vap->va_s2mtime, pzp->zp_s2mtime);
+	} else {
+		ZFS_TIME_ENCODE(&now, pzp->zp_s2mtime);
+	}
+
 	pzp->zp_uid = acl_ids->z_fuid;
 	pzp->zp_gid = acl_ids->z_fgid;
 	pzp->zp_mode = acl_ids->z_mode;
@@ -843,6 +856,7 @@ zfs_mknode(znode_t *dzp, vattr_t *vap, dmu_tx_t *tx, cred_t *cr,
 		 * passed in is the znode for the root.
 		 */
 		*zpp = dzp;
+		pzp->zp_s2fid = 1;			/* slash2 */
 	}
 	VERIFY(0 == zfs_aclset_common(*zpp, acl_ids->z_aclp, cr, tx));
 	if (vap->va_mask & AT_XVATTR)
@@ -1164,6 +1178,13 @@ zfs_time_stamper_locked(znode_t *zp, uint_t flag, dmu_tx_t *tx)
 		if (zp->z_zfsvfs->z_use_fuids)
 			zp->z_phys->zp_flags |= ZFS_ARCHIVE;
 	}
+
+	if (flag & AT_SLASH2ATIME)
+		ZFS_TIME_ENCODE(&now, zp->z_phys->zp_s2atime);
+
+	if (flag & AT_SLASH2MTIME)
+		ZFS_TIME_ENCODE(&now, zp->z_phys->zp_s2mtime);
+
 }
 
 /*
@@ -1434,6 +1455,8 @@ top:
 	}
 
 	zfs_range_unlock(rl);
+
+	//XXX upcall here w/ fid and oldgen.
 
 	return (0);
 }

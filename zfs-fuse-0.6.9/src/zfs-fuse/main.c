@@ -44,6 +44,7 @@ static int cf_disable_page_cache = 0;
 extern void fuse_unmount_all(); // in fuse_listener.c
 static int cf_daemonize = 1;
 extern int no_kstat_mount; // kstat.c
+void *zfsVfs;
 
 static void exit_handler(int sig)
 {

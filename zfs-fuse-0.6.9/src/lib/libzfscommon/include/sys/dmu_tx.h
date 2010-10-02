@@ -42,6 +42,10 @@ struct dsl_pool;
 struct dnode;
 struct dsl_dir;
 
+#define	TX_NONE		0x0
+#define	TX_WAIT		0x1
+#define	TX_SPECIAL	0x2
+
 struct dmu_tx {
 	/*
 	 * No synchronization is needed because a tx can only be handled
@@ -60,6 +64,7 @@ struct dmu_tx {
 	list_t tx_callbacks; /* list of dmu_tx_callback_t on this dmu_tx */
 	uint8_t tx_anyobj;
 	int tx_err;
+	int tx_flags;
 #ifdef ZFS_DEBUG
 	uint64_t tx_space_towrite;
 	uint64_t tx_space_tofree;
@@ -112,6 +117,7 @@ void dmu_tx_commit(dmu_tx_t *tx);
 void dmu_tx_abort(dmu_tx_t *tx);
 uint64_t dmu_tx_get_txg(dmu_tx_t *tx);
 void dmu_tx_wait(dmu_tx_t *tx);
+struct dsl_pool *dmu_tx_pool(dmu_tx_t *tx);
 
 void dmu_tx_callback_register(dmu_tx_t *tx, dmu_tx_callback_func_t *dcb_func,
     void *dcb_data);
