@@ -16,6 +16,7 @@ env['CCFLAGS'] = Split('-pipe -Wall -std=c99 -Wno-switch -Wno-unused -Wno-missin
 
 debug = int(ARGUMENTS.get('debug', '1'))
 slashlib = int(ARGUMENTS.get('slashlib', '0'))
+rootdir = int(ARGUMENTS.get('ROOTDIR', '0'))
 
 if not debug:
 	env.Append(LINKFLAGS = ['-s'])
@@ -32,9 +33,9 @@ else:
 
 env.Append(CCFLAGS = Split(ARGUMENTS.get('DEFINES', '')))
 
-env.Append(CCFLAGS = ['-I../../../psc_fsutil_libs/include'])
-env.Append(CCFLAGS = ['-I../../../slash_nara/include'])
-env.Append(CCFLAGS = ['-I../../../slash_nara'])
+env.Append(CCFLAGS = ['-I' + rootdir + '/psc_fsutil_libs/include'])
+env.Append(CCFLAGS = ['-I' + rootdir + '/slash_nara/include'])
+env.Append(CCFLAGS = ['-I' + rootdir + '/slash_nara'])
 
 if slashlib:
 	env.Append(CCFLAGS = ['-DZFS_SLASHLIB'])
