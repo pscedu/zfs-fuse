@@ -1,1 +1,0 @@
-find $1/src -name 'z*' -type f | grep -vE '\.[coh]$'
