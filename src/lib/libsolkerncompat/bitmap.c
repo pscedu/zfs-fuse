@@ -23,6 +23,7 @@
  * Use is subject to license terms.
  */
 
+#if 0
 #include <sys/types.h>
 
 /*
@@ -59,3 +60,4 @@ highbit(ulong_t i)
 	}
 	return (h);
 }
+#endif

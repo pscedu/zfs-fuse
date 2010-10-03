@@ -113,6 +113,8 @@ zfs_match_find(zfsvfs_t *zfsvfs, znode_t *dzp, char *name, boolean_t exact,
  *		  ZCIEXACT: On a purely case-insensitive file system,
  *			    this lookup should be case-sensitive.
  *		  ZRENAMING: we are locking for renaming, force narrow locks
+ *		  ZHAVELOCK: Don't grab the z_name_lock for this call. The
+ *			     current thread already holds it.
  *
  * Output arguments:
  *	zpp	- pointer to the znode for the entry (NULL if there isn't one)
@@ -208,13 +210,20 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 
 	/*
 	 * Wait until there are no locks on this name.
+	 *
+	 * Don't grab the the lock if it is already held. However, cannot
+	 * have both ZSHARED and ZHAVELOCK together.
 	 */
-	rw_enter(&dzp->z_name_lock, RW_READER);
+	ASSERT(!(flag & ZSHARED) || !(flag & ZHAVELOCK));
+	if (!(flag & ZHAVELOCK))
+		rw_enter(&dzp->z_name_lock, RW_READER);
+
 	mutex_enter(&dzp->z_lock);
 	for (;;) {
 		if (dzp->z_unlinked) {
 			mutex_exit(&dzp->z_lock);
-			rw_exit(&dzp->z_name_lock);
+			if (!(flag & ZHAVELOCK))
+				rw_exit(&dzp->z_name_lock);
 			return (ENOENT);
 		}
 		for (dl = dzp->z_dirlocks; dl != NULL; dl = dl->dl_next) {
@@ -224,7 +233,8 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 		}
 		if (error != 0) {
 			mutex_exit(&dzp->z_lock);
-			rw_exit(&dzp->z_name_lock);
+			if (!(flag & ZHAVELOCK))
+				rw_exit(&dzp->z_name_lock);
 			return (ENOENT);
 		}
 		if (dl == NULL)	{
@@ -235,6 +245,7 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 			cv_init(&dl->dl_cv, NULL, CV_DEFAULT, NULL);
 			dl->dl_name = name;
 			dl->dl_sharecnt = 0;
+			dl->dl_namelock = 0;
 			dl->dl_namesize = 0;
 			dl->dl_dzp = dzp;
 			dl->dl_next = dzp->z_dirlocks;
@@ -245,6 +256,12 @@ zfs_dirent_lock(zfs_dirlock_t **dlpp, znode_t *dzp, char *name, znode_t **zpp,
 			break;
 		cv_wait(&dl->dl_cv, &dzp->z_lock);
 	}
+
+	/*
+	 * If the z_name_lock was NOT held for this dirlock record it.
+	 */
+	if (flag & ZHAVELOCK)
+		dl->dl_namelock = 1;
 
 	if ((flag & ZSHARED) && ++dl->dl_sharecnt > 1 && dl->dl_namesize == 0) {
 		/*
@@ -327,7 +344,10 @@ zfs_dirent_unlock(zfs_dirlock_t *dl)
 	zfs_dirlock_t **prev_dl, *cur_dl;
 
 	mutex_enter(&dzp->z_lock);
-	rw_exit(&dzp->z_name_lock);
+
+	if (!dl->dl_namelock)
+		rw_exit(&dzp->z_name_lock);
+
 	if (dl->dl_sharecnt > 1) {
 		dl->dl_sharecnt--;
 		mutex_exit(&dzp->z_lock);
@@ -695,7 +715,7 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	 * available.
 	 */
 	if ((flag & ZPARENT) && zp_is_dir)
-		zp->z_phys->zp_parent = dzp->z_id;	/* dzp is now zp's parent */
+	zp->z_phys->zp_parent = dzp->z_id;	/* dzp is now zp's parent */
 
 	if (!(flag & ZNEW))
 		zfs_time_stamper_locked(zp, STATE_CHANGED, tx);
@@ -897,7 +917,6 @@ zfs_make_xattrdir(znode_t *zp, vattr_t *vap, vnode_t **xvpp, cred_t *cr)
  *	RETURN:	0 on success
  *		error number on failure
  */
-#if 0
 int
 zfs_get_xattrdir(znode_t *zp, vnode_t **xvpp, cred_t *cr, int flags)
 {
@@ -954,7 +973,6 @@ top:
 
 	return (error);
 }
-#endif
 
 /*
  * Decide whether it is okay to remove within a sticky directory.

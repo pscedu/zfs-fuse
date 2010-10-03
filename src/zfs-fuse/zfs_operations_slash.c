@@ -60,6 +60,7 @@
 kmem_cache_t	*file_info_cache;
 cred_t		 zrootcreds;
 vfs_t		*zfsVfs;			/* initialized by do_mount() */
+int		 stack_size;
 
 /* flags for zfsslash2_fidlink() */
 #define	FIDLINK_CREATE		(1 << 0)
@@ -1745,7 +1746,7 @@ zfsslash2_wait_synced(uint64_t txg)
 	dsl_pool_t *dp;
 
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
-	dp = spa_get_dsl(zfsvfs->z_os->os->os_spa);
+	dp = spa_get_dsl(zfsvfs->z_os->os_spa);
 	txg_wait_synced(dp, txg);
 }
 
@@ -1756,7 +1757,7 @@ zfsslash2_return_synced(void)
 	uint64_t txg;
 
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
-	dp = spa_get_dsl(zfsvfs->z_os->os->os_spa);
+	dp = spa_get_dsl(zfsvfs->z_os->os_spa);
 	txg = txg_return_synced(dp);
 	return (txg);
 }

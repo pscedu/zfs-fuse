@@ -31,4 +31,10 @@
 struct vmem;
 typedef struct vmem vmem_t;
 
+typedef void *(vmem_alloc_t)(vmem_t *, size_t, int);
+typedef void (vmem_free_t)(vmem_t *, void *, size_t);
+
+extern vmem_t *vmem_create(const char *, void *, size_t, size_t,
+    vmem_alloc_t *, vmem_free_t *, vmem_t *, size_t, int);
+
 #endif

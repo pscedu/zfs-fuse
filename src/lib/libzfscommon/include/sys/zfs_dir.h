@@ -42,12 +42,12 @@ extern "C" {
 #define	ZRENAMING	0x0010		/* znode is being renamed */
 #define	ZCILOOK		0x0020		/* case-insensitive lookup requested */
 #define	ZCIEXACT	0x0040		/* c-i requires c-s match (rename) */
-#define	ZPARENT 	0x0080		/* slash2: update parent pointer */
+#define	ZHAVELOCK	0x0080		/* z_name_lock is already held */
+#define	ZPARENT		0x0100		/* slash2: update parent pointer */
 
 /* mknode flags */
 #define	IS_ROOT_NODE	0x01		/* create a root node */
 #define	IS_XATTR	0x02		/* create an extended attribute node */
-#define	IS_REPLAY	0x04		/* we are replaying intent log */
 
 extern int zfs_dirent_lock(zfs_dirlock_t **, znode_t *, char *, znode_t **,
     int, int *, pathname_t *);

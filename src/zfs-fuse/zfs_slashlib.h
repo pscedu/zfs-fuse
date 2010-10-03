@@ -46,11 +46,13 @@ int	zfsslash2_write(const struct slash_creds *, const void *, size_t, size_t *, 
 
 int	zfsslash2_write_cursor(void *, size_t, void *, sl_log_write_t);
 
+int	do_init_fusesocket(void);
 int	do_init(void);
 void	do_exit(void);
 
-#define zfs_init	do_init
-#define zfs_exit	do_exit
+#define libzfs_init_fusesocket	do_init_fusesocket
+#define libzfs_init		do_init
+#define libzfs_exit		do_exit
 
 int	zfsslash2_replay_create(slfid_t, slfid_t, char *, struct srt_stat *stat);
 int	zfsslash2_replay_link(slfid_t, slfid_t, char *, struct srt_stat *stat);
