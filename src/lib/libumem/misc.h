@@ -117,11 +117,15 @@ void umem_err_recoverable(const char *format, ...);
 #ifdef NDEBUG
 #define	ASSERT(assertion) (void)0
 #else
-#define	ASSERT(assertion) (void)((assertion) || \
-    __umem_assert_failed(#assertion, __FILE__, __LINE__))
+#define	ASSERT(assertion) 						\
+	do {								\
+		if (!(assertion))					\
+			__umem_assert_failed(#assertion, __FILE__,	\
+			    __LINE__);					\
+	} while (0)
 #endif
 
-int __umem_assert_failed(const char *assertion, const char *file, int line) __attribute__ ((noreturn));
+void __umem_assert_failed(const char *assertion, const char *file, int line) __attribute__ ((noreturn));
 /* #pragma does_not_return(__umem_assert_failed) */
 /* #pragma rarely_called(__umem_assert_failed) */
 /*

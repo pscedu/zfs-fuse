@@ -166,12 +166,10 @@ umem_err_recoverable(const char *format, ...)
 		umem_do_abort();
 }
 
-int
+void
 __umem_assert_failed(const char *assertion, const char *file, int line)
 {
 	umem_panic("Assertion failed: %s, file %s, line %d\n",
 	    assertion, file, line);
 	umem_do_abort();
-	/*NOTREACHED*/
-	return (0);
 }
