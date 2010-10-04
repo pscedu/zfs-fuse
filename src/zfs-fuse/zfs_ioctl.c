@@ -2290,7 +2290,7 @@ zfs_ioc_set_prop(zfs_cmd_t *zc)
 
 	error = zfs_set_prop_nvlist(zc->zc_name, source, nvl, &errors);
 
-	if (zc->zc_nvlist_dst != NULL && errors != NULL) {
+	if ((void *)(uintptr_t)zc->zc_nvlist_dst != NULL && errors != NULL) {
 		(void) put_nvlist(zc, errors);
 	}
 
