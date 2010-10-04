@@ -37,6 +37,7 @@
 #include <sys/zfs_vfsops.h>
 #include <sys/zfs_znode.h>
 #include <sys/mode.h>
+#include <sys/xattr.h>
 #include <sys/fcntl.h>
 #include <sys/dmu_objset.h>
 
@@ -46,6 +47,8 @@
 #include <time.h>
 
 #include "util.h"
+#include "errno_compat.h"
+#include <syslog.h>
 
 #include "zfs_slashlib.h"
 
@@ -54,6 +57,7 @@
 #include "creds.h"
 #include "fid.h"
 #include "slashd/mdsio.h"
+#include "slerr.h"
 #include "sljournal.h"
 #include "sltypes.h"
 
@@ -150,20 +154,17 @@ hide_vnode(vnode_t *dvp, vnode_t *vp, const char *cpn)
 void
 zfsslash2_destroy(void)
 {
-	struct timespec req;
-	req.tv_sec = 0;
-	req.tv_nsec = 100000000; /* 100 ms */
-
 #ifdef DEBUG
-	fprintf(stderr, "Calling do_umount()...\n");
+	fprintf(stderr, "Calling do_umount()... force %d\n",exit_fuse_listener);
 #endif
 	/*
 	 * If exit_fuse_listener is true, then we received a signal
 	 * and we're terminating the process. Therefore we need to
 	 * force unmount since there could still be opened files
 	 */
+	sync();
 	while (do_umount(zfsVfs, 0) != 0)
-		nanosleep(&req, NULL);
+		sync();
 #ifdef DEBUG
 	fprintf(stderr, "do_umount() done\n");
 #endif
@@ -205,7 +206,7 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb, cred_t *cred)
 	vattr_t vattr;
 	struct slash_fidgen fg;
 
-	ASSERT(vp != NULL);
+	ASSERT(vp);
 	get_vnode_fids(vp, &fg, mfp);
 
 	if (sstb == NULL)
@@ -264,9 +265,9 @@ zfsslash2_getattr(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(znode != NULL);
+	ASSERT(znode);
 	vnode_t *vp = ZTOV(znode);
-	ASSERT(vp != NULL);
+	ASSERT(vp);
 
 	error = fill_sstb(vp, NULL, sstb, cred);
 
@@ -274,6 +275,258 @@ zfsslash2_getattr(mdsio_fid_t ino, const struct slash_creds *slcrp,
 	ZFS_EXIT(zfsvfs);
 
 	return error;
+}
+
+/* This macro makes the lookup for the xattr directory, necessary for listxattr
+ * getxattr and setxattr */
+#define MY_LOOKUP_XATTR() \
+	vfs_t *vfs = (vfs_t *) fuse_req_userdata(req);			\
+	zfsvfs_t *zfsvfs = vfs->vfs_data;				\
+	if (ino == 1) ino = 3;						\
+									\
+	ZFS_ENTER(zfsvfs);						\
+									\
+	znode_t *znode;							\
+									\
+	int error = zfs_zget(zfsvfs, ino, &znode, B_FALSE);		\
+	if (error) {							\
+		ZFS_EXIT(zfsvfs);					\
+		return (error == EEXIST ? ENOENT : error);		\
+	}								\
+									\
+	ASSERT(znode);							\
+	vnode_t *dvp = ZTOV(znode);					\
+	ASSERT(dvp);							\
+									\
+	vnode_t *vp = NULL;						\
+									\
+	error = VOP_LOOKUP(dvp, "", &vp, NULL, LOOKUP_XATTR |		\
+	    CREATE_XATTR_DIR, NULL, cred, NULL, NULL, NULL);		\
+	if (error || vp == NULL) {					\
+		if (error != EACCES) error = ENOSYS;			\
+		goto out;						\
+	}
+
+int
+zfsslash2_listxattr(fuse_req_t req, fuse_ino_t ino, size_t size,
+    const struct slash_creds *slcrp)
+{
+	ZFS_CONVERT_CREDS(cred, slcrp);
+
+	/* It's like a lookup, but passing LOOKUP_XATTR as a flag to VOP_LOOKUP */
+	MY_LOOKUP_XATTR();
+
+	error = VOP_OPEN(&vp, FREAD, cred, NULL);
+	if (error) {
+		goto out;
+	}
+
+	// Now try a readdir...
+	char *outbuf = NULL;
+	int alloc = 0,used = 0;
+	union {
+		char buf[DIRENT64_RECLEN(MAXNAMELEN)];
+		struct dirent64 dirent;
+	} entry;
+
+	struct stat fstat = { 0 };
+
+	iovec_t iovec;
+	uio_t uio;
+	uio.uio_iov = &iovec;
+	uio.uio_iovcnt = 1;
+	uio.uio_segflg = UIO_SYSSPACE;
+	uio.uio_fmode = 0;
+	uio.uio_llimit = RLIM64_INFINITY;
+
+	int eofp = 0;
+
+	off_t next = 0;
+
+	for (;;) {
+		iovec.iov_base = entry.buf;
+		iovec.iov_len = sizeof(entry.buf);
+		uio.uio_resid = iovec.iov_len;
+		uio.uio_loffset = next;
+
+		error = VOP_READDIR(vp, &uio, cred, &eofp, NULL, 0);
+		if (error)
+			goto out;
+
+		/* No more directory entries */
+		if (iovec.iov_base == entry.buf)
+			break;
+
+		next = entry.dirent.d_off;
+		char *s = entry.dirent.d_name;
+		if (*s == '.' && (s[1] == 0 || (s[1] == '.' && s[2] == 0)))
+			continue;
+		while (used + strlen(s)+1 > alloc) {
+			alloc += 1024;
+			outbuf = realloc(outbuf, alloc);
+		}
+		strcpy(&outbuf[used],s);
+		used += strlen(s)+1;
+
+	}
+
+	error = VOP_CLOSE(vp, FREAD, 1, (offset_t) 0, cred, NULL);
+	if (size == 0) {
+		fuse_reply_xattr(req,used);
+	} else if (size < used) {
+		error = ERANGE;
+	} else {
+		fuse_reply_buf(req,outbuf,used);
+	}
+	free(outbuf);
+ out:
+	if (vp)
+		VN_RELE(vp);
+	VN_RELE(dvp);
+	ZFS_EXIT(zfsvfs);
+	return (error);
+}
+
+int
+zfsfuse_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+    const char *value, size_t size, int flags,
+    const struct slash_creds *slcrp)
+{
+	ZFS_CONVERT_CREDS(cred, slcrp);
+
+	MY_LOOKUP_XATTR();
+	// Now the idea is to create a file inside the xattr directory with the
+	// wanted attribute.
+
+	vattr_t vattr;
+	vattr.va_type = VREG;
+	vattr.va_mode = 0660;
+	vattr.va_mask = AT_TYPE|AT_MODE|AT_SIZE;
+	vattr.va_size = 0;
+
+	vnode_t *new_vp;
+	error = VOP_CREATE(vp, (char *) name, &vattr, NONEXCL, VWRITE,
+	    &new_vp, cred, 0, NULL, NULL, NULL);
+	if (error)
+		goto out;
+
+	VN_RELE(vp);
+	vp = new_vp;
+	error = VOP_OPEN(&vp, FWRITE, cred, NULL);
+	if (error) goto out;
+
+	iovec_t iovec;
+	uio_t uio;
+	uio.uio_iov = &iovec;
+	uio.uio_iovcnt = 1;
+	uio.uio_segflg = UIO_SYSSPACE;
+	uio.uio_fmode = 0;
+	uio.uio_llimit = RLIM64_INFINITY;
+
+	iovec.iov_base = (void *) value;
+	iovec.iov_len = size;
+	uio.uio_resid = iovec.iov_len;
+	uio.uio_loffset = 0;
+
+	error = VOP_WRITE(vp, &uio, FWRITE, cred, NULL, NULL, (void *)value);
+	if (error) goto out;
+	error = VOP_CLOSE(vp, FWRITE, 1, (offset_t) 0, cred, NULL);
+
+ out:
+	if (vp)
+		VN_RELE(vp);
+	VN_RELE(dvp);
+	ZFS_EXIT(zfsvfs);
+	// The fuse_reply_err at the end seems to be an mandatory even if there is no error
+	return (error);
+}
+
+int
+zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+    size_t size, const struct slash_creds *slcrp)
+{
+	ZFS_CONVERT_CREDS(cred, slcrp);
+
+	MY_LOOKUP_XATTR();
+	vnode_t *new_vp = NULL;
+	error = VOP_LOOKUP(vp, (char *) name, &new_vp, NULL, 0, NULL, cred, NULL, NULL, NULL);
+	if (error) {
+		error = ENOATTR;
+		goto out;
+	}
+	VN_RELE(vp);
+	vp = new_vp;
+	vattr_t vattr;
+	vattr.va_mask = AT_STAT | AT_NBLOCKS | AT_BLKSIZE | AT_SIZE;
+
+	// We are obliged to get the size 1st because of the stupid handling of the
+	// size parameter
+	error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);
+	if (error) goto out;
+	if (size == 0) {
+		fuse_reply_xattr(req,vattr.va_size);
+		goto out;
+	} else if (size < vattr.va_size) {
+		fuse_reply_xattr(req, ERANGE);
+		goto out;
+	}
+	char *buf = malloc(vattr.va_size);
+	if (!buf)
+		goto out;
+
+	error = VOP_OPEN(&vp, FREAD, cred, NULL);
+	if (error) {
+		free(buf);
+		goto out;
+	}
+
+	iovec_t iovec;
+	uio_t uio;
+	uio.uio_iov = &iovec;
+	uio.uio_iovcnt = 1;
+	uio.uio_segflg = UIO_SYSSPACE;
+	uio.uio_fmode = 0;
+	uio.uio_llimit = RLIM64_INFINITY;
+
+	iovec.iov_base = buf;
+	iovec.iov_len = vattr.va_size;
+	uio.uio_resid = iovec.iov_len;
+	uio.uio_loffset = 0;
+
+	error = VOP_READ(vp, &uio, FREAD, cred, NULL);
+	if (error) {
+		free(buf);
+		goto out;
+	}
+	fuse_reply_buf(req,buf,vattr.va_size);
+	free(buf);
+	error = VOP_CLOSE(vp, FREAD, 1, (offset_t) 0, cred, NULL);
+
+ out:
+	if (vp)
+		VN_RELE(vp);
+	VN_RELE(dvp);
+	ZFS_EXIT(zfsvfs);
+	return (error);
+}
+
+int
+zfsfuse_removexattr(fuse_req_t req, fuse_ino_t ino, const char *name,
+    const struct slash_creds *slcrp)
+{
+	ZFS_CONVERT_CREDS(cred, slcrp);
+
+	MY_LOOKUP_XATTR();
+	error = VOP_REMOVE(vp, (char *) name, cred, NULL, 0, NULL);
+
+ out:
+	if (vp)
+		VN_RELE(vp);
+	VN_RELE(dvp);
+	ZFS_EXIT(zfsvfs);
+	if (error == ENOENT)
+		error = ENOATTR;
+	return (error);
 }
 
 int
@@ -299,9 +552,9 @@ zfsslash2_lookup(mdsio_fid_t parent, const char *name,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(znode != NULL);
+	ASSERT(znode);
 	vnode_t *dvp = ZTOV(znode);
-	ASSERT(dvp != NULL);
+	ASSERT(dvp);
 
 	vnode_t *vp = NULL;
 
@@ -320,7 +573,7 @@ zfsslash2_lookup(mdsio_fid_t parent, const char *name,
 		goto out;
 
  out:
-	if (vp != NULL)
+	if (vp)
 		VN_RELE(vp);
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
@@ -328,7 +581,8 @@ zfsslash2_lookup(mdsio_fid_t parent, const char *name,
 	return error;
 }
 
-/* XXX replace fuse_file_info with something meaningful for slash d_ino cache
+/*
+ * XXX replace fuse_file_info with something meaningful for slash d_ino cache
  */
 int
 zfsslash2_opendir(mdsio_fid_t ino, const struct slash_creds *slcrp,
@@ -349,9 +603,9 @@ zfsslash2_opendir(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(znode != NULL);
+	ASSERT(znode);
 	vnode_t *vp = ZTOV(znode);
-	ASSERT(vp != NULL);
+	ASSERT(vp);
 
 	if (vp->v_type != VDIR) {
 		error = ENOTDIR;
@@ -360,18 +614,10 @@ zfsslash2_opendir(mdsio_fid_t ino, const struct slash_creds *slcrp,
 	/*
 	 * Check permissions.
 	 */
-	if (error = VOP_ACCESS(vp, VREAD | VEXEC, 0, cred, NULL))
-		goto out;
-
-	vnode_t *old_vp = vp;
-
-	/* XXX: not sure about flags */
-	error = VOP_OPEN(&vp, FREAD, cred, NULL);
-
-	ASSERT(old_vp == vp);
-
-	if (error)
-		goto out;
+	if (!(zfsVfs->fuse_attribute & FUSE_VFS_HAS_DEFAULT_PERM)) {
+		if (error = VOP_ACCESS(vp, VREAD | VEXEC, 0, cred, NULL))
+			goto out;
+	}
 
 	/* XXX convert to the slash d_ino cache */
 	file_info_t *finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
@@ -394,7 +640,8 @@ zfsslash2_opendir(mdsio_fid_t ino, const struct slash_creds *slcrp,
 	return error;
 }
 
-/*  XXX convert to the slash d_ino cache .. same as above
+/*
+ * XXX convert to the slash d_ino cache .. same as above
  */
 int
 zfsslash2_release(const struct slash_creds *slcrp, void *finfo)
@@ -405,8 +652,8 @@ zfsslash2_release(const struct slash_creds *slcrp, void *finfo)
 
 	ZFS_ENTER(zfsvfs);
 
-	ASSERT(info->vp != NULL);
-	ASSERT(VTOZ(info->vp) != NULL);
+	ASSERT(info->vp);
+	ASSERT(VTOZ(info->vp));
 
 	VN_RELE(info->vp);
 
@@ -429,8 +676,8 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	vnode_t *vp = ((file_info_t *)finfo)->vp;
 
-	ASSERT(vp != NULL);
-	ASSERT(VTOZ(vp) != NULL);
+	ASSERT(vp);
+	ASSERT(VTOZ(vp));
 
 	if (vp->v_type != VDIR)
 		return ENOTDIR;
@@ -495,7 +742,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		if (error)
 			break;
 
-		ASSERT(znode != NULL);
+		ASSERT(znode);
 		vnode_t *tvp = ZTOV(znode);
 
 		/*
@@ -590,9 +837,9 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 	if (error)
 		return error == EEXIST ? ENOENT : error;
 
-	ASSERT(znode != NULL);
+	ASSERT(znode);
 	dvp = ZTOV(znode);
-	ASSERT(dvp != NULL);
+	ASSERT(dvp);
 
 	/*
 	 * Map the root of slash2 to the root of the underlying ZFS.
@@ -729,8 +976,6 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
 		return (error);
 	if (sstb || mfp)
 		error = fill_sstb(vp, mfp, sstb, cred);
-	if (error)
-		goto out;
 
  out:
 	VN_RELE(vp);
@@ -810,9 +1055,9 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(znode != NULL);
+	ASSERT(znode);
 	vnode_t *vp = ZTOV(znode);
-	ASSERT(vp != NULL);
+	ASSERT(vp);
 
 	if (flags & FCREAT) {
 		if (strlen(name) > MAXNAMELEN) {
@@ -883,8 +1128,10 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		/*
 		 * Check permissions.
 		 */
-		if (error = VOP_ACCESS(vp, mode, 0, cred, NULL))
-			goto out;
+		if (!(zfsVfs->fuse_attribute & FUSE_VFS_HAS_DEFAULT_PERM)) {
+			if (error = VOP_ACCESS(vp, mode, 0, cred, NULL))
+				goto out;
+		}
 	}
 
 	if ((flags & FNOFOLLOW) && vp->v_type == VLNK) {
@@ -939,9 +1186,9 @@ zfsslash2_readlink(mdsio_fid_t ino, char *buf,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(znode != NULL);
+	ASSERT(znode);
 	vnode_t *vp = ZTOV(znode);
-	ASSERT(vp != NULL);
+	ASSERT(vp);
 
 	iovec_t iovec;
 	uio_t uio;
@@ -983,8 +1230,8 @@ zfsslash2_read(const struct slash_creds *slcrp, void *buf, size_t size,
 	file_info_t *info = finfo;
 	vnode_t *vp = info->vp;
 
-	ASSERT(vp != NULL);
-	ASSERT(VTOZ(vp) != NULL);
+	ASSERT(vp);
+	ASSERT(VTOZ(vp));
 
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
 
@@ -1035,9 +1282,9 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(znode != NULL);
+	ASSERT(znode);
 	vnode_t *dvp = ZTOV(znode);
-	ASSERT(dvp != NULL);
+	ASSERT(dvp);
 
 	vnode_t *vp = NULL;
 
@@ -1053,7 +1300,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	if (error)
 		goto out;
 
-	ASSERT(vp != NULL);
+	ASSERT(vp);
 
 	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid, FIDLINK_CREATE, vp, NULL);
 	if (error)
@@ -1065,7 +1312,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 		goto out;
 
  out:
-	if (vp != NULL)
+	if (vp)
 		VN_RELE(vp);
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
@@ -1095,21 +1342,23 @@ zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(znode != NULL);
+	ASSERT(znode);
 	vnode_t *dvp = ZTOV(znode);
-	ASSERT(dvp != NULL);
+	ASSERT(dvp);
 
 	vnode_t *vp = NULL;
 	/*
-	 * Hold a reference to the name to be removed, so that I can
-	 * remove it from the by-id namespace later.
+	 * Hold a reference to the name to be removed, so that it can
+	 * be removed from the by-id namespace later.
 	 */
 	error = VOP_LOOKUP(dvp, (char *)name, &vp, NULL, 0, NULL, cred, NULL, NULL, NULL);
 	if (error)
 		goto out;
 
-	/* FUSE doesn't care if we remove the current working directory
-	   so we just pass NULL as the cwd parameter (no problem for ZFS) */
+	/*
+	 * FUSE doesn't care if we remove the current working directory
+	 * so we just pass NULL as the cwd parameter (no problem for ZFS).
+	 */
 	error = VOP_RMDIR(dvp, (char *)name, NULL, cred, NULL, 0, logfunc);	/* zfs_rmdir() */
 
 	/* Linux uses ENOTEMPTY when trying to remove a non-empty directory */
@@ -1121,10 +1370,10 @@ zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
 		    FIDLINK_REMOVE|FIDLINK_DIR, NULL, NULL);
 
 	VN_RELE(vp);
+
+ out:
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
-
-out:
 	return error;
 }
 
@@ -1153,7 +1402,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 			   dnode_hold_impl will return EEXIST instead of ENOENT */
 			return error == EEXIST ? ENOENT : error;
 		}
-		ASSERT(znode != NULL);
+		ASSERT(znode);
 		vp = ZTOV(znode);
 		release = B_TRUE;
 	} else {
@@ -1194,7 +1443,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		}
 	}
 
-	ASSERT(vp != NULL);
+	ASSERT(vp);
 
 	vattr_t vattr = { 0 };
 
@@ -1289,11 +1538,11 @@ zfsslash2_unlink(mdsio_fid_t parent, const char *name,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(znode != NULL);
+	ASSERT(znode);
 	vnode_t *dvp = ZTOV(znode);
-	ASSERT(dvp != NULL);
+	ASSERT(dvp);
 
-	vnode_t *vp=NULL;
+	vnode_t *vp = NULL;
 	error = VOP_LOOKUP(dvp, (char *)name, &vp, NULL, 0, NULL, cred,
 			   NULL, NULL, NULL);
 	if (error)
@@ -1330,15 +1579,15 @@ zfsslash2_unlink(mdsio_fid_t parent, const char *name,
  */
 int
 zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
-	size_t size, size_t *nb, off_t off, int update_mtime, void *finfo,
-	sl_log_write_t funcp, void *datap)
+    size_t size, size_t *nb, off_t off, int update_mtime, void *finfo,
+    sl_log_write_t funcp, void *datap)
 {
 	ZFS_CONVERT_CREDS(cred, slcrp);
 	file_info_t *info = finfo;
 
 	vnode_t *vp = info->vp;
-	ASSERT(vp != NULL);
-	ASSERT(VTOZ(vp) != NULL);
+	ASSERT(vp);
+	ASSERT(VTOZ(vp));
 
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
 
@@ -1358,8 +1607,8 @@ zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
 	uio.uio_loffset = off;
 
 	int error = VOP_WRITE(vp, &uio,
-		      (info->flags | (update_mtime ? 0 : SLASH2_IGNORE_MTIME)),
-		      cred, NULL, funcp, datap);	/* zfs_write */
+	    (info->flags | (update_mtime ? 0 : SLASH2_IGNORE_MTIME)),
+	    cred, NULL, funcp, datap);	/* zfs_write */
 
 	ZFS_EXIT(zfsvfs);
 
@@ -1373,7 +1622,8 @@ zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
 }
 
 int
-zfsslash2_write_cursor(void *buf, size_t size, void *finfo, sl_log_write_t funcp)
+zfsslash2_write_cursor(void *buf, size_t size, void *finfo,
+    sl_log_write_t funcp)
 {
 	file_info_t *info = finfo;
 
@@ -1395,7 +1645,8 @@ zfsslash2_write_cursor(void *buf, size_t size, void *finfo, sl_log_write_t funcp
 	uio.uio_resid = iovec.iov_len;
 	uio.uio_loffset = 0;
 
-	int error = VOP_WRITE(vp, &uio, SLASH2_CURSOR_FLAG, &zrootcreds, NULL, funcp, buf);	/* zfs_write() */
+	int error = VOP_WRITE(vp, &uio, SLASH2_CURSOR_FLAG, &zrootcreds,
+	    NULL, funcp, buf);	/* zfs_write() */
 
 	ZFS_EXIT(zfsvfs);
 
@@ -1426,9 +1677,9 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(znode != NULL);
+	ASSERT(znode);
 	vnode_t *dvp = ZTOV(znode);
-	ASSERT(dvp != NULL);
+	ASSERT(dvp);
 
 	vattr_t vattr;
 	vattr.va_type = IFTOVT(mode);
@@ -1450,7 +1701,7 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 	if (error)
 		goto out;
 
-	ASSERT(vp != NULL);
+	ASSERT(vp);
 
 	struct fuse_entry_param e = { 0 };
 
@@ -1464,7 +1715,7 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 		error = fill_sstb(vp, &e.attr, &cred);
 
  out:
-	if (vp != NULL)
+	if (vp)
 		VN_RELE(vp);
 	ZFS_EXIT(zfsvfs);
 
@@ -1501,9 +1752,9 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(znode != NULL);
+	ASSERT(znode);
 	vnode_t *dvp = ZTOV(znode);
-	ASSERT(dvp != NULL);
+	ASSERT(dvp);
 
 	vattr_t vattr;
 	memset(&vattr, 0, sizeof(vattr));
@@ -1528,15 +1779,13 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 	if (error)
 		goto out;
 
-	ASSERT(vp != NULL);
+	ASSERT(vp);
 
 	if (sstb || mfp)
 		error = fill_sstb(vp, mfp, sstb, cred);
-	if (error)
-		goto out;
 
  out:
-	if (vp != NULL)
+	if (vp)
 		VN_RELE(vp);
 	VN_RELE(dvp);
 
@@ -1572,25 +1821,25 @@ zfsslash2_rename(mdsio_fid_t parent, const char *name,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(p_znode != NULL);
+	ASSERT(p_znode);
+	vnode_t *p_vp = ZTOV(p_znode);
+	ASSERT(p_vp);
 
 	error = zfs_zget(zfsvfs, newparent, &np_znode, B_FALSE);
 	if (error) {
-		VN_RELE(ZTOV(p_znode));
+		VN_RELE(p_vp);
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(np_znode != NULL);
-
-	vnode_t *p_vp = ZTOV(p_znode);
+	ASSERT(np_znode);
 	vnode_t *np_vp = ZTOV(np_znode);
-	ASSERT(p_vp != NULL);
-	ASSERT(np_vp != NULL);
+	ASSERT(np_vp);
 
-	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname, cred, NULL, 0, logfunc);  /* zfs_rename() */
+	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname,
+	    cred, NULL, 0, logfunc);  /* zfs_rename() */
 
 	VN_RELE(p_vp);
 	VN_RELE(np_vp);
@@ -1610,8 +1859,8 @@ zfsslash2_fsync(const struct slash_creds *slcrp, int datasync,
 	ZFS_ENTER(zfsvfs);
 
 	file_info_t *info = finfo;
-	ASSERT(info->vp != NULL);
-	ASSERT(VTOZ(info->vp) != NULL);
+	ASSERT(info->vp);
+	ASSERT(VTOZ(info->vp));
 
 	vnode_t *vp = info->vp;
 
@@ -1645,7 +1894,7 @@ zfsslash2_link(mdsio_fid_t ino, mdsio_fid_t newparent,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(s_znode != NULL);
+	ASSERT(s_znode);
 
 	error = zfs_zget(zfsvfs, newparent, &td_znode, B_FALSE);
 	if (error) {
@@ -1658,8 +1907,8 @@ zfsslash2_link(mdsio_fid_t ino, mdsio_fid_t newparent,
 
 	vnode_t *svp = ZTOV(s_znode);
 	vnode_t *tdvp = ZTOV(td_znode);
-	ASSERT(svp != NULL);
-	ASSERT(tdvp != NULL);
+	ASSERT(svp);
+	ASSERT(tdvp);
 
 	error = VOP_LINK(tdvp, svp, (char *)newname, cred, NULL, 0, logfunc);	/* zfs_link() */
 
@@ -1671,15 +1920,13 @@ zfsslash2_link(mdsio_fid_t ino, mdsio_fid_t newparent,
 	if (error)
 		goto out;
 
-	ASSERT(vp != NULL);
+	ASSERT(vp);
 
 	if (sstb)
 		error = fill_sstb(vp, NULL, sstb, cred);
-	if (error)
-		goto out;
 
  out:
-	if (vp != NULL)
+	if (vp)
 		VN_RELE(vp);
 	VN_RELE(tdvp);
 	VN_RELE(svp);
@@ -1707,9 +1954,9 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(znode != NULL);
+	ASSERT(znode);
 	vnode_t *vp = ZTOV(znode);
-	ASSERT(vp != NULL);
+	ASSERT(vp);
 
 	int mode = 0;
 	if (mask & R_OK)
@@ -1729,15 +1976,19 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
 }
 
 /*
- * The following are functions used to replay a namespace operation happened on a remote MDS.
- * There are two big differences between these functions and those above: (1) we have to start
- * from the immutable by-id namespace (that's why we start with zfsslash2_fidlink() instead of
- * zfs_zget()); (2) we don't need to log a replayed operation.
+ * The following are functions used to replay a namespace operation
+ * happened on a remote MDS.  There are two big differences between
+ * these functions and those above:
+ *  (1) we have to start from the immutable by-id namespace (that's why
+ *	we start with zfsslash2_fidlink() instead of zfs_zget());
+ *  (2) we don't need to log a replayed operation.
  *
- * It seems to me that I simply can't, as root, create a file owned by an arbitrary regular user
- * directly. There are also some limitations on changing owner and group membership.  As a result,
- * all replay operations are done with their original credentials captured when the corresponding
- * operation was requested.  Note that we only log when ZFS declares the operation is doable.
+ * It seems to me that I simply can't, as root, create a file owned by
+ * an arbitrary regular user directly. There are also some limitations
+ * on changing owner and group membership.  As a result, all replay
+ * operations are done with their original credentials captured when the
+ * corresponding operation was requested.  Note that we only log when
+ * ZFS declares the operation is doable.
  */
 
 void
@@ -1763,20 +2014,24 @@ zfsslash2_return_synced(void)
 }
 
 int
-zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, char *name, char *link, struct srt_stat *stat)
+zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, char *name,
+    char *link, struct srt_stat *stat)
 {
-	int error;
 	vnode_t *vp, *pvp;
 	vattr_t vattr;
 	cred_t cred;
+	int error;
+
+	vp = pvp = NULL;
 
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
-	vp = pvp = NULL;
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP | FIDLINK_CREATE,
+	    NULL, &pvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_symlink(): fail to look up fid %"PRIx64"\n", fid);
+		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
+		    fid, slstrerror(error));
 		goto out;
 	}
 
@@ -1797,18 +2052,20 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, char *name, char *link, stru
 	cred.cr_uid = stat->sst_uid;
 	cred.cr_gid = stat->sst_gid;
 
-	error = VOP_SYMLINK(pvp, (char *)name, &vattr, (char *)link, &cred, NULL, 0, NULL); /* zfs_symlink() */
+	error = VOP_SYMLINK(pvp, name, &vattr, (char *)link, &cred,
+	    NULL, 0, NULL); /* zfs_symlink() */
 	if (error)
 		goto out;
 
-	error = VOP_LOOKUP(pvp, (char *)name, &vp, NULL, 0, NULL, &cred, NULL, NULL, NULL);
+	error = VOP_LOOKUP(pvp, name, &vp, NULL, 0, NULL, &cred, NULL,
+	    NULL, NULL);
 	if (error)
 		goto out;
 
 	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
 	    FIDLINK_CREATE, vp, NULL);
 
-out:
+ out:
 	if (vp)
 		VN_RELE(vp);
 	if (pvp)
@@ -1817,25 +2074,31 @@ out:
 }
 
 int
-zfsslash2_replay_link(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *stat)
+zfsslash2_replay_link(slfid_t pfid, slfid_t fid, char *name,
+    struct srt_stat *stat)
 {
-	int error;
 	vnode_t *pvp, *svp;
 	vattr_t vattr;
 	cred_t cred;
+	int error;
+
+	pvp = svp = NULL;
 
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
-	pvp = svp = NULL;
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP | FIDLINK_CREATE,
+	    NULL, &pvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_link(): fail to look up fid %"PRIx64"\n", fid);
+		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
+		    fid, slstrerror(error));
 		goto out;
 	}
-	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &svp);
+	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP | FIDLINK_CREATE,
+	    NULL, &svp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_link(): fail to look up fid %"PRIx64"\n", fid);
+		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
+		    fid, slstrerror(error));
 		goto out;
 	}
 
@@ -1843,8 +2106,9 @@ zfsslash2_replay_link(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *st
 	cred.cr_uid = stat->sst_uid;
 	cred.cr_gid = stat->sst_gid;
 
-	error = VOP_LINK(pvp, svp, (char *)name, &cred, NULL, 0, NULL);	/* zfs_link() */
-out:
+	error = VOP_LINK(pvp, svp, name, &cred, NULL, 0, NULL);	/* zfs_link() */
+
+ out:
 	if (svp)
 		VN_RELE(svp);
 	if (pvp)
@@ -1853,21 +2117,24 @@ out:
 }
 
 int
-zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *stat)
+zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name,
+    struct srt_stat *stat)
 {
-	int error;
-	vnode_t *pvp;
-	vnode_t *tvp;
+	vnode_t *pvp, *tvp;
 	vattr_t vattr;
 	cred_t cred;
+	int error;
+
+	tvp = pvp = NULL;
 
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
-	pvp = NULL;
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP | FIDLINK_CREATE,
+	    NULL, &pvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_mkdir(): fail to look up fid %"PRIx64"\n", fid);
+		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
+		    fid, slstrerror(error));
 		goto out;
 	}
 
@@ -1876,10 +2143,10 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *s
 
 	vattr.va_type = VDIR;
 	vattr.va_mode = stat->sst_mode & PERMMASK;
-	vattr.va_mask = AT_TYPE|AT_MODE;
+	vattr.va_mask = AT_TYPE | AT_MODE;
 
 	/* zfs_mknode() respects our ATIME and MTIME, but not CTIME */
-	vattr.va_mask |= AT_ATIME|AT_MTIME;
+	vattr.va_mask |= AT_ATIME | AT_MTIME;
 	vattr.va_s2atime.tv_sec = stat->sst_atime;
 	vattr.va_s2atime.tv_nsec = stat->sst_atime_ns;
 	vattr.va_s2mtime.tv_sec = stat->sst_mtime;
@@ -1889,11 +2156,13 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *s
 	cred.cr_uid = stat->sst_uid;
 	cred.cr_gid = stat->sst_gid;
 
-	error = VOP_MKDIR(pvp, (char *)name, &vattr, &tvp, &cred, NULL, 0, NULL, NULL); /* zfs_mkdir() */
+	error = VOP_MKDIR(pvp, name, &vattr, &tvp, &cred, NULL, 0, NULL,
+	    NULL); /* zfs_mkdir() */
 	if (error)
 		goto out;
 
 	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
+
  out:
 	if (pvp)
 		VN_RELE(pvp);
@@ -1903,21 +2172,24 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *s
 }
 
 int
-zfsslash2_replay_create(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *stat)
+zfsslash2_replay_create(slfid_t pfid, slfid_t fid, char *name,
+    struct srt_stat *stat)
 {
-	int error;
-	vnode_t *pvp;
-	vnode_t *tvp;
+	vnode_t *pvp, *tvp;
 	vattr_t vattr;
 	cred_t cred;
+	int error;
+
+	tvp = pvp = NULL;
 
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
-	pvp = NULL;
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &pvp);
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP | FIDLINK_CREATE,
+	    NULL, &pvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_create(): fail to look up fid %"PRIx64"\n", fid);
+		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
+		    fid, slstrerror(errno));
 		goto out;
 	}
 
@@ -1926,10 +2198,10 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *
 
 	vattr.va_type = VREG;
 	vattr.va_mode = stat->sst_mode & PERMMASK;
-	vattr.va_mask = AT_TYPE|AT_MODE;
+	vattr.va_mask = AT_TYPE | AT_MODE;
 
 	/* zfs_mknode() respects our ATIME and MTIME, but not CTIME */
-	vattr.va_mask |= AT_ATIME|AT_MTIME;
+	vattr.va_mask |= AT_ATIME | AT_MTIME;
 	vattr.va_s2atime.tv_sec = stat->sst_atime;
 	vattr.va_s2atime.tv_nsec = stat->sst_atime_ns;
 	vattr.va_s2mtime.tv_sec = stat->sst_mtime;
@@ -1939,7 +2211,8 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *
 	cred.cr_uid = stat->sst_uid;
 	cred.cr_gid = stat->sst_gid;
 
-	error = VOP_CREATE(pvp, (char *)name, &vattr, EXCL, 0, &tvp, &cred, 0, NULL, NULL, NULL); /* zfs_create() */
+	error = VOP_CREATE(pvp, name, &vattr, EXCL, 0, &tvp, &cred, 0,
+	    NULL, NULL, NULL); /* zfs_create() */
 	if (error)
 		goto out;
 
@@ -1954,27 +2227,30 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *
 }
 
 int
-zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *stat)
+zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name,
+    struct srt_stat *stat)
 {
-	int error;
 	vnode_t *dvp, *vp;
 	cred_t cred;
+	int error;
 
 	vp = NULL;
 	dvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_rmdir(): fail to look up fid %"PRIx64"\n", fid);
+		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
+		    fid, slstrerror(error));
 		goto out;
 	}
 
-	error = VOP_LOOKUP(dvp, (char *)name, &vp, NULL, 0, NULL, &zrootcreds, NULL, NULL, NULL);
+	error = VOP_LOOKUP(dvp, name, &vp, NULL, 0, NULL, &zrootcreds,
+	    NULL, NULL, NULL);
 	if (error)
 		goto out;
 
 	if (VTOZ(vp)->z_phys->zp_s2fid != fid) {
-		fprintf(stderr, "zfsslash2_replay_rmdir(): target ID mismatch %"PRIx64" vs. %"PRIx64"\n",
-			VTOZ(vp)->z_phys->zp_s2fid, fid);
+		psclog_errorx("target ID mismatch "SLPRI_FID" vs. "SLPRI_FID,
+		    VTOZ(vp)->z_phys->zp_s2fid, fid);
 		error = EINVAL;
 		goto out;
 	}
@@ -1993,11 +2269,13 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name, struct srt_stat *s
 		    FIDLINK_REMOVE | FIDLINK_DIR, NULL, NULL);
 		if (!error)
 			/*
-			 * The vnode is still there, but its underlying link count is zero.
+			 * The vnode is still there, but its underlying
+			 * link count is zero.
 			 */
 			assert(VTOZ(vp)->z_phys->zp_links == 0);
 	}
-out:
+
+ out:
 	if (vp)
 		VN_RELE(vp);
 	if (dvp)
@@ -2009,23 +2287,24 @@ int
 zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name,
     struct srt_stat *stat)
 {
-	int error;
 	vnode_t *vp, *dvp;
 	cred_t cred;
+	int error;
 
 	vp = dvp = NULL;
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_unlink(): fail to look up fid %"PRIx64"\n", fid);
+		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
+		    fid, slstrerror(errno));
 		goto out;
 	}
-	error = VOP_LOOKUP(dvp, (char *)name, &vp, NULL, 0, NULL, &zrootcreds,
-			   NULL, NULL, NULL);
+	error = VOP_LOOKUP(dvp, name, &vp, NULL, 0, NULL, &zrootcreds,
+	    NULL, NULL, NULL);
 	if (error)
 		goto out;
 	if (VTOZ(vp)->z_phys->zp_s2fid != fid) {
-		fprintf(stderr, "zfsslash2_replay_unlink(): target ID mismatch %"PRIx64" vs. %"PRIx64"\n",
-			VTOZ(vp)->z_phys->zp_s2fid, fid);
+		psclog_errorx("target ID mismatch "SLPRI_FID" vs. "SLPRI_FID,
+		    VTOZ(vp)->z_phys->zp_s2fid, fid);
 		error = EINVAL;
 		goto out;
 	}
@@ -2034,7 +2313,7 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name,
 	cred.cr_uid = stat->sst_uid;
 	cred.cr_gid = stat->sst_gid;
 
-	error = VOP_REMOVE(dvp, (char *)name, &cred, NULL, 0, NULL);
+	error = VOP_REMOVE(dvp, name, &cred, NULL, 0, NULL);
 
 	if (error)
 		goto out;
@@ -2052,7 +2331,7 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name,
 		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
 		    FIDLINK_REMOVE, NULL, NULL);
 
-out:
+ out:
 	if (vp)
 		VN_RELE(vp);
 	if (dvp)
@@ -2063,16 +2342,15 @@ out:
 int
 zfsslash2_replay_setattr(slfid_t fid, uint mask, struct srt_stat *stat)
 {
-	int error;
-	vnode_t *vp;
+	int error, flag;
 	vattr_t vattr;
-	int flag;
+	vnode_t *vp;
 	cred_t cred;
 
 	vp = NULL;
 	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP, NULL, &vp);
 	if (error) {
-		psclog_debug("fail to look up fid "SLPRI_FID, fid);
+		psclog_errorx("failed to look up fid "SLPRI_FID, fid);
 		goto out;
 	}
 
@@ -2103,19 +2381,21 @@ int
 zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t
     newparent, const char *newname, struct srt_stat *stat)
 {
-	int error;
 	vnode_t *p_vp, *np_vp;
 	cred_t cred;
+	int error;
 
 	p_vp = np_vp = NULL;
 	error = zfsslash2_fidlink(parent, FIDLINK_LOOKUP, NULL, &p_vp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64"\n", parent);
+		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
+		    parent, slstrerror(errno));
 		goto out;
 	}
 	error = zfsslash2_fidlink(newparent, FIDLINK_LOOKUP, NULL, &np_vp);
 	if (error) {
-		fprintf(stderr, "zfsslash2_replay_rename(): fail to look up fid %"PRIx64"\n", newparent);
+		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
+		    newparent, slstrerror(errno));
 		goto out;
 	}
 
@@ -2123,8 +2403,9 @@ zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t
 	cred.cr_uid = stat->sst_uid;
 	cred.cr_gid = stat->sst_gid;
 
-	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname, &cred, NULL, 0, NULL);  /* zfs_rename() */
-out:
+	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname,
+	    &cred, NULL, 0, NULL);  /* zfs_rename() */
+ out:
 	if (p_vp)
 		VN_RELE(p_vp);
 	if (np_vp)
