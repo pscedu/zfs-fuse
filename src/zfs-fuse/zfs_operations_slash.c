@@ -97,10 +97,10 @@ get_vnode_fids(const vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
 	cred_t _credentials = { (slcrp)->uid, (slcrp)->gid };	\
 	cred_t *cred = &_credentials
 
-#define FUSE_NAME_OFFSET ((unsigned long) ((struct fuse_dirent *) 0)->name)
+#define FUSE_NAME_OFFSET ((unsigned long) ((struct fuse_dirent *) 0)->ssd_name)
 #define FUSE_DIRENT_ALIGN(x) (((x) + sizeof(__uint64_t) - 1) & ~(sizeof(__uint64_t) - 1))
 #define FUSE_DIRENT_SIZE(d) \
-	FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + (d)->namelen)
+	FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + (d)->ssd_namelen)
 
 size_t fuse_dirent_size(size_t namelen)
 {
@@ -116,11 +116,11 @@ char *fuse_add_dirent(char *buf, const char *name, const struct stat *stbuf,
 	unsigned padlen = entsize - entlen;
 	struct fuse_dirent *dirent = (struct fuse_dirent *)buf;
 
-	dirent->ino = stbuf->st_ino;
-	dirent->off = off;
-	dirent->namelen = namelen;
-	dirent->type = (stbuf->st_mode & 0170000) >> 12;
-	strncpy(dirent->name, name, namelen);
+	dirent->ssd_ino = stbuf->st_ino;
+	dirent->ssd_off = off;
+	dirent->ssd_namelen = namelen;
+	dirent->ssd_type = (stbuf->st_mode & 0170000) >> 12;
+	strncpy(dirent->ssd_name, name, namelen);
 	if (padlen)
 		memset(buf + entlen, 0, padlen);
 
