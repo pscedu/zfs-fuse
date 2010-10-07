@@ -932,6 +932,7 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 					mutex_exit(&txstate->tx_slash2_lock);
 					goto retry;
 				} else
+					/* XXX we could return RESTART below. */
 					txstate->tx_txg_count++;
 			}
 
