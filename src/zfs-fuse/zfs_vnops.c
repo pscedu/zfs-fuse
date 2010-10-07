@@ -173,28 +173,28 @@
  */
 
 static void
-zfs_vattr_to_stat(struct srt_stat *stat, const vattr_t *vap)
+zfs_vattr_to_stat(struct srt_stat *sstb, const vattr_t *vap)
 {
-	memset(stat, 0, sizeof(*stat));
-	stat->sst_fid = vap->va_fid;
-	stat->sst_gen = vap->va_s2gen;
+	memset(sstb, 0, sizeof(*sstb));
+	sstb->sst_fid = vap->va_fid;
+	sstb->sst_gen = vap->va_s2gen;
 
-	stat->sst_uid = vap->va_uid;
-	stat->sst_gid = vap->va_gid;
-	stat->sst_rdev = vap->va_rdev;
-	stat->sst_utimgen = vap->va_s2utimgen;
-	stat->sst_mode = vap->va_mode;
-//	stat->sst_blocks = vap->va_s2nblocks;
-//	stat->sst_blksize = vap->va_s2blksize;
-//	stat->sst_nlink = vap->va_s2nlink;
-	stat->sst_ptruncgen = vap->va_ptruncgen;
-	stat->sst_size = vap->va_s2size;
-	stat->sst_atime = vap->va_s2atime.tv_sec;
-	stat->sst_atime_ns = vap->va_s2atime.tv_nsec;
-	stat->sst_mtime = vap->va_s2mtime.tv_sec;
-	stat->sst_mtime_ns = vap->va_s2mtime.tv_nsec;
-	stat->sst_ctime = vap->va_ctime.tv_sec;
-	stat->sst_ctime_ns = vap->va_ctime.tv_nsec;
+	sstb->sst_uid = vap->va_uid;
+	sstb->sst_gid = vap->va_gid;
+	sstb->sst_rdev = vap->va_rdev;
+	sstb->sst_utimgen = vap->va_s2utimgen;
+	sstb->sst_mode = vap->va_mode;
+//	sstb->sst_blocks = vap->va_s2nblocks;
+//	sstb->sst_blksize = vap->va_s2blksize;
+//	sstb->sst_nlink = vap->va_s2nlink;
+	sstb->sst_ptruncgen = vap->va_ptruncgen;
+	sstb->sst_size = vap->va_s2size;
+	sstb->sst_atime = vap->va_s2atime.tv_sec;
+	sstb->sst_atime_ns = vap->va_s2atime.tv_nsec;
+	sstb->sst_mtime = vap->va_s2mtime.tv_sec;
+	sstb->sst_mtime_ns = vap->va_s2mtime.tv_nsec;
+	sstb->sst_ctime = vap->va_ctime.tv_sec;
+	sstb->sst_ctime_ns = vap->va_ctime.tv_nsec;
 }
 
 /* ARGSUSED */
@@ -1444,7 +1444,7 @@ top:
 		    vsecp, acl_ids.z_fuidp, vap);
 
 		if (logfunc) {
-			struct srt_stat stat;
+			struct srt_stat sstb;
 			uint64_t txg;
 
 			txg = dmu_tx_get_txg(tx);
@@ -1452,10 +1452,11 @@ top:
 			vap->va_gid = acl_ids.z_fgid;
 			vap->va_mode = acl_ids.z_mode;
 
-			zfs_vattr_to_stat(&stat, vap);
+			zfs_vattr_to_stat(&sstb, vap);
 
-			logfunc(NS_OP_CREATE, txg, dzp->z_phys->zp_s2fid, 0,
-			    &stat, vap->va_mask, name, NULL);
+			logfunc(NS_OP_CREATE, txg,
+			    dzp->z_phys->zp_s2fid, 0, &sstb,
+			    vap->va_mask, name, NULL);
 		}
 
 		zfs_acl_ids_free(&acl_ids);
@@ -1893,7 +1894,7 @@ top:
 	    acl_ids.z_fuidp, vap);
 
 	if (logfunc) {
-		struct srt_stat stat;
+		struct srt_stat sstb;
 		uint64_t txg;
 
 		txg = dmu_tx_get_txg(tx);
@@ -1904,10 +1905,10 @@ top:
 		ZFS_TIME_DECODE(&vap->va_atime, zp->z_phys->zp_atime);
 		ZFS_TIME_DECODE(&vap->va_mtime, zp->z_phys->zp_mtime);
 		ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
-		zfs_vattr_to_stat(&stat, vap);
+		zfs_vattr_to_stat(&sstb, vap);
 
 		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2fid,
-		    zp->z_phys->zp_s2fid, &stat, vap->va_mask, dirname,
+		    zp->z_phys->zp_s2fid, &sstb, vap->va_mask, dirname,
 		    NULL);
 	}
 	zfs_acl_ids_free(&acl_ids);
@@ -2032,16 +2033,18 @@ top:
 	}
 
 	if (logfunc) {
+		struct srt_stat sstb;
 		uint64_t txg;
-		struct srt_stat stat;
 
 		txg = dmu_tx_get_txg(tx);
-		stat.sst_uid = cr->cr_uid;
-		stat.sst_gid = cr->cr_gid;
-		stat.sst_fid = zp->z_phys->zp_s2fid;
+
+		memset(&sstb, 0, sizeof(sstb));
+		sstb.sst_uid = cr->cr_uid;
+		sstb.sst_gid = cr->cr_gid;
+		sstb.sst_fid = zp->z_phys->zp_s2fid;
 
 		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2fid, 0,
-		    &stat, 0, name, NULL);
+		    &sstb, 0, name, NULL);
 	}
 	dmu_tx_commit(tx);
 
@@ -3150,7 +3153,7 @@ out:
 		dmu_tx_abort(tx);
 	else {
 		if (logfunc) {
-			struct srt_stat stat;
+			struct srt_stat sstb;
 			uint64_t txg;
 
 			txg = dmu_tx_get_txg(tx);
@@ -3158,14 +3161,14 @@ out:
 			vap->va_gid = pzp->zp_gid;
 			vap->va_s2gen = pzp->zp_s2gen;
 			vap->va_ptruncgen = pzp->zp_ptruncgen;
-			zfs_vattr_to_stat(&stat, vap);
+			zfs_vattr_to_stat(&sstb, vap);
 
 			/*
 			 * At this time, SLASH only journals certain
 			 * stat(2) fields, so don't pass changes in fields
-			 * we dont't store.
+			 * we don't store.
 			 */
-			logfunc(NS_OP_SETATTR, txg, 0, 0, &stat,
+			logfunc(NS_OP_SETATTR, txg, 0, 0, &sstb,
 			    vap->va_mask & (AT_UID | AT_GID | AT_TYPE |
 			    AT_MODE | AT_ATIME | AT_MTIME | AT_CTIME |
 			    AT_SIZE), NULL, NULL);
@@ -3574,17 +3577,17 @@ top:
 			error = zfs_link_destroy(sdl, szp, tx, ZRENAMING, NULL);
 			ASSERT(error == 0);
 			if (logfunc) {
+				struct srt_stat sstb;
 				uint64_t txg;
-				struct srt_stat stat;
 
 				txg = dmu_tx_get_txg(tx);
-				stat.sst_uid = cr->cr_uid;
-				stat.sst_gid = cr->cr_gid;
-				stat.sst_fid = szp->z_phys->zp_s2fid;
+				sstb.sst_uid = cr->cr_uid;
+				sstb.sst_gid = cr->cr_gid;
+				sstb.sst_fid = szp->z_phys->zp_s2fid;
 
 				logfunc(NS_OP_RENAME, txg,
 				    sdzp->z_phys->zp_s2fid,
-				    tdzp->z_phys->zp_s2fid, &stat, 0,
+				    tdzp->z_phys->zp_s2fid, &sstb, 0,
 				    snm, tnm);
 			}
 
@@ -3760,7 +3763,7 @@ top:
 			txtype |= TX_CI;
 		zfs_log_symlink(zilog, tx, txtype, dzp, zp, name, link);
 		if (logfunc) {
-			struct srt_stat stat;
+			struct srt_stat sstb;
 			uint64_t txg;
 
 			txg = dmu_tx_get_txg(tx);
@@ -3772,10 +3775,10 @@ top:
 			ZFS_TIME_DECODE(&vap->va_atime, zp->z_phys->zp_atime);
 			ZFS_TIME_DECODE(&vap->va_mtime, zp->z_phys->zp_mtime);
 			ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
-			zfs_vattr_to_stat(&stat, vap);
+			zfs_vattr_to_stat(&sstb, vap);
 			logfunc(NS_OP_SYMLINK, txg,
 			    dzp->z_phys->zp_s2fid, zp->z_phys->zp_s2fid,
-			    &stat, vap->va_mask, name, link);
+			    &sstb, vap->va_mask, name, link);
 		}
 	}
 
