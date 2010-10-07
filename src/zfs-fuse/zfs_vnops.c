@@ -173,7 +173,7 @@
  */
 
 static void
-zfs_vattr_to_stat(struct srt_stat *sstb, const vattr_t *vap)
+zfs_vattr_to_stat(const vattr_t *vap, struct srt_stat *sstb)
 {
 	memset(sstb, 0, sizeof(*sstb));
 	sstb->sst_fid = vap->va_fid;
@@ -1448,11 +1448,11 @@ top:
 			uint64_t txg;
 
 			txg = dmu_tx_get_txg(tx);
+
 			vap->va_uid = acl_ids.z_fuid;
 			vap->va_gid = acl_ids.z_fgid;
 			vap->va_mode = acl_ids.z_mode;
-
-			zfs_vattr_to_stat(&sstb, vap);
+			zfs_vattr_to_stat(vap, &sstb);
 
 			logfunc(NS_OP_CREATE, txg,
 			    dzp->z_phys->zp_s2fid, 0, &sstb,
@@ -1898,6 +1898,7 @@ top:
 		uint64_t txg;
 
 		txg = dmu_tx_get_txg(tx);
+
 		vap->va_fid = zp->z_phys->zp_s2fid;
 		vap->va_uid = acl_ids.z_fuid;
 		vap->va_gid = acl_ids.z_fgid;
@@ -1905,7 +1906,7 @@ top:
 		ZFS_TIME_DECODE(&vap->va_atime, zp->z_phys->zp_atime);
 		ZFS_TIME_DECODE(&vap->va_mtime, zp->z_phys->zp_mtime);
 		ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
-		zfs_vattr_to_stat(&sstb, vap);
+		zfs_vattr_to_stat(vap, &sstb);
 
 		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2fid,
 		    zp->z_phys->zp_s2fid, &sstb, vap->va_mask, dirname,
@@ -3157,11 +3158,12 @@ out:
 			uint64_t txg;
 
 			txg = dmu_tx_get_txg(tx);
+
 			vap->va_uid = pzp->zp_uid;
 			vap->va_gid = pzp->zp_gid;
 			vap->va_s2gen = pzp->zp_s2gen;
 			vap->va_ptruncgen = pzp->zp_ptruncgen;
-			zfs_vattr_to_stat(&sstb, vap);
+			zfs_vattr_to_stat(vap, &sstb);
 
 			/*
 			 * At this time, SLASH only journals certain
@@ -3775,7 +3777,8 @@ top:
 			ZFS_TIME_DECODE(&vap->va_atime, zp->z_phys->zp_atime);
 			ZFS_TIME_DECODE(&vap->va_mtime, zp->z_phys->zp_mtime);
 			ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
-			zfs_vattr_to_stat(&sstb, vap);
+			zfs_vattr_to_stat(vap, &sstb);
+
 			logfunc(NS_OP_SYMLINK, txg,
 			    dzp->z_phys->zp_s2fid, zp->z_phys->zp_s2fid,
 			    &sstb, vap->va_mask, name, link);
