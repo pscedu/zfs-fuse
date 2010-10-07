@@ -175,6 +175,7 @@
 static void
 zfs_vattr_to_stat(struct srt_stat *stat, const vattr_t *vap)
 {
+	memset(stat, 0, sizeof(*stat));
 	stat->sst_fid = vap->va_fid;
 	stat->sst_gen = vap->va_s2gen;
 
@@ -1709,6 +1710,7 @@ top:
 
 		txg = dmu_tx_get_txg(tx);
 
+		memset(&sstb, 0, sizeof(sstb));
 		sstb.sst_fid = zp->z_phys->zp_s2fid;
 		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2fid, 0,
 		    &sstb, 0, name, NULL);
@@ -1895,6 +1897,7 @@ top:
 		uint64_t txg;
 
 		txg = dmu_tx_get_txg(tx);
+		vap->va_fid = zp->z_phys->zp_s2fid;
 		vap->va_uid = acl_ids.z_fuid;
 		vap->va_gid = acl_ids.z_fgid;
 		vap->va_mode = acl_ids.z_mode;
@@ -1903,8 +1906,9 @@ top:
 		ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
 		zfs_vattr_to_stat(&stat, vap);
 
-		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2fid, 0,
-		    &stat, vap->va_mask, dirname, NULL);
+		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2fid,
+		    zp->z_phys->zp_s2fid, &stat, vap->va_mask, dirname,
+		    NULL);
 	}
 	zfs_acl_ids_free(&acl_ids);
 	dmu_tx_commit(tx);
@@ -3761,6 +3765,7 @@ top:
 
 			txg = dmu_tx_get_txg(tx);
 
+			vap->va_fid = zp->z_phys->zp_s2fid;
 			vap->va_uid = acl_ids.z_fuid;
 			vap->va_gid = acl_ids.z_fgid;
 			vap->va_mode = acl_ids.z_mode;
@@ -3768,8 +3773,9 @@ top:
 			ZFS_TIME_DECODE(&vap->va_mtime, zp->z_phys->zp_mtime);
 			ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
 			zfs_vattr_to_stat(&stat, vap);
-			logfunc(NS_OP_SYMLINK, txg, dzp->z_phys->zp_s2fid,
-			    0, &stat, vap->va_mask, name, link);
+			logfunc(NS_OP_SYMLINK, txg,
+			    dzp->z_phys->zp_s2fid, zp->z_phys->zp_s2fid,
+			    &stat, vap->va_mask, name, link);
 		}
 	}
 
