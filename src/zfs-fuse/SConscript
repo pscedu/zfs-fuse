@@ -1,3 +1,5 @@
+import os
+
 Import('env')
 
 objects = []
@@ -24,6 +26,11 @@ libs = Split('rt pthread fuse dl z aio crypto')
 if (env['SLASHLIB']) == "1":
 	print "slashlib enabled %s" % (env['SLASHLIB'])
 	objects.append('zfs_operations_slash.c')
+
+	f = os.popen('cd ../../.. && make printvar-FUSE_INCLUDES')
+	env.Append(CCFLAGS = Split(f.readline().strip()))
+	f.close()
+
 	env.StaticLibrary('libzfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
 else:
 	print "slashlib disabled %s\n" % (env['SLASHLIB'])
