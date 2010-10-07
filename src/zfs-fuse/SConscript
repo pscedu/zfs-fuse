@@ -29,6 +29,7 @@ if (env['SLASHLIB']) == "1":
 
 	f = os.popen('cd ../../.. && make printvar-FUSE_INCLUDES')
 	env.Append(CCFLAGS = Split(f.readline().strip()))
+#	env.Append(CCFLAGS = Split('-Wall -W'))
 	f.close()
 
 	env.StaticLibrary('libzfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
