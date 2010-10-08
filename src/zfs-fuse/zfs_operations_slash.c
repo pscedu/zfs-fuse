@@ -45,6 +45,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <time.h>
+#include <math.h>
 
 #include "util.h"
 #include "errno_compat.h"
@@ -65,6 +66,8 @@ kmem_cache_t	*file_info_cache;
 cred_t		 zrootcreds;
 vfs_t		*zfsVfs;			/* initialized by do_mount() */
 int		 stack_size;
+
+uint64_t        *immnsIdCache;
 
 /* flags for zfsslash2_fidlink() */
 #define	FIDLINK_CREATE		(1 << 0)
@@ -649,6 +652,62 @@ zfsslash2_release(__unusedx const struct slash_creds *slcrp, void
 	return 0;
 }
 
+void
+zfsslash2_build_immns_cache_helper(vnode_t *root, int curdepth, int maxdepth, int *cnt)
+{
+	vnode_t         *vp;
+	int              i;
+	char		 id_name[2];
+	
+	for (i=0; i < 16; i++) {
+		snprintf(id_name, 2, "%x", i);
+
+		if (VOP_LOOKUP(root, id_name, &vp, NULL, 0, NULL, &zrootcreds,
+			       NULL, NULL, NULL))
+			abort();
+		
+		if (curdepth < maxdepth)
+			zfsslash2_build_immns_cache_helper(vp, curdepth + 1, 
+				   maxdepth, cnt);
+		else {
+			immnsIdCache[(*cnt)++] = VTOZ(vp)->z_id;
+			psc_warnx("depth=%d cnt=%d zfid=%"PRIx64, curdepth, 
+				  *cnt, VTOZ(vp)->z_id);
+		}
+		
+		VN_RELE(vp);
+	}	
+}  
+
+void
+zfsslash2_build_immns_cache(void)
+{
+	znode_t         *znode;
+	vnode_t		*vp, *dvp;
+	int		 error, cnt=0;
+	zfsvfs_t	*zfsvfs = zfsVfs->vfs_data;
+
+	immnsIdCache = malloc(sizeof(uint64_t) * pow(16,FID_PATH_DEPTH));
+
+	error = zfs_zget(zfsvfs, MDSIO_FID_ROOT, &znode, B_TRUE);
+	if (error)
+		abort();
+
+	ASSERT(znode);
+        dvp = ZTOV(znode);
+        ASSERT(dvp);
+
+	error = VOP_LOOKUP(dvp, SL_PATH_FIDNS, &vp, NULL, 0, NULL, &zrootcreds,
+	    NULL, NULL, NULL);
+
+	VN_RELE(dvp);
+	if (error)
+		abort();
+	
+	zfsslash2_build_immns_cache_helper(vp, 1, FID_PATH_DEPTH, &cnt);
+	VN_RELE(vp);
+}
+
 /*
  * At most two buffers are passed in by our callers: outbuf points to the
  * readdir result, attrs points to prefeteched attributes.
@@ -815,27 +874,20 @@ int
 zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 {
 	int		 i;
-	uint8_t		 c;
 	vnode_t		*vp;
 	vnode_t		*dvp;
 	int		 error;
 	znode_t		*znode;
-	char		 id_name[20];
 	zfsvfs_t	*zfsvfs = zfsVfs->vfs_data;
+	uint64_t         slot;
+	char             id_name[20];
 
-	error = zfs_zget(zfsvfs, MDSIO_FID_ROOT, &znode, B_TRUE);
-	if (error)
-		return error == EEXIST ? ENOENT : error;
-
-	ASSERT(znode);
-	dvp = ZTOV(znode);
-	ASSERT(dvp);
+#define IMMNSMASK 0x0fff000L
 
 	/*
 	 * Map the root of slash2 to the root of the underlying ZFS.
 	 */
-	if (flags & FIDLINK_LOOKUP) {
-		if (fid == 1) {
+	if ((flags & FIDLINK_LOOKUP) && fid == 1) {
 #if 0
 /*
  * I have found a place in zfs_mknode() where I can write SLASH FID 1 into the
@@ -847,58 +899,25 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
  */
 			VTOZ(dvp)->z_phys->zp_s2fid = 1;
 #endif
-			*vpp = dvp;
-			return 0;
-		}
+		error = zfs_zget(zfsvfs, MDSIO_FID_ROOT, &znode, B_TRUE);
+		if (error)
+			return error == EEXIST ? ENOENT : error;
+		
+		ASSERT(znode);
+		dvp = ZTOV(znode);
+		ASSERT(dvp);
+		
+		*vpp = dvp;
+		return 0;
 	}
 
-	error = VOP_LOOKUP(dvp, SL_PATH_FIDNS, &vp, NULL, 0, NULL, &zrootcreds,
-	    NULL, NULL, NULL);
-	if (error) {
-		VN_RELE(dvp);
-		return (error);
-	}
+	error = zfs_zget(zfsvfs, (uint64_t)immnsIdCache[(fid & IMMNSMASK) >> 12],
+			 &znode, B_TRUE);
+	if (error)
+		return error == EEXIST ? ENOENT : error;
 
-	/* Release the root dir dvp and stash the .slfidns vp there.
-	 */
-	VN_RELE(dvp);
-	dvp = vp;
-	vp = NULL;
-
-	/* Lookup our fid's parent directory in the fid namespace, closing
-	 *   parent dvp's along the way.
-	 */
-	/* XXX use fid_makepath */
-	id_name[1] = '\0';
-	for (i = 0; i < FID_PATH_DEPTH; i++, VN_RELE(dvp), dvp=vp) {
-		/*
-		 * Extract BPHXC bits at a time and convert them to
-		 *    a digit or a lower-case letter to construct
-		 *    our pathname component.  5 means we start with 5th
-		 *    hex digit from the right side.  If the depth is 3,
-		 *    then we have 0xfff or 4095 files in a directory
-		 *    in the by-id namespace.
-		 */
-		c = (uint8_t)((fid & (UINT64_C(0x0000000000f00000) >> i*BPHXC)) >> ((5-i) * BPHXC));
-		/* convert a hex digit to its corresponding ascii digit or lower case letter */
-		id_name[0] = (c < 10) ? (c += 0x30) : (c += 0x57);
-
-		error = VOP_LOOKUP(dvp, id_name, &vp, NULL, 0, NULL, &zrootcreds,
-		    NULL, NULL, NULL);
-
-#ifdef DEBUG
-		fprintf(stderr, "id_name=%s parent=%"PRId64" "
-		    "child=%"PRId64" error=%d\n",
-		    id_name, VTOZ(dvp)->z_id,
-		    VTOZ(vp)->z_id, error);
-#endif
-
-		if (error) {
-			VN_RELE(dvp);
-			return (error);
-		}
-	}
-	/* we should have the parent vnode in the by-id namespace now */
+	ASSERT(znode);
+	dvp = ZTOV(znode);
 	ASSERT(dvp);
 
 	snprintf(id_name, sizeof(id_name), "%016"PRIx64, fid);
@@ -941,13 +960,8 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 		error = VOP_REMOVE(dvp, id_name, &zrootcreds, NULL, 0, NULL);
 
  out:
-
-#ifdef DEBUG
-	fprintf(stderr, "id_name=%s parent=%"PRId64" linkvp=%"PRId64" error=%d\n",
+	psclog_debug("id_name=%s parent=%"PRId64" linkvp=%"PRId64" error=%d\n",
 	    id_name, VTOZ(dvp)->z_id, fid, error);
-#endif
-
-	VN_RELE(dvp);
 
 	return (error);
 }
@@ -1084,7 +1098,6 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 		VN_RELE(vp);
 		vp = new_vp;
-
 		if ((opflags & MDSIO_OPENCRF_NOLINK) == 0) {
 			error = zfsslash2_fidlink(
 			    VTOZ(vp)->z_phys->zp_s2fid,
