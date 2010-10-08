@@ -171,11 +171,13 @@ zfsslash2_destroy(void)
 }
 
 int
-zfsslash2_statfs(struct statvfs *stat)
+zfsslash2_statfs(struct statvfs *sfb)
 {
-	struct statvfs64 zfs_stat;
+	struct statvfs64 zsfb;
 
-	int ret = VFS_STATVFS(zfsVfs, &zfs_stat);
+	memset(sfb, 0, sizeof(*sfb));
+	memset(&zsfb, 0, sizeof(zsfb));
+	int ret = VFS_STATVFS(zfsVfs, &zsfb);
 	if (ret != 0)
 		return (ret);
 
@@ -183,17 +185,17 @@ zfsslash2_statfs(struct statvfs *stat)
 	   f_bsize is being used to calculate filesystem size instead of
 	   f_frsize, so we must use that instead */
 	/* Still there with fuse 2.7.4 apparently (you get a size in To so it shows a lot !) */
-	stat->f_bsize = zfs_stat.f_frsize;
-	stat->f_frsize = zfs_stat.f_frsize;
-	stat->f_blocks = zfs_stat.f_blocks;
-	stat->f_bfree = zfs_stat.f_bfree;
-	stat->f_bavail = zfs_stat.f_bavail;
-	stat->f_files = zfs_stat.f_files;
-	stat->f_ffree = zfs_stat.f_ffree;
-	stat->f_favail = zfs_stat.f_favail;
-	stat->f_fsid = zfs_stat.f_fsid;
-	stat->f_flag = zfs_stat.f_flag;
-	stat->f_namemax = zfs_stat.f_namemax;
+	sfb->f_bsize	= zsfb.f_frsize;
+	sfb->f_frsize	= zsfb.f_frsize;
+	sfb->f_blocks	= zsfb.f_blocks;
+	sfb->f_bfree	= zsfb.f_bfree;
+	sfb->f_bavail	= zsfb.f_bavail;
+	sfb->f_files	= zsfb.f_files;
+	sfb->f_ffree	= zsfb.f_ffree;
+	sfb->f_favail	= zsfb.f_favail;
+	sfb->f_fsid	= zsfb.f_fsid;
+	sfb->f_flag	= zsfb.f_flag;
+	sfb->f_namemax	= zsfb.f_namemax;
 
 	return (0);
 }
