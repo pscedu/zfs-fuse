@@ -671,7 +671,7 @@ zfsslash2_build_immns_cache_helper(vnode_t *root, int curdepth, int maxdepth, in
 				   maxdepth, cnt);
 		else {
 			immnsIdCache[(*cnt)++] = VTOZ(vp)->z_id;
-			psc_warnx("depth=%d cnt=%d zfid=%"PRIx64, curdepth, 
+			psc_debug("depth=%d cnt=%d zfid=%"PRIx64, curdepth, 
 				  *cnt, VTOZ(vp)->z_id);
 		}
 		
