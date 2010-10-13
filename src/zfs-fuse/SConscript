@@ -2,6 +2,8 @@ import os
 
 Import('env')
 
+VariantDir('build-libslzfsfuse', '.', duplicate = 0)
+
 objects = []
 
 objects.append('cmd_listener.c')
@@ -23,25 +25,25 @@ ccflags = Split('-D_KERNEL')
 
 libs = Split('rt pthread fuse dl z aio crypto')
 
-if (env['SLASHLIB']) == "1":
-	print "slashlib enabled %s" % (env['SLASHLIB'])
-	objects.append('zfs_operations_slash.c')
+sl_obj = ['build-libslzfsfuse/' + o for o in objects]
 
-	f = os.popen('cd ../../.. && make printvar-FUSE_INCLUDES')
-	env.Append(CCFLAGS = Split(f.readline().strip()))
-#	env.Append(CCFLAGS = Split('-Wall -W'))
-	f.close()
+objects.append('fuse_listener.c')
+objects.append('main.c')
+objects.append('zfs_operations.c')
+objects.append('#lib/libzpool/libzpool-kernel.a')
+objects.append('#lib/libavl/libavl.a')
+objects.append('#lib/libnvpair/libnvpair-kernel.a')
+objects.append('#lib/libsolkerncompat/libsolkerncompat.a')
+objects.append('#lib/libumem/libumem.a')
+objects.append('#lib/libzfscommon/libzfscommon-kernel.a')
+env.Program('zfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
 
-	env.StaticLibrary('libzfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
-else:
-	print "slashlib disabled %s\n" % (env['SLASHLIB'])
-	objects.append('fuse_listener.c')
-	objects.append('main.c')
-	objects.append('zfs_operations.c')
-	objects.append('#lib/libzpool/libzpool-kernel.a')
-	objects.append('#lib/libavl/libavl.a')
-	objects.append('#lib/libnvpair/libnvpair-kernel.a')
-	objects.append('#lib/libsolkerncompat/libsolkerncompat.a')
-	objects.append('#lib/libumem/libumem.a')
-	objects.append('#lib/libzfscommon/libzfscommon-kernel.a')
-	env.Program('zfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
+env.Append(CCFLAGS = ['-DZFS_SLASHLIB'])
+sl_obj.append('zfs_operations_slash.c')
+
+f = os.popen('cd ../../.. && make printvar-FUSE_INCLUDES')
+env.Append(CCFLAGS = Split(f.readline().strip()))
+#env.Append(CCFLAGS = Split('-Wall -W'))
+f.close()
+
+env.StaticLibrary('libzfs-fuse', sl_obj, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
