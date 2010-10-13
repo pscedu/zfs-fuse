@@ -38,12 +38,12 @@ objects.append('#lib/libumem/libumem.a')
 objects.append('#lib/libzfscommon/libzfscommon-kernel.a')
 env.Program('zfs-fuse', objects, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
 
-env.Append(CCFLAGS = ['-DZFS_SLASHLIB'])
 sl_obj.append('zfs_operations_slash.c')
 
 f = os.popen('cd ../../.. && make printvar-FUSE_INCLUDES')
-env.Append(CCFLAGS = Split(f.readline().strip()))
-#env.Append(CCFLAGS = Split('-Wall -W'))
+sl_ccflags = ccflags + ['-DZFS_SLASHLIB'] + Split(f.readline().strip())
+# + Split('-Wall -W')
 f.close()
 
-env.StaticLibrary('libzfs-fuse', sl_obj, CPPPATH = env['CPPPATH'] + cpppath, LIBS = libs, CCFLAGS = env['CCFLAGS'] + ccflags)
+env.StaticLibrary('libzfs-fuse', sl_obj, CPPPATH = env['CPPPATH'] + cpppath,
+    LIBS = libs, CCFLAGS = env['CCFLAGS'] + sl_ccflags)

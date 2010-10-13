@@ -5,7 +5,7 @@ include ${ROOTDIR}/Makefile.path
 include ${MAINMK}
 
 clean-hook:
-	@(cd ${ZFS_BASE} && ${SCONS} ROOTDIR=${ROOTDIR}/.. -c)
+	@(cd src && ${SCONS} ROOTDIR=${ROOTDIR}/.. -c)
 
 all-hook:
-	@(cd ${ZFS_BASE} && ${SCONS} ROOTDIR=${ROOTDIR}/.. debug=4)
+	@(cd src && ${SCONS} ROOTDIR=${ROOTDIR}/.. debug=4)
