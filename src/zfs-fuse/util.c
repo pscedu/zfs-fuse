@@ -255,7 +255,6 @@ int do_init()
 	file_info_cache = kmem_cache_create("file_info_t", sizeof(file_info_t),
 	    0, NULL, NULL, NULL, NULL, NULL, 0);
 	VERIFY(file_info_cache != NULL);
-	zfsslash2_build_immns_cache();
 	return 0; 
 #else
 	return zfsfuse_listener_init();
