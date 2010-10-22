@@ -2187,6 +2187,7 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name,
 	}
 
 	sstb2vattr(sstb, &vattr);
+	vattr.va_fid = fid;
 	vattr.va_type = VDIR;
 	vattr.va_mask = AT_TYPE | AT_MODE | AT_ATIME | AT_MTIME |
 	    AT_CTIME | AT_SLASH2ATIME | AT_SLASH2MTIME;
