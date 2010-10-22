@@ -960,8 +960,8 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 		error = VOP_REMOVE(dvp, id_name, &zrootcreds, NULL, 0, NULL);
 
  out:
-	psclog_debug("id_name=%s parent=%"PRId64" linkvp=%"PRId64" error=%d\n",
-	    id_name, VTOZ(dvp)->z_id, fid, error);
+	psclog_debug("id_name=%s parent=%"PRId64" linkvp=%"PRIx64" flags=%x error=%d\n",
+	    id_name, VTOZ(dvp)->z_id, fid, flags, error);
 
 	return (error);
 }
