@@ -871,7 +871,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
  * file system.
  */
 int
-zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
+zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp, int caller)
 {
 	int		 i;
 	vnode_t		*vp;
@@ -960,8 +960,8 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 		error = VOP_REMOVE(dvp, id_name, &zrootcreds, NULL, 0, NULL);
 
  out:
-	psclog_debug("id_name=%s parent=%"PRId64" linkvp=%"PRIx64" flags=%x error=%d\n",
-	    id_name, VTOZ(dvp)->z_id, fid, flags, error);
+	psclog_debug("id_name=%s parent=%"PRId64" linkvp=%"PRIx64" flags=%x caller=%d error=%d\n",
+	    id_name, VTOZ(dvp)->z_id, fid, flags, caller, error);
 
 	return (error);
 }
@@ -975,7 +975,7 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
 	int error;
 
 	vp = NULL;
-	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP, NULL, &vp);
+	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP, NULL, &vp, __LINE__);
 	if (error)
 		return (error);
 	if (sstb || mfp)
@@ -1101,7 +1101,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		if ((opflags & MDSIO_OPENCRF_NOLINK) == 0) {
 			error = zfsslash2_fidlink(
 			    VTOZ(vp)->z_phys->zp_s2fid,
-			    FIDLINK_CREATE, vp, NULL);
+			    FIDLINK_CREATE, vp, NULL, __LINE__);
 			if (error)
 				goto out;
 		}
@@ -1307,7 +1307,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	ASSERT(vp);
 
 	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
-	    FIDLINK_CREATE, vp, NULL);
+	    FIDLINK_CREATE, vp, NULL, __LINE__);
 	if (error)
 		goto out;
 
@@ -1372,7 +1372,7 @@ zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
 
 	if (!error)
 		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
-		    FIDLINK_REMOVE|FIDLINK_DIR, NULL, NULL);
+		    FIDLINK_REMOVE|FIDLINK_DIR, NULL, NULL, __LINE__);
 
 	VN_RELE(vp);
 
@@ -1571,7 +1571,7 @@ zfsslash2_unlink(mdsio_fid_t parent, const char *name,
 	 */
 	if (vattr.va_nlink == 1)
 		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
-		    FIDLINK_REMOVE, NULL, NULL);
+		    FIDLINK_REMOVE, NULL, NULL, __LINE__);
 
  out:
 	if (vp)
@@ -1786,7 +1786,7 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 	if (error)
 		goto out;
 
-	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid, FIDLINK_CREATE, vp, NULL);
+	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid, FIDLINK_CREATE, vp, NULL, __LINE__);
 	if (error)
 		goto out;
 
@@ -2085,7 +2085,7 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, char *name,
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP | FIDLINK_CREATE,
-	    NULL, &pvp);
+	    NULL, &pvp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
 		    fid, slstrerror(error));
@@ -2112,7 +2112,7 @@ zfsslash2_replay_symlink(slfid_t pfid, slfid_t fid, char *name,
 		goto out;
 
 	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
-	    FIDLINK_CREATE, vp, NULL);
+	    FIDLINK_CREATE, vp, NULL, __LINE__);
 
  out:
 	if (vp)
@@ -2136,14 +2136,14 @@ zfsslash2_replay_link(slfid_t pfid, slfid_t fid, char *name,
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP | FIDLINK_CREATE,
-	    NULL, &pvp);
+	    NULL, &pvp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
 		    fid, slstrerror(error));
 		goto out;
 	}
 	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP | FIDLINK_CREATE,
-	    NULL, &svp);
+	    NULL, &svp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
 		    fid, slstrerror(error));
@@ -2179,7 +2179,7 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name,
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP | FIDLINK_CREATE,
-	    NULL, &pvp);
+	    NULL, &pvp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
 		    fid, slstrerror(error));
@@ -2200,7 +2200,7 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name,
 	if (error)
 		goto out;
 
-	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
+	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL, __LINE__);
 
  out:
 	if (pvp)
@@ -2225,7 +2225,7 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, char *name,
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP | FIDLINK_CREATE,
-	    NULL, &pvp);
+	    NULL, &pvp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
 		    fid, slstrerror(errno));
@@ -2247,7 +2247,7 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, char *name,
 	if (error)
 		goto out;
 
-	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL);
+	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL, __LINE__);
 
  out:
 	if (tvp)
@@ -2266,7 +2266,7 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name,
 
 	vp = NULL;
 	dvp = NULL;
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
 		    fid, slstrerror(error));
@@ -2293,7 +2293,7 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name,
 
 	if (!error) {
 		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
-		    FIDLINK_REMOVE | FIDLINK_DIR, NULL, NULL);
+		    FIDLINK_REMOVE | FIDLINK_DIR, NULL, NULL, __LINE__);
 		if (!error)
 			/*
 			 * The vnode is still there, but its underlying
@@ -2318,7 +2318,7 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name,
 	int error;
 
 	vp = dvp = NULL;
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp);
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, NULL, &dvp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
 		    fid, slstrerror(errno));
@@ -2352,7 +2352,7 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name,
 	 */
 	if (vattr.va_nlink == 1)
 		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
-		    FIDLINK_REMOVE, NULL, NULL);
+		    FIDLINK_REMOVE, NULL, NULL, __LINE__);
 
  out:
 	if (vp)
@@ -2370,7 +2370,7 @@ zfsslash2_replay_setattr(slfid_t fid, uint mask, struct srt_stat *sstb)
 	vnode_t *vp;
 
 	vp = NULL;
-	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP, NULL, &vp);
+	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP, NULL, &vp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID, fid);
 		goto out;
@@ -2397,13 +2397,13 @@ zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t
 	int error;
 
 	p_vp = np_vp = NULL;
-	error = zfsslash2_fidlink(parent, FIDLINK_LOOKUP, NULL, &p_vp);
+	error = zfsslash2_fidlink(parent, FIDLINK_LOOKUP, NULL, &p_vp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
 		    parent, slstrerror(errno));
 		goto out;
 	}
-	error = zfsslash2_fidlink(newparent, FIDLINK_LOOKUP, NULL, &np_vp);
+	error = zfsslash2_fidlink(newparent, FIDLINK_LOOKUP, NULL, &np_vp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
 		    newparent, slstrerror(errno));
