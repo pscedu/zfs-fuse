@@ -2165,8 +2165,7 @@ zfsslash2_replay_link(slfid_t pfid, slfid_t fid, char *name,
 }
 
 int
-zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name,
-    struct srt_stat *sstb)
+zfsslash2_replay_mkdir(slfid_t pfid, char *name, struct srt_stat *sstb)
 {
 	vnode_t *pvp, *tvp;
 	vattr_t vattr;
@@ -2182,12 +2181,11 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name,
 	    NULL, &pvp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
-		    fid, slstrerror(error));
+		    sstb->sst_fid, slstrerror(error));
 		goto out;
 	}
 
 	sstb2vattr(sstb, &vattr);
-	vattr.va_fid = fid;
 	vattr.va_type = VDIR;
 	vattr.va_mask = AT_TYPE | AT_MODE | AT_ATIME | AT_MTIME |
 	    AT_CTIME | AT_SLASH2ATIME | AT_SLASH2MTIME;
@@ -2201,7 +2199,7 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name,
 	if (error)
 		goto out;
 
-	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL, __LINE__);
+	error = zfsslash2_fidlink(sstb->sst_fid, FIDLINK_CREATE, tvp, NULL, __LINE__);
 
  out:
 	if (pvp)
@@ -2212,8 +2210,7 @@ zfsslash2_replay_mkdir(slfid_t pfid, slfid_t fid, char *name,
 }
 
 int
-zfsslash2_replay_create(slfid_t pfid, slfid_t fid, char *name,
-    struct srt_stat *sstb)
+zfsslash2_replay_create(slfid_t pfid, char *name, struct srt_stat *sstb)
 {
 	vnode_t *pvp, *tvp;
 	vattr_t vattr;
@@ -2229,12 +2226,11 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, char *name,
 	    NULL, &pvp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
-		    fid, slstrerror(errno));
+		    sstb->sst_fid, slstrerror(errno));
 		goto out;
 	}
 
 	sstb2vattr(sstb, &vattr);
-	vattr.va_fid = fid;
 	vattr.va_type = VREG;
 	vattr.va_mask = AT_TYPE | AT_MODE | AT_ATIME | AT_MTIME |
 	    AT_CTIME | AT_SLASH2ATIME | AT_SLASH2MTIME;
@@ -2248,7 +2244,7 @@ zfsslash2_replay_create(slfid_t pfid, slfid_t fid, char *name,
 	if (error)
 		goto out;
 
-	error = zfsslash2_fidlink(fid, FIDLINK_CREATE, tvp, NULL, __LINE__);
+	error = zfsslash2_fidlink(sstb->sst_fid, FIDLINK_CREATE, tvp, NULL, __LINE__);
 
  out:
 	if (tvp)
