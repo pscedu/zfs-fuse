@@ -1705,8 +1705,6 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 	error = VOP_CREATE(dvp, (char *)name, &vattr, EXCL, 0, &vp,
 	    &cred, 0, NULL, NULL, logfunc);	/* zfs_create() */
 
-	VN_RELE(dvp);
-
 	if (error)
 		goto out;
 
