@@ -1694,9 +1694,10 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 
 	vattr_t vattr;
 	memset(&vattr, 0, sizeof(vattr));
-	vattr.va_type = IFTOVT(mode);
+	vattr.va_type = VFIFO;
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
+	vattr.va_fid = getslfid();
 
 	vnode_t *vp = NULL;
 
@@ -1711,12 +1712,18 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 
 	ASSERT(vp);
 
-	if (sstb)
+	error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid, FIDLINK_CREATE, vp, NULL, __LINE__);
+	if (error)
+		goto out;
+
+	if (sstb || mfp)
 		error = fill_sstb(vp, mfp, sstb, &cred);
 
  out:
 	if (vp)
 		VN_RELE(vp);
+
+	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
 
 	return error;
