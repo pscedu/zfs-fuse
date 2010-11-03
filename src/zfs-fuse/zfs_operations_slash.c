@@ -1662,10 +1662,10 @@ zfsslash2_write_cursor(void *buf, size_t size, void *finfo,
 
 }
 
-#if 0
 int
 zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
-    dev_t rdev)
+    const struct slash_creds *slcrp, struct srt_stat *sstb,
+    mdsio_fid_t *mfp, sl_log_update_t logfunc, sl_getslfid_cb_t getslfid)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1676,6 +1676,9 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 
 	if (strlen(name) > MAXNAMELEN)
 		return ENAMETOOLONG;
+
+	if (!(mode & S_IFIFO))
+		return EOPNOTSUPP;
 
 	int error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
 	if (error) {
@@ -1695,16 +1698,11 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 
-	if (mode & (S_IFCHR | S_IFBLK)) {
-		vattr.va_rdev = rdev;
-		vattr.va_mask |= AT_RDEV;
-	}
-
 	vnode_t *vp = NULL;
 
 	/* FIXME: check filesystem boundaries */
 	error = VOP_CREATE(dvp, (char *)name, &vattr, EXCL, 0, &vp,
-	    &cred, 0, NULL, NULL);
+	    &cred, 0, NULL, NULL, logfunc);	/* zfs_create() */
 
 	VN_RELE(dvp);
 
@@ -1713,28 +1711,16 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 
 	ASSERT(vp);
 
-	struct fuse_entry_param e = { 0 };
-
-	e.attr_timeout = 0.0;
-	e.entry_timeout = 0.0;
-
-	e.ino = VTOZ(vp)->z_id;
-	e.generation = VTOZ(vp)->z_phys->zp_gen;
-
 	if (sstb)
-		error = fill_sstb(vp, &e.attr, &cred);
+		error = fill_sstb(vp, mfp, sstb, &cred);
 
  out:
 	if (vp)
 		VN_RELE(vp);
 	ZFS_EXIT(zfsvfs);
 
-	if (!error)
-		fuse_reply_entry(req, &e);
-
 	return error;
 }
-#endif
 
 int
 zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
