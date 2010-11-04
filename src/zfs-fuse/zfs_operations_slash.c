@@ -658,26 +658,26 @@ zfsslash2_build_immns_cache_helper(vnode_t *root, int curdepth, int maxdepth, in
 	vnode_t         *vp;
 	int              i;
 	char		 id_name[2];
-	
+
 	for (i=0; i < 16; i++) {
 		snprintf(id_name, 2, "%x", i);
 
 		if (VOP_LOOKUP(root, id_name, &vp, NULL, 0, NULL, &zrootcreds,
 			       NULL, NULL, NULL))
 			abort();
-		
+
 		if (curdepth < maxdepth)
-			zfsslash2_build_immns_cache_helper(vp, curdepth + 1, 
+			zfsslash2_build_immns_cache_helper(vp, curdepth + 1,
 				   maxdepth, cnt);
 		else {
 			immnsIdCache[(*cnt)++] = VTOZ(vp)->z_id;
-			psc_debug("depth=%d cnt=%d zfid=%"PRIx64, curdepth, 
+			psc_debug("depth=%d cnt=%d zfid=%"PRIx64, curdepth,
 				  *cnt, VTOZ(vp)->z_id);
 		}
-		
+
 		VN_RELE(vp);
-	}	
-}  
+	}
+}
 
 void
 zfsslash2_build_immns_cache(void)
@@ -694,8 +694,8 @@ zfsslash2_build_immns_cache(void)
 		abort();
 
 	ASSERT(znode);
-        dvp = ZTOV(znode);
-        ASSERT(dvp);
+	dvp = ZTOV(znode);
+	ASSERT(dvp);
 
 	error = VOP_LOOKUP(dvp, SL_PATH_FIDNS, &vp, NULL, 0, NULL, &zrootcreds,
 	    NULL, NULL, NULL);
@@ -703,7 +703,7 @@ zfsslash2_build_immns_cache(void)
 	VN_RELE(dvp);
 	if (error)
 		abort();
-	
+
 	zfsslash2_build_immns_cache_helper(vp, 1, FID_PATH_DEPTH, &cnt);
 	VN_RELE(vp);
 }
@@ -902,11 +902,11 @@ zfsslash2_fidlink(slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp, int calle
 		error = zfs_zget(zfsvfs, MDSIO_FID_ROOT, &znode, B_TRUE);
 		if (error)
 			return error == EEXIST ? ENOENT : error;
-		
+
 		ASSERT(znode);
 		dvp = ZTOV(znode);
 		ASSERT(dvp);
-		
+
 		*vpp = dvp;
 		return 0;
 	}
