@@ -230,31 +230,43 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb, cred_t *cred)
 }
 
 int
-zfsslash2_getattr(mdsio_fid_t ino, const struct slash_creds *slcrp,
+zfsslash2_getattr(mdsio_fid_t ino, void *finfo, const struct slash_creds *slcrp,
     struct srt_stat *sstb)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
+	file_info_t *info = finfo;
+	vnode_t *vp;
+	int error;
+	boolean_t release;
 
 	ZFS_ENTER(zfsvfs);
 
-	znode_t *znode;
+	if (!info) {
+		znode_t *znode;
+	  
+		error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
+		if (error) {
+			ZFS_EXIT(zfsvfs);
+			/* If the inode we are trying to get was recently deleted
+			   dnode_hold_impl will return EEXIST instead of ENOENT */
+			return error == EEXIST ? ENOENT : error;
+		}
+		ASSERT(znode);
+		vp = ZTOV(znode);
+		release = B_TRUE;
 
-	int error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
-	if (error) {
-		ZFS_EXIT(zfsvfs);
-		/* If the inode we are trying to get was recently deleted
-		   dnode_hold_impl will return EEXIST instead of ENOENT */
-		return error == EEXIST ? ENOENT : error;
+	} else {
+		vp = info->vp;
+		release = B_FALSE;
 	}
-
-	ASSERT(znode);
-	vnode_t *vp = ZTOV(znode);
 	ASSERT(vp);
 
 	error = fill_sstb(vp, NULL, sstb, &cred);
 
-	VN_RELE(vp);
+	if (release)
+		VN_RELE(vp);
+
 	ZFS_EXIT(zfsvfs);
 
 	return error;
