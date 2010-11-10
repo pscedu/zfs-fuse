@@ -155,7 +155,7 @@ typedef struct znode_phys {
 	uint64_t zp_gid;		/* 136 - owning group */
 	uint64_t zp_zap;		/* 144 - extra attributes */
 	uint64_t zp_s2size;		/* 152 - slash2 file size */
-	uint32_t zp_ptruncgen;		/* 160 - slash2 partial truncate gen */
+	uint32_t zp_s2ptruncgen;	/* 160 - slash2 partial truncate gen */
 	uint32_t zp_s2gen;		/* 164 - slash2 gen number (full truncate) */
 	uint64_t zp_s2fid;		/* 168 - slash2 fid */
 	uint64_t zp_s2atime[2];         /* 176 - slash2 atime */
@@ -169,7 +169,7 @@ typedef struct znode_phys {
 	 * |<---------------------- dnode_phys (512) ------------------------>|
 	 * |<-- dnode (192) --->|<----------- "bonus" buffer (320) ---------->|
 	 *			|<---- znode (264) ---->|<---- data (56) ---->|
-	 *			|<---- s2 znode (308) ---->|<--- data (16) -->| << - Slash2 is using this!
+	 *			|<---- s2 znode (308) ---->|<--- data (12) -->| << - Slash2 is using this!
 	 *
 	 * At present, we use this space for the following:
 	 *  - symbolic links

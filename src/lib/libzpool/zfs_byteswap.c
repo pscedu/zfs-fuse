@@ -182,7 +182,7 @@ zfs_znode_byteswap(void *buf, size_t size)
 	zp->zp_zap = BSWAP_64(zp->zp_zap);
 
 	zp->zp_s2size = BSWAP_64(zp->zp_s2size);
-	zp->zp_ptruncgen = BSWAP_32(zp->zp_ptruncgen);
+	zp->zp_s2ptruncgen = BSWAP_32(zp->zp_s2ptruncgen);
 	zp->zp_s2gen = BSWAP_32(zp->zp_s2gen);
 	zp->zp_s2fid = BSWAP_64(zp->zp_s2fid);
 

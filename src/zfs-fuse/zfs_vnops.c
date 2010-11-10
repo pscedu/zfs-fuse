@@ -2445,7 +2445,7 @@ zfs_getattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 	vap->va_size = pzp->zp_size;
 	vap->va_s2size = pzp->zp_s2size;
 	vap->va_s2gen = pzp->zp_s2gen;
-	vap->va_ptruncgen = pzp->zp_ptruncgen;
+	vap->va_ptruncgen = pzp->zp_s2ptruncgen;
 	vap->va_s2utimgen = pzp->zp_s2utimgen;
 	vap->va_rdev = vp->v_rdev;
 	vap->va_seq = zp->z_seq;
@@ -3076,7 +3076,7 @@ top:
 	}
 
 	if (mask & AT_PTRUNCGEN)
-		pzp->zp_ptruncgen = vap->va_ptruncgen;
+		pzp->zp_s2ptruncgen = vap->va_ptruncgen;
 
 	/* XXX - shouldn't this be done *before* the ATIME/MTIME checks? */
 	if (mask & AT_SIZE)
@@ -3162,7 +3162,7 @@ out:
 			vap->va_uid = pzp->zp_uid;
 			vap->va_gid = pzp->zp_gid;
 			vap->va_s2gen = pzp->zp_s2gen;
-			vap->va_ptruncgen = pzp->zp_ptruncgen;
+			vap->va_ptruncgen = pzp->zp_s2ptruncgen;
 			zfs_vattr_to_stat(vap, &sstb);
 
 			/*
