@@ -1218,7 +1218,7 @@ zfsslash2_readlink(mdsio_fid_t ino, char *buf,
 	uio.uio_resid = PATH_MAX;
 	uio.uio_loffset = 0;
 
-	error = VOP_READLINK(vp, &uio, &cred, NULL);
+	error = VOP_READLINK(vp, &uio, &cred, NULL);	/* zfs_readlink() */
 
 	VN_RELE(vp);
 	ZFS_EXIT(zfsvfs);
