@@ -1713,6 +1713,7 @@ top:
 
 		memset(&sstb, 0, sizeof(sstb));
 		sstb.sst_fid = zp->z_phys->zp_s2fid;
+		sstb.sst_gen = zp->z_phys->zp_s2gen;
 		sstb.sst_nlink = zp->z_phys->zp_links;
 		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2fid, 0,
 		    &sstb, 0, name, NULL);
