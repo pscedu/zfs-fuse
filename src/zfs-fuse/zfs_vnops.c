@@ -3158,6 +3158,7 @@ out:
 		dmu_tx_abort(tx);
 	else {
 		if (logfunc) {
+			int op;
 			struct srt_stat sstb;
 			uint64_t txg;
 
@@ -3169,16 +3170,16 @@ out:
 			vap->va_ptruncgen = pzp->zp_s2ptruncgen;
 			zfs_vattr_to_stat(vap, &sstb);
 
+			op = (mask & AT_SLASH2SIZE) ? NS_OP_SETSIZE : NS_OP_SETATTR;
 			/*
 			 * At this time, SLASH only journals certain
 			 * stat(2) fields, so don't pass changes in fields
 			 * we don't store.
 			 */
-			logfunc(NS_OP_SETATTR, txg, 0, 0, &sstb,
+			logfunc(op, txg, 0, 0, &sstb,
 			    vap->va_mask & (AT_UID | AT_GID | AT_TYPE |
 			    AT_MODE | AT_ATIME | AT_MTIME | AT_CTIME |
-			    AT_SIZE), NULL, NULL);
-
+			    AT_SIZE | AT_SLASH2SIZE), NULL, NULL);
 		}
 		dmu_tx_commit(tx);
 	}
