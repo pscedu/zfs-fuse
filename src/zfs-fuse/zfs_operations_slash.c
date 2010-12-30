@@ -96,7 +96,7 @@ get_vnode_fids(const vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
 		*mfp = VTOZ(vp)->z_id;
 }
 
-#define ZFS_INIT_CREDS(slcrp)	{ (slcrp)->uid, (slcrp)->gid, NULL }
+#define ZFS_INIT_CREDS(slcrp)	{ (slcrp)->scr_uid, (slcrp)->scr_gid, NULL }
 
 static size_t
 add_dirent(char *buf, size_t bufsize, const char *name,
