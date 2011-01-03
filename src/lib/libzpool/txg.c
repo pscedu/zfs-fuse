@@ -290,6 +290,9 @@ txg_slash2_should_commit(int val)
 	int ret;
 	static int should_commit = 0;
 
+	/*
+ 	 * Lockless and without barriers, should be Okay. 
+ 	 */
 	ret = should_commit;
 	should_commit = val;
 	return (ret);
