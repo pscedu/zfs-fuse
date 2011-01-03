@@ -74,6 +74,7 @@ extern void txg_rele_to_quiesce(txg_handle_t *txghp);
 extern void txg_rele_to_sync(txg_handle_t *txghp);
 extern void txg_register_callbacks(txg_handle_t *txghp, list_t *tx_callbacks);
 
+extern int txg_slash2_should_commit(int);
 extern void txg_slash2_wait(struct dsl_pool *dp);
 
 /*
