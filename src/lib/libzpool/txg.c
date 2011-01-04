@@ -435,9 +435,9 @@ txg_sync_thread(dsl_pool_t *dp)
 
 			/* 
 			 * We make sure that the transaction that updates the SLASH2
-			 * cursor file is the first to come and the last to leave. 
-			 * Wait longer if there are no other activities until we really
-			 * want to update the cursor file now.
+			 * cursor file is the first to come and the last to go. Wait 
+			 * longer if there are no other activities unless we really
+			 * want to update the cursor file by itself.
 			 */
 			if (tx->tx_txg_count == 1) {
 				start = lbolt;
