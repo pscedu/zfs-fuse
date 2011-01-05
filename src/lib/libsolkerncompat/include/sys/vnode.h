@@ -179,12 +179,13 @@ typedef struct vattr {
 	uint_t       va_seq;     /* sequence number */
 
 	/* SLASH2 data file fields */
-	u_offset_t   va_s2size;  /* slash2 file size in bytes */
-	uint32_t     va_s2gen;
-	uint32_t     va_ptruncgen;	
-	timestruc_t  va_s2atime;   /* time of last access (slash2) */
-	timestruc_t  va_s2mtime;   /* time of last modification (slash2) */
-	uint32_t     va_s2utimgen;
+	u_offset_t   va_s2size; 	/* SLASH2 file size in bytes */
+	uint32_t     va_s2gen;		/* SLASH2 full truncate generation # */
+	uint32_t     va_ptruncgen;	/* SLASH2 partial truncation generation # */
+	timestruc_t  va_s2atime;  	/* SLASH2 last access time */
+	timestruc_t  va_s2mtime;  	/* SLASH2 last modification time */
+	uint32_t     va_s2utimgen;	/* SLASH2 utimes generation # */
+	uint32_t     va_s2nxbmaps;	/* SLASH2 # bmaps beyond EOF */
 } vattr_t;
 
 /*

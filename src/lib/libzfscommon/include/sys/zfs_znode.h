@@ -154,14 +154,16 @@ typedef struct znode_phys {
 	uint64_t zp_uid;		/* 128 - file owner */
 	uint64_t zp_gid;		/* 136 - owning group */
 	uint64_t zp_zap;		/* 144 - extra attributes */
-	uint64_t zp_s2size;		/* 152 - slash2 file size */
-	uint32_t zp_s2ptruncgen;	/* 160 - slash2 partial truncate gen */
-	uint32_t zp_s2gen;		/* 164 - slash2 gen number (full truncate) */
-	uint64_t zp_s2fid;		/* 168 - slash2 fid */
-	uint64_t zp_s2atime[2];         /* 176 - slash2 atime */
-	uint64_t zp_s2mtime[2];         /* 192 - slash2 mtime */
-	uint32_t zp_s2utimgen;          /* 208 - slash2 utime gen # */
-	uint32_t zp__pad;               /* 212 - pad */ 
+
+	uint64_t zp_s2size;		/* 152 - SLASH2 file size */
+	uint32_t zp_s2ptruncgen;	/* 160 - SLASH2 partial truncate generation # */
+	uint32_t zp_s2gen;		/* 164 - SLASH2 full truncate generation # */
+	uint64_t zp_s2fid;		/* 168 - SLASH2 file ID */
+	uint64_t zp_s2atime[2];		/* 176 - SLASH2 last access time */
+	uint64_t zp_s2mtime[2];		/* 192 - SLASH2 last modification time */
+	uint32_t zp_s2utimgen;		/* 208 - SLASH2 utimes generation # */
+	uint32_t zp_s2nxbmaps;		/* 212 - SLASH2 # bmaps beyond EOF */ 
+
 	zfs_acl_phys_t zp_acl;		/* 216 - 307 ACL */
 	/*
 	 * Data may pad out any remaining bytes in the znode buffer, eg:
