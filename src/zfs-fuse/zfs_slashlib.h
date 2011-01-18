@@ -68,6 +68,5 @@ int	zfsslash2_replay_unlink(slfid_t, slfid_t, char *, struct srt_stat *);
 uint64_t	zfsslash2_last_synced_txg(void);
 uint64_t	zfsslash2_return_synced(void);
 void		zfsslash2_wait_synced(uint64_t);
-void		zfsslash2_should_commit(void);
 
 #endif /* _ZFS_SLASHLIB_H_ */

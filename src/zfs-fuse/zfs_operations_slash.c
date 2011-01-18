@@ -2034,12 +2034,6 @@ zfsslash2_return_synced(void)
 	return (txg);
 }
 
-void
-zfsslash2_should_commit(void)
-{
-	txg_slash2_should_commit(1);
-}
-
 static void
 sstb2vattr(const struct srt_stat *sstb, vattr_t *vap)
 {

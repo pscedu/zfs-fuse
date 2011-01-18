@@ -284,20 +284,6 @@ txg_rele_to_sync(txg_handle_t *th)
 	th->th_cpu = NULL;	/* defensive */
 }
 
-int
-txg_slash2_should_commit(int val)
-{
-	int ret;
-	static int should_commit = 0;
-
-	/*
- 	 * Lockless and without barriers, should be Okay. 
- 	 */
-	ret = should_commit;
-	should_commit = val;
-	return (ret);
-}
-
 void
 txg_slash2_wait(dsl_pool_t *dp)
 {
@@ -436,14 +422,11 @@ txg_sync_thread(dsl_pool_t *dp)
 			/* 
 			 * We make sure that the transaction that updates the SLASH2
 			 * cursor file is the first to come and the last to go. Wait 
-			 * longer if there are no other activities unless we really
-			 * want to update the cursor file by itself.
+			 * longer if there are no other activities.
 			 */
 			if (tx->tx_txg_count == 1) {
 				start = lbolt;
 				timer = timeout;
-				if (txg_slash2_should_commit(0))
-					break;
 			}
 		}
 
