@@ -625,7 +625,7 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr,
 	rl_t		*rl;
 	int		max_blksz = zfsvfs->z_max_blksz;
 	uint64_t	pflags;
-	int		error;
+	int		error, niter=0;
 	arc_buf_t	*abuf;
 
 	sl_log_write_t	logfuncp = funcp;
@@ -903,7 +903,9 @@ All I can hope is that we can simply disable this code without risk */
 			    uio->uio_loffset);
 		zfs_log_write(zilog, tx, TX_WRITE, zp, woff, tx_bytes, ioflag);
 
-		if (logfuncp) 
+		if (logfuncp && !niter)
+			/* Make only one call into slash2 land.
+			 */
 			logfuncp(datap, dmu_tx_get_txg(tx));
 
 		dmu_tx_commit(tx);
@@ -912,6 +914,7 @@ All I can hope is that we can simply disable this code without risk */
 			break;
 		ASSERT(tx_bytes == nbytes);
 		n -= nbytes;
+		niter++;
 	}
 
 	zfs_range_unlock(rl);
