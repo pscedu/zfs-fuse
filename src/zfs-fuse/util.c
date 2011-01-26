@@ -302,6 +302,7 @@ uint32_t mounted = 0;
 
 int do_mount(char *spec, char *dir, int mflag, char *opt)
 {
+	static int mounted=0;
 	extern void *zfsVfs;
 
 	VERIFY(mflag == 0);
@@ -309,6 +310,9 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	vfs_t *vfs = kmem_zalloc(sizeof(vfs_t), KM_SLEEP);
 	if(vfs == NULL)
 		return ENOMEM;
+
+	if (mounted) 
+		return EALREADY;
 
 	VFS_INIT(vfs, zfs_vfsops, 0);
 	VFS_HOLD(vfs);
@@ -330,7 +334,8 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	if ((ret = VFS_MOUNT(vfs, rootdir, &uap, kcred)) != 0) {
 		kmem_free(vfs, sizeof(vfs_t));
 		return ret;
-	}
+	} else
+		mounted = 1;
 	/* Actually, optptr is totally ignored by VFS_MOUNT.
 	 * So we are going to pass this with fuse_mount_options if possible */
 	char real_opts[1024];
