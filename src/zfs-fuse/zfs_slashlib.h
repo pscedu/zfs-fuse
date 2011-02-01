@@ -55,6 +55,7 @@ void	do_exit(void);
 #define libzfs_exit		do_exit
 
 void	zfsslash2_build_immns_cache(void);
+int	zfsslash2_setattrmask_2_slflags(uint);
 
 int	zfsslash2_replay_create(slfid_t, char *, struct srt_stat *stat);
 int	zfsslash2_replay_link(slfid_t, slfid_t, char *, struct srt_stat *stat);

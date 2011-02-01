@@ -243,6 +243,7 @@ struct pollhead;
 #define AT_NBLOCKS 0x2000
 #define AT_SEQ     0x8000
 #define AT_XVATTR  0x10000
+
 #define AT_SLASH2SIZE	0x20000
 #define AT_PTRUNCGEN	0x40000
 #define AT_SLASH2ATIME	0x80000

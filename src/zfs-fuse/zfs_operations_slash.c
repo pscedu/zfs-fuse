@@ -133,6 +133,26 @@ hide_vnode(vnode_t *dvp, vnode_t *vp, const char *cpn)
 	return (0);
 }
 
+int
+zfsslash2_setattrmask_2_slflags(uint mask)
+{
+	int to_set = 0;
+
+	if (mask & AT_SLASH2SIZE)
+		to_set |= PSCFS_SETATTRF_DATASIZE;
+	if (mask & AT_PTRUNCGEN)
+		to_set |= SL_SETATTRF_PTRUNCGEN;
+	if (mask & AT_SLASH2ATIME)
+		to_set |= PSCFS_SETATTRF_ATIME;
+	if (mask & AT_SLASH2MTIME)
+		to_set |= PSCFS_SETATTRF_MTIME;
+	if (mask & AT_SLASH2CTIME)
+		to_set |= PSCFS_SETATTRF_CTIME;
+	if (mask & AT_SLASH2GEN)
+		to_set |= PSCFS_SETATTRF_GEN;
+	return (to_set);
+}
+
 void
 zfsslash2_destroy(void)
 {
@@ -250,7 +270,7 @@ zfsslash2_getattr(mdsio_fid_t ino, void *finfo, const struct slash_creds *slcrp,
 
 	if (!info) {
 		znode_t *znode;
-	  
+
 		error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
 		if (error) {
 			ZFS_EXIT(zfsvfs);
@@ -2231,7 +2251,7 @@ zfsslash2_replay_create(slfid_t pfid, char *name, struct srt_stat *sstb)
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP, 
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP,
 	    NULL, &pvp, __LINE__);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
