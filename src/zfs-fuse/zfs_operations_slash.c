@@ -213,6 +213,12 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb, cred_t *cred)
 	sstb->sst_gid = vattr.va_gid;
 	sstb->sst_rdev = vattr.va_rdev;
 	if (S_ISDIR(sstb->sst_mode))
+		/*
+ 		 * We used to return (vattr.va_blksize * vattr.va_nblocks) here. But
+ 		 * we couldn't get consistent results from different code paths. So
+ 		 * we decided to adopt ZFS's way, which the number of entries in a
+ 		 * directory.
+ 		 */
 		sstb->sst_size = vattr.va_size;
 	else
 		sstb->sst_size = vattr.va_s2size;
