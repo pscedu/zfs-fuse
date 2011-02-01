@@ -149,7 +149,7 @@ zfsslash2_setattrmask_2_slflags(uint mask)
 	if (mask & AT_SLASH2CTIME)
 		to_set |= PSCFS_SETATTRF_CTIME;
 	if (mask & AT_SLASH2GEN)
-		to_set |= PSCFS_SETATTRF_GEN;
+		to_set |= SL_SETATTRF_GEN;
 	return (to_set);
 }
 
