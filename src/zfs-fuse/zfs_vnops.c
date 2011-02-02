@@ -1298,6 +1298,7 @@ zfs_create(vnode_t *dvp, char *name, vattr_t *vap, vcexcl_t excl,
     int mode, vnode_t **vpp, cred_t *cr, int flag, caller_context_t *ct,
     vsecattr_t *vsecp, void *funcp)
 {
+	int		i;
 	znode_t		*zp, *dzp = VTOZ(dvp);
 	zfsvfs_t	*zfsvfs = dzp->z_zfsvfs;
 	zilog_t		*zilog;
@@ -1455,6 +1456,13 @@ top:
 			vap->va_uid = acl_ids.z_fuid;
 			vap->va_gid = acl_ids.z_fgid;
 			vap->va_mode = acl_ids.z_mode;
+			for (i = 0; i < 2; i++) {
+				zp->z_phys->zp_s2atime[i] = zp->z_phys->zp_atime[i];
+				zp->z_phys->zp_s2mtime[i] = zp->z_phys->zp_mtime[i];
+			}
+			ZFS_TIME_DECODE(&vap->va_s2atime, zp->z_phys->zp_s2atime);
+			ZFS_TIME_DECODE(&vap->va_s2mtime, zp->z_phys->zp_s2mtime);
+			ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
 			zfs_vattr_to_stat(vap, &sstb);
 
 			logfunc(NS_OP_CREATE, txg,
@@ -1764,6 +1772,7 @@ static int
 zfs_mkdir(vnode_t *dvp, char *dirname, vattr_t *vap, vnode_t **vpp, cred_t *cr,
     caller_context_t *ct, int flags, vsecattr_t *vsecp, void *funcp)
 {
+	int		i;
 	znode_t		*zp, *dzp = VTOZ(dvp);
 	zfsvfs_t	*zfsvfs = dzp->z_zfsvfs;
 	zilog_t		*zilog;
@@ -1908,8 +1917,12 @@ top:
 		vap->va_uid = acl_ids.z_fuid;
 		vap->va_gid = acl_ids.z_fgid;
 		vap->va_mode = acl_ids.z_mode;
-		ZFS_TIME_DECODE(&vap->va_atime, zp->z_phys->zp_atime);
-		ZFS_TIME_DECODE(&vap->va_mtime, zp->z_phys->zp_mtime);
+		for (i = 0; i < 2; i++) {
+			zp->z_phys->zp_s2atime[i] = zp->z_phys->zp_atime[i];
+			zp->z_phys->zp_s2mtime[i] = zp->z_phys->zp_mtime[i];
+		}
+		ZFS_TIME_DECODE(&vap->va_s2atime, zp->z_phys->zp_s2atime);
+		ZFS_TIME_DECODE(&vap->va_s2mtime, zp->z_phys->zp_s2mtime);
 		ZFS_TIME_DECODE(&vap->va_ctime, zp->z_phys->zp_ctime);
 		zfs_vattr_to_stat(vap, &sstb);
 
