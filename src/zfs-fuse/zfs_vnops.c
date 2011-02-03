@@ -3183,6 +3183,7 @@ out:
 			vap->va_uid = pzp->zp_uid;
 			vap->va_gid = pzp->zp_gid;
 			vap->va_s2gen = pzp->zp_s2gen;
+			vap->va_s2size = pzp->zp_s2size;
 			vap->va_ptruncgen = pzp->zp_s2ptruncgen;
 			zfs_vattr_to_stat(vap, &sstb);
 
