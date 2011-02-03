@@ -234,11 +234,11 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb, cred_t *cred)
 	sstb->sst_rdev = vattr.va_rdev;
 	if (S_ISDIR(sstb->sst_mode))
 		/*
- 		 * We used to return (vattr.va_blksize * vattr.va_nblocks) here. But
- 		 * we couldn't get consistent results from different code paths. So
- 		 * we decided to adopt ZFS's way, which the number of entries in a
- 		 * directory.
- 		 */
+		 * We used to return (vattr.va_blksize * vattr.va_nblocks) here. But
+		 * we couldn't get consistent results from different code paths. So
+		 * we decided to adopt ZFS's way, which the number of entries in a
+		 * directory.
+		 */
 		sstb->sst_size = vattr.va_size;
 	else
 		sstb->sst_size = vattr.va_s2size;
@@ -1437,6 +1437,10 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 	int error;
 
+	int mask = SL_SETATTRF_METASIZE | PSCFS_SETATTRF_DATASIZE;
+	if ((to_set & mask) == mask)
+		return (EINVAL);
+
 	if (!info) {
 		error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
 		if (error) {
@@ -1532,6 +1536,11 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 	if (to_set & PSCFS_SETATTRF_DATASIZE) {
 		vattr.va_mask |= AT_SLASH2SIZE;
 		vattr.va_s2size = sstb_in->sst_size;
+		if (vattr.va_s2size == 0) {
+			/* full truncate - zero all old bmaps */
+			vattr.va_mask |= AT_SIZE;
+			vattr.va_size = SL_BMAP_START_OFF;
+		}
 	}
 	if (to_set & SL_SETATTRF_PTRUNCGEN) {
 		vattr.va_mask |= AT_PTRUNCGEN;
@@ -1540,6 +1549,10 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 	if (to_set & SL_SETATTRF_GEN) {
 		vattr.va_mask |= AT_SLASH2GEN;
 		vattr.va_s2gen = sstb_in->sst_gen;
+	}
+	if (to_set & SL_SETATTRF_METASIZE) {
+		vattr.va_mask |= AT_SIZE;
+		vattr.va_size = sstb_in->sst_size;
 	}
 
 	int flags = (to_set & (PSCFS_SETATTRF_ATIME |
