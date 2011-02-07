@@ -2035,11 +2035,16 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
  * The following are functions used to replay a namespace operation
  * which originated from a remote MDS or from the local journal.
  *
- * There are two big differences between these functions and those
+ * There are some big differences between these functions and those
  * above:
- *  (1) we have to start from the immutable by-id namespace (that's why
+ *
+ *  (1) We have to start from the immutable by-id namespace (that's why
  *	we start with zfsslash2_fidlink() instead of zfs_zget());
- *  (2) we don't need to log a replayed operation.
+ *
+ *  (2) We don't need to log a replayed operation.
+ *
+ *  (3) We may want to deal gracefully with errors - a redo operation
+ *      can be interrupted due to a crash/power failure.
  *
  * It seems to me that I simply can't, as root, create a file owned by
  * an arbitrary regular user directly. There are also some limitations
@@ -2049,6 +2054,9 @@ zfsslash2_access(mdsio_fid_t ino, int mask, const struct slash_creds *slcrp)
  * ZFS declares the operation is doable.
  *
  * XXX these should be merged with the routines above.
+ *
+ * XXX There are still some uses of zrootcreds in replay operations.
+ *     We may want to replace them all with real creds.
  */
 
 void
@@ -2407,6 +2415,7 @@ zfsslash2_replay_setattr(slfid_t fid, uint mask, struct srt_stat *sstb)
 	int error, flag;
 	vattr_t vattr;
 	vnode_t *vp;
+	cred_t cred;
 
 	vp = NULL;
 	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP, NULL, &vp, __LINE__);
@@ -2420,8 +2429,13 @@ zfsslash2_replay_setattr(slfid_t fid, uint mask, struct srt_stat *sstb)
 
 	flag = (mask & (AT_ATIME | AT_MTIME)) ? ATTR_UTIME : 0;
 
-	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL, NULL);		/* zfs_setattr() */
+	cred.req = NULL;
+	cred.cr_uid = sstb->sst_uid;
+	cred.cr_gid = sstb->sst_gid;
 
+	error = VOP_SETATTR(vp, &vattr, flag, &cred, NULL, NULL);		/* zfs_setattr() */
+	if (!error)
+		error = fill_sstb(vp, NULL, sstb, &cred);
  out:
 	if (vp)
 		VN_RELE(vp);
