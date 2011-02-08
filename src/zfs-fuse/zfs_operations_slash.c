@@ -2427,6 +2427,7 @@ zfsslash2_replay_setattr(slfid_t fid, uint mask, struct srt_stat *sstb)
 	vattr.va_mask = mask;
 
 	flag = (mask & (AT_ATIME | AT_MTIME)) ? ATTR_UTIME : 0;
+	/* not using zrootcreds will return EPERM (1) */
 	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL, NULL);		/* zfs_setattr() */
 	if (!error)
 		error = fill_sstb(vp, NULL, sstb, &zrootcreds);
