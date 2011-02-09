@@ -153,6 +153,26 @@ zfsslash2_setattrmask_2_slflags(uint mask)
 	return (to_set);
 }
 
+uint
+zfsslash2_slflags_2_setattrmask(int to_set)
+{
+	int mask = 0;
+
+	if (to_set & PSCFS_SETATTRF_DATASIZE)
+		mask |= AT_SLASH2SIZE;
+	if (to_set & SL_SETATTRF_PTRUNCGEN)
+		mask |= AT_PTRUNCGEN;
+	if (to_set & PSCFS_SETATTRF_ATIME)
+		mask |= AT_SLASH2ATIME;
+	if (to_set & PSCFS_SETATTRF_MTIME)
+		mask |= AT_SLASH2MTIME;
+	if (to_set & PSCFS_SETATTRF_CTIME)
+		mask |= AT_SLASH2CTIME;
+	if (to_set & SL_SETATTRF_GEN)
+		mask |= AT_SLASH2GEN;
+	return (mask);
+}
+
 void
 zfsslash2_destroy(void)
 {
