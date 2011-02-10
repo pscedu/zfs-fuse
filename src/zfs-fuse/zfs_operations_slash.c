@@ -1875,7 +1875,7 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 }
 
 int
-zfsslash2_rename(mdsio_fid_t parent, const char *name,
+zfsslash2_rename(mdsio_fid_t oldparent, const char *oldname,
     mdsio_fid_t newparent, const char *newname,
     const struct slash_creds *slcrp, sl_log_update_t logfunc)
 {
@@ -1884,16 +1884,16 @@ zfsslash2_rename(mdsio_fid_t parent, const char *name,
 
 	ZFS_ENTER(zfsvfs);
 
-	znode_t *p_znode, *np_znode;
+	znode_t *op_znode, *np_znode;
 
-	if (strlen(name) > MAXNAMELEN)
+	if (strlen(oldname) > MAXNAMELEN)
 		return ENAMETOOLONG;
 	if (strlen(newname) > MAXNAMELEN)
 		return ENAMETOOLONG;
-	if (strlen(name) + strlen(newname) > SLJ_NAMES_MAX)
+	if (strlen(oldname) + strlen(newname) > SLJ_NAMES_MAX)
 		return ENAMETOOLONG;
 
-	int error = zfs_zget(zfsvfs, parent, &p_znode, B_FALSE);
+	int error = zfs_zget(zfsvfs, oldparent, &op_znode, B_FALSE);
 	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
@@ -1901,13 +1901,13 @@ zfsslash2_rename(mdsio_fid_t parent, const char *name,
 		return error == EEXIST ? ENOENT : error;
 	}
 
-	ASSERT(p_znode);
-	vnode_t *p_vp = ZTOV(p_znode);
-	ASSERT(p_vp);
+	ASSERT(op_znode);
+	vnode_t *op_vp = ZTOV(op_znode);
+	ASSERT(op_vp);
 
 	error = zfs_zget(zfsvfs, newparent, &np_znode, B_FALSE);
 	if (error) {
-		VN_RELE(p_vp);
+		VN_RELE(op_vp);
 		ZFS_EXIT(zfsvfs);
 		/* If the inode we are trying to get was recently deleted
 		   dnode_hold_impl will return EEXIST instead of ENOENT */
@@ -1918,10 +1918,10 @@ zfsslash2_rename(mdsio_fid_t parent, const char *name,
 	vnode_t *np_vp = ZTOV(np_znode);
 	ASSERT(np_vp);
 
-	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname,
+	error = VOP_RENAME(op_vp, (char *)oldname, np_vp, (char *)newname,
 	    &cred, NULL, 0, logfunc);  /* zfs_rename() */
 
-	VN_RELE(p_vp);
+	VN_RELE(op_vp);
 	VN_RELE(np_vp);
 
 	ZFS_EXIT(zfsvfs);
