@@ -1139,7 +1139,9 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vattr.va_type = VREG;
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
-		vattr.va_fid = getslfid();
+
+		if (getslfid)
+			vattr.va_fid = getslfid();
 
 		if (flags & FTRUNC) {
 			vattr.va_size = 0;
