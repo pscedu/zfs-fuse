@@ -1167,6 +1167,10 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 			error = zfsslash2_fidlink(
 			    VTOZ(vp)->z_phys->zp_s2fid,
 			    FIDLINK_CREATE, vp, NULL);
+#if 0
+			fprintf(stderr, "create: name = %s, fid = 0x%lx, errno = %d\n", 
+				name, vattr.va_fid, errno);
+#endif
 			if (error)
 				goto out;
 		}
@@ -2305,7 +2309,7 @@ zfsslash2_replay_create(slfid_t pfid, char *name, struct srt_stat *sstb)
 	    NULL, &pvp);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
-		    sstb->sst_fid, slstrerror(error));
+		    pfid, slstrerror(error));
 		goto out;
 	}
 
