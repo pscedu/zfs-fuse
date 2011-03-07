@@ -2305,7 +2305,7 @@ zfsslash2_replay_create(slfid_t pfid, char *name, struct srt_stat *sstb)
 	    NULL, &pvp);
 	if (error) {
 		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
-		    sstb->sst_fid, slstrerror(errno));
+		    sstb->sst_fid, slstrerror(error));
 		goto out;
 	}
 
