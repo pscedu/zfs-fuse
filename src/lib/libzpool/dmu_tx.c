@@ -38,6 +38,8 @@
 typedef void (*dmu_tx_hold_func_t)(dmu_tx_t *tx, struct dnode *dn,
     uint64_t arg1, uint64_t arg2);
 
+static int slash2_txg_semantics_on = 0;
+
 dmu_tx_t *
 dmu_tx_create_dd(dsl_dir_t *dd)
 {
@@ -63,6 +65,8 @@ dmu_tx_create_special(objset_t *os)
 	tx->tx_flags = TX_WAIT | TX_SPECIAL;
 	tx->tx_objset = os;
 	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os_dsl_dataset);
+
+	slash2_txg_semantics_on = 1;
 	return (tx);
 }
 
@@ -70,7 +74,16 @@ dmu_tx_t *
 dmu_tx_create_wait(objset_t *os)
 {
 	dmu_tx_t *tx = dmu_tx_create_dd(os->os_dsl_dataset->ds_dir);
-	tx->tx_flags = TX_WAIT;
+
+	/*
+	 * ZIL replay needs to start transactions using the same vnode operations
+	 * (e.g., zfs_create() in zfs-fuse/zfs_vnops.c) that slash2 replies on. 
+	 * Add this hack to make our special transaction group semantics work.
+	 */
+	if (slash2_txg_semantics_on)
+		tx->tx_flags = TX_WAIT;
+	else
+		tx->tx_flags = 0;
 	tx->tx_objset = os;
 	tx->tx_lastsnap_txg = dsl_dataset_prev_snap_txg(os->os_dsl_dataset);
 	return (tx);
