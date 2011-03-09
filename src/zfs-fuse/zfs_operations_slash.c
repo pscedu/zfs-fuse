@@ -1160,7 +1160,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 			error = zfsslash2_fidlink(
 			    VTOZ(vp)->z_phys->zp_s2fid,
 			    FIDLINK_CREATE, vp, NULL);
-#if 1
+#ifdef DEBUG
 			fprintf(stderr, "create: name = %s, fid = 0x%lx, errno = %d\n",
 				name, vattr.va_fid, errno);
 #endif
@@ -1376,7 +1376,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	if (sstb || mfp)
 		error = fill_sstb(vp, mfp, sstb, &cred);
 
-#if 0
+#ifdef DEBUG
 	fprintf(stderr, "mkdir: name = %s, fid = 0x%lx, errno = %d\n",
 				name, vattr.va_fid, errno);
 #endif
