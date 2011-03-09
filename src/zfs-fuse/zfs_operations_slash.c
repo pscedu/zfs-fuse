@@ -57,10 +57,12 @@
 
 #include "creds.h"
 #include "fid.h"
-#include "slashd/mdsio.h"
+#include "pathnames.h"
 #include "slerr.h"
 #include "sljournal.h"
 #include "sltypes.h"
+
+#include "slashd/mdsio.h"
 
 kmem_cache_t	*file_info_cache;
 cred_t		 zrootcreds;
@@ -74,9 +76,6 @@ uint64_t        *immnsIdCache;
 #define	FIDLINK_LOOKUP		(1 << 1)
 #define	FIDLINK_REMOVE		(1 << 2)
 #define	FIDLINK_DIR		(1 << 3)
-
-#define SL_PATH_PREFIX		".sl"
-#define SL_PATH_FIDNS		".slfidns"
 
 /**
  * get_vnode_fids - Get SLASH FID + generation (external) and the
@@ -128,7 +127,7 @@ hide_vnode(vnode_t *dvp, vnode_t *vp, const char *cpn)
 		return (1);
 
 	if (VTOZ(dvp)->z_id == MDSIO_FID_ROOT &&
-	    strncmp(cpn, SL_PATH_PREFIX, strlen(SL_PATH_PREFIX)) == 0)
+	    strcmp(cpn, SL_RPATH_META_DIR) == 0)
 		return (1);
 	return (0);
 }
@@ -711,26 +710,27 @@ zfsslash2_release(__unusedx const struct slash_creds *slcrp, void
 }
 
 void
-zfsslash2_build_immns_cache_helper(vnode_t *root, int curdepth, int maxdepth, int *cnt)
+zfsslash2_build_immns_cache_helper(vnode_t *root, int curdepth,
+    int maxdepth, int *cnt)
 {
 	vnode_t         *vp;
 	int              i;
 	char		 id_name[2];
 
-	for (i=0; i < 16; i++) {
+	for (i = 0; i < 16; i++) {
 		snprintf(id_name, 2, "%x", i);
 
-		if (VOP_LOOKUP(root, id_name, &vp, NULL, 0, NULL, &zrootcreds,
-			       NULL, NULL, NULL))
+		if (VOP_LOOKUP(root, id_name, &vp, NULL, 0, NULL,
+		    &zrootcreds, NULL, NULL, NULL))
 			abort();
 
 		if (curdepth < maxdepth)
-			zfsslash2_build_immns_cache_helper(vp, curdepth + 1,
-				   maxdepth, cnt);
+			zfsslash2_build_immns_cache_helper(vp,
+			    curdepth + 1, maxdepth, cnt);
 		else {
 			immnsIdCache[(*cnt)++] = VTOZ(vp)->z_id;
-			psc_debug("depth=%d cnt=%d zfid=%"PRIx64, curdepth,
-				  *cnt, VTOZ(vp)->z_id);
+			psclog_debug("depth=%d cnt=%d zfid=%#"PRIx64,
+			    curdepth, *cnt, VTOZ(vp)->z_id);
 		}
 
 		VN_RELE(vp);
@@ -741,13 +741,13 @@ void
 zfsslash2_build_immns_cache(void)
 {
 	znode_t         *znode;
-	vnode_t		*vp, *dvp;
+	vnode_t		*dvp;
 	int		 error, cnt=0;
 	zfsvfs_t	*zfsvfs = zfsVfs->vfs_data;
 
-	immnsIdCache = malloc(sizeof(uint64_t) * pow(16,FID_PATH_DEPTH));
+	immnsIdCache = malloc(sizeof(uint64_t) * pow(16, FID_PATH_DEPTH));
 
-	error = zfs_zget(zfsvfs, MDSIO_FID_ROOT, &znode, B_TRUE);
+	error = zfs_zget(zfsvfs, mds_fidnsdir_inum, &znode, B_TRUE);
 	if (error)
 		abort();
 
@@ -755,25 +755,18 @@ zfsslash2_build_immns_cache(void)
 	dvp = ZTOV(znode);
 	ASSERT(dvp);
 
-	error = VOP_LOOKUP(dvp, SL_PATH_FIDNS, &vp, NULL, 0, NULL, &zrootcreds,
-	    NULL, NULL, NULL);
-
+	zfsslash2_build_immns_cache_helper(dvp, 1, FID_PATH_DEPTH, &cnt);
 	VN_RELE(dvp);
-	if (error)
-		abort();
-
-	zfsslash2_build_immns_cache_helper(vp, 1, FID_PATH_DEPTH, &cnt);
-	VN_RELE(vp);
 }
 
 /*
  * At most two buffers are passed in by our callers: outbuf points to the
- * readdir result, attrs points to prefeteched attributes.
+ * readdir result, attrs points to prefetched attributes.
  */
 int
 zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
-	  off_t off, void *outbuf, size_t *outbuf_len, size_t *nents,
-	  void *attrs, int nstbprefetch, void *finfo)
+    off_t off, void *outbuf, size_t *outbuf_len, size_t *nents,
+    void *attrs, int nstbprefetch, void *finfo)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	vnode_t *vp = ((file_info_t *)finfo)->vp;
@@ -947,9 +940,9 @@ _zfsslash2_fidlink(struct pfl_callerinfo *pfl_callerinfo, slfid_t fid,
 #define IMMNSMASK 0x0fff000L
 
 	/*
-	 * Map the root of slash2 to the root of the underlying ZFS.
+	 * Map the root of SLASH2 metadir to the root of the underlying ZFS.
 	 */
-	if ((flags & FIDLINK_LOOKUP) && fid == 1) {
+	if ((flags & FIDLINK_LOOKUP) && fid == SLFID_ROOT) {
 #if 0
 /*
  * I have found a place in zfs_mknode() where I can write SLASH FID 1 into the
@@ -959,7 +952,7 @@ _zfsslash2_fidlink(struct pfl_callerinfo *pfl_callerinfo, slfid_t fid,
  * nodes.  But the change seems to fix my problem and make the hack here
  * unneeded.  I discovered this with gdb while creating a zpool.
  */
-			VTOZ(dvp)->z_phys->zp_s2fid = 1;
+		VTOZ(dvp)->z_phys->zp_s2fid = 1;
 #endif
 		error = zfs_zget(zfsvfs, MDSIO_FID_ROOT, &znode, B_TRUE);
 		if (error)
@@ -974,7 +967,7 @@ _zfsslash2_fidlink(struct pfl_callerinfo *pfl_callerinfo, slfid_t fid,
 	}
 
 	error = zfs_zget(zfsvfs, (uint64_t)immnsIdCache[(fid & IMMNSMASK) >> 12],
-			 &znode, B_TRUE);
+	    &znode, B_TRUE);
 	if (error)
 		return error == EEXIST ? ENOENT : error;
 
@@ -999,7 +992,7 @@ _zfsslash2_fidlink(struct pfl_callerinfo *pfl_callerinfo, slfid_t fid,
 			 * space, keeping the parent pointer intact.
 			 */
 			error = VOP_LINK(dvp, svp, id_name, &zrootcreds, NULL,
-				FALLOWDIRLINK | FKEEPPARENT, NULL);
+			    FALLOWDIRLINK | FKEEPPARENT, NULL);
 		} else {
 			vattr_t vattr;
 			memset(&vattr, 0, sizeof(vattr));
@@ -1168,7 +1161,7 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 			    VTOZ(vp)->z_phys->zp_s2fid,
 			    FIDLINK_CREATE, vp, NULL);
 #if 1
-			fprintf(stderr, "create: name = %s, fid = 0x%lx, errno = %d\n", 
+			fprintf(stderr, "create: name = %s, fid = 0x%lx, errno = %d\n",
 				name, vattr.va_fid, errno);
 #endif
 			if (error)
@@ -1384,7 +1377,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 		error = fill_sstb(vp, mfp, sstb, &cred);
 
 #if 0
-	fprintf(stderr, "mkdir: name = %s, fid = 0x%lx, errno = %d\n", 
+	fprintf(stderr, "mkdir: name = %s, fid = 0x%lx, errno = %d\n",
 				name, vattr.va_fid, errno);
 #endif
 
