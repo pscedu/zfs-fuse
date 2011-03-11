@@ -1019,6 +1019,7 @@ _zfsslash2_fidlink(struct pfl_callerinfo *pfl_callerinfo, slfid_t fid,
 	    "flags=%x error=%d",
 	    id_name, VTOZ(dvp)->z_id, fid, flags, error);
 
+	VN_RELE(dvp);
 	return (error);
 }
 
