@@ -901,12 +901,14 @@ All I can hope is that we can simply disable this code without risk */
 		while ((end_size = zp->z_phys->zp_size) < uio->uio_loffset)
 			(void) atomic_cas_64(&zp->z_phys->zp_size, end_size,
 			    uio->uio_loffset);
-		zfs_log_write(zilog, tx, TX_WRITE, zp, woff, tx_bytes, ioflag);
 
-		if (logfuncp && !niter)
+		if (logfuncp) {
 			/* Make only one call into slash2 land.
 			 */
-			logfuncp(datap, dmu_tx_get_txg(tx));
+			if (!niter)
+				logfuncp(datap, dmu_tx_get_txg(tx));
+		} else 
+			zfs_log_write(zilog, tx, TX_WRITE, zp, woff, tx_bytes, ioflag);
 
 		dmu_tx_commit(tx);
 
@@ -1441,12 +1443,6 @@ top:
 		zp->z_phys->zp_s2fid = vap->va_fid;
 		(void) zfs_link_create(dl, zp, tx, ZNEW);
 
-		txtype = zfs_log_create_txtype(Z_FILE, vsecp, vap);
-		if (flag & FIGNORECASE)
-			txtype |= TX_CI;
-		zfs_log_create(zilog, tx, txtype, dzp, zp, name,
-		    vsecp, acl_ids.z_fuidp, vap);
-
 		if (logfunc) {
 			struct srt_stat sstb;
 			uint64_t txg;
@@ -1468,6 +1464,12 @@ top:
 			logfunc(NS_OP_CREATE, txg,
 			    dzp->z_phys->zp_s2fid, 0, &sstb,
 			    vap->va_mask, name, NULL);
+		} else {
+			txtype = zfs_log_create_txtype(Z_FILE, vsecp, vap);
+			if (flag & FIGNORECASE)
+				txtype |= TX_CI;
+			zfs_log_create(zilog, tx, txtype, dzp, zp, name,
+		    		vsecp, acl_ids.z_fuidp, vap);
 		}
 
 		zfs_acl_ids_free(&acl_ids);
@@ -1711,11 +1713,6 @@ top:
 		zfs_unlinked_add(zp, tx);
 	}
 
-	txtype = TX_REMOVE;
-	if (flags & FIGNORECASE)
-		txtype |= TX_CI;
-	zfs_log_remove(zilog, tx, txtype, dzp, name);
-
 	if (logfunc) {
 		struct srt_stat sstb;
 		uint64_t txg;
@@ -1728,6 +1725,11 @@ top:
 		sstb.sst_nlink = zp->z_phys->zp_links;
 		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2fid, 0,
 		    &sstb, 0, name, NULL);
+	} else {
+		txtype = TX_REMOVE;
+		if (flags & FIGNORECASE)
+			txtype |= TX_CI;
+		zfs_log_remove(zilog, tx, txtype, dzp, name);
 	}
 	dmu_tx_commit(tx);
 out:
@@ -1901,12 +1903,6 @@ top:
 
 	*vpp = ZTOV(zp);
 
-	txtype = zfs_log_create_txtype(Z_DIR, vsecp, vap);
-	if (flags & FIGNORECASE)
-		txtype |= TX_CI;
-	zfs_log_create(zilog, tx, txtype, dzp, zp, dirname, vsecp,
-	    acl_ids.z_fuidp, vap);
-
 	if (logfunc) {
 		struct srt_stat sstb;
 		uint64_t txg;
@@ -1929,7 +1925,14 @@ top:
 		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2fid,
 		    zp->z_phys->zp_s2fid, &sstb, vap->va_mask, dirname,
 		    NULL);
+	} else {
+		txtype = zfs_log_create_txtype(Z_DIR, vsecp, vap);
+		if (flags & FIGNORECASE)
+			txtype |= TX_CI;
+		zfs_log_create(zilog, tx, txtype, dzp, zp, dirname, vsecp,
+		    acl_ids.z_fuidp, vap);
 	}
+
 	zfs_acl_ids_free(&acl_ids);
 	dmu_tx_commit(tx);
 
@@ -2045,25 +2048,25 @@ top:
 	error = zfs_link_destroy(dl, zp, tx, zflg, NULL);
 
 	if (error == 0) {
-		uint64_t txtype = TX_RMDIR;
-		if (flags & FIGNORECASE)
-			txtype |= TX_CI;
-		zfs_log_remove(zilog, tx, txtype, dzp, name);
-	}
+		if (logfunc) {
+			struct srt_stat sstb;
+			uint64_t txg;
 
-	if (logfunc) {
-		struct srt_stat sstb;
-		uint64_t txg;
+			txg = dmu_tx_get_txg(tx);
 
-		txg = dmu_tx_get_txg(tx);
+			memset(&sstb, 0, sizeof(sstb));
+			sstb.sst_uid = cr->cr_uid;
+			sstb.sst_gid = cr->cr_gid;
+			sstb.sst_fid = zp->z_phys->zp_s2fid;
 
-		memset(&sstb, 0, sizeof(sstb));
-		sstb.sst_uid = cr->cr_uid;
-		sstb.sst_gid = cr->cr_gid;
-		sstb.sst_fid = zp->z_phys->zp_s2fid;
-
-		logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2fid, 0,
-		    &sstb, 0, name, NULL);
+			logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2fid, 0,
+			    &sstb, 0, name, NULL);
+		} else { 
+			uint64_t txtype = TX_RMDIR;
+			if (flags & FIGNORECASE)
+				txtype |= TX_CI;
+			zfs_log_remove(zilog, tx, txtype, dzp, name);
+		}
 	}
 	dmu_tx_commit(tx);
 
@@ -3150,26 +3153,7 @@ top:
 	if (fuid_dirtied)
 		zfs_fuid_sync(zfsvfs, tx);
 
-	if (mask != 0)
-		zfs_log_setattr(zilog, tx, TX_SETATTR, zp, vap, mask, fuidp);
-
-	mutex_exit(&zp->z_lock);
-
-out:
-	if (attrzp)
-		VN_RELE(ZTOV(attrzp));
-
-	if (aclp)
-		zfs_acl_free(aclp);
-
-	if (fuidp) {
-		zfs_fuid_info_free(fuidp);
-		fuidp = NULL;
-	}
-
-	if (err)
-		dmu_tx_abort(tx);
-	else {
+	if (mask != 0) {
 		if (logfunc) {
 			int op;
 			struct srt_stat sstb;
@@ -3194,9 +3178,28 @@ out:
 			    vap->va_mask & (AT_UID | AT_GID | AT_TYPE |
 			    AT_MODE | AT_ATIME | AT_MTIME | AT_CTIME |
 			    AT_SIZE | AT_SLASH2SIZE), NULL, NULL);
-		}
-		dmu_tx_commit(tx);
+		} else
+			zfs_log_setattr(zilog, tx, TX_SETATTR, zp, vap, mask, fuidp);
 	}
+
+	mutex_exit(&zp->z_lock);
+
+out:
+	if (attrzp)
+		VN_RELE(ZTOV(attrzp));
+
+	if (aclp)
+		zfs_acl_free(aclp);
+
+	if (fuidp) {
+		zfs_fuid_info_free(fuidp);
+		fuidp = NULL;
+	}
+
+	if (err)
+		dmu_tx_abort(tx);
+	else
+		dmu_tx_commit(tx);
 
 	if (err == ERESTART)
 		goto top;
@@ -3610,11 +3613,10 @@ top:
 				    sdzp->z_phys->zp_s2fid,
 				    tdzp->z_phys->zp_s2fid, &sstb, 0,
 				    snm, tnm);
-			}
-
-			zfs_log_rename(zilog, tx,
-			    TX_RENAME | (flags & FIGNORECASE ? TX_CI : 0),
-			    sdzp, sdl->dl_name, tdzp, tdl->dl_name, szp);
+			} else
+				zfs_log_rename(zilog, tx,
+				    TX_RENAME | (flags & FIGNORECASE ? TX_CI : 0),
+				    sdzp, sdl->dl_name, tdzp, tdl->dl_name, szp);
 
 			/* Update path information for the target vnode */
 			vn_renamepath(tdvp, ZTOV(szp), tnm, strlen(tnm));
@@ -3779,10 +3781,6 @@ top:
 	zp->z_phys->zp_s2fid = vap->va_fid;
 	(void) zfs_link_create(dl, zp, tx, ZNEW);
 	if (error == 0) {
-		uint64_t txtype = TX_SYMLINK;
-		if (flags & FIGNORECASE)
-			txtype |= TX_CI;
-		zfs_log_symlink(zilog, tx, txtype, dzp, zp, name, link);
 		if (logfunc) {
 			struct srt_stat sstb;
 			uint64_t txg;
@@ -3801,6 +3799,11 @@ top:
 			logfunc(NS_OP_SYMLINK, txg,
 			    dzp->z_phys->zp_s2fid, zp->z_phys->zp_s2fid,
 			    &sstb, vap->va_mask, name, link);
+		} else {
+			uint64_t txtype = TX_SYMLINK;
+			if (flags & FIGNORECASE)
+				txtype |= TX_CI;
+			zfs_log_symlink(zilog, tx, txtype, dzp, zp, name, link);
 		}
 	}
 
@@ -3985,11 +3988,6 @@ top:
 	error = zfs_link_create(dl, szp, tx, (flags & FKEEPPARENT) ? 0 : ZPARENT);
 
 	if (error == 0) {
-		uint64_t txtype = TX_LINK;
-		if (flags & FIGNORECASE)
-			txtype |= TX_CI;
-		zfs_log_link(zilog, tx, txtype, dzp, szp, name);
-
 		if (logfunc) {
 			struct srt_stat sstb;
 			uint64_t txg;
@@ -3998,6 +3996,11 @@ top:
 			sstb.sst_fid = szp->z_phys->zp_s2fid;
 			logfunc(NS_OP_LINK, txg, dzp->z_phys->zp_s2fid,
 			    0, &sstb, 0, name, NULL);
+		} else {
+			uint64_t txtype = TX_LINK;
+			if (flags & FIGNORECASE)
+				txtype |= TX_CI;
+			zfs_log_link(zilog, tx, txtype, dzp, szp, name);
 		}
 	}
 

@@ -1950,7 +1950,7 @@ zfsslash2_fsync(const struct slash_creds *slcrp, int datasync,
 	vnode_t *vp = info->vp;
 
 	int error = VOP_FSYNC(vp, datasync ? FDSYNC : FSYNC, &cred,
-	    NULL);
+	    NULL);	/* zfs_fsync() */
 
 	ZFS_EXIT(zfsvfs);
 
