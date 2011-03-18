@@ -995,6 +995,7 @@ _zfsslash2_fidlink(struct pfl_callerinfo *pfl_callerinfo, slfid_t fid,
 			    FALLOWDIRLINK | FKEEPPARENT, NULL);
 		} else {
 			vattr_t vattr;
+
 			memset(&vattr, 0, sizeof(vattr));
 			vattr.va_type = VDIR;
 			vattr.va_mode = 0711;
