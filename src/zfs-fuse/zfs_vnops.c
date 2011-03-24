@@ -3613,6 +3613,15 @@ top:
 				    sdzp->z_phys->zp_s2fid,
 				    tdzp->z_phys->zp_s2fid, &sstb, 0,
 				    snm, tnm);
+
+				if (tzp) {
+					memset(&sstb, 0, sizeof(sstb));
+					sstb.sst_fid = tzp->z_phys->zp_s2fid;
+					sstb.sst_gen = tzp->z_phys->zp_s2gen;
+					logfunc(NS_OP_RECLAIM, txg, 
+					    tzp->z_phys->zp_s2fid, 0, 
+					    &sstb, 0, NULL, NULL);
+				}
 			} else
 				zfs_log_rename(zilog, tx,
 				    TX_RENAME | (flags & FIGNORECASE ? TX_CI : 0),
