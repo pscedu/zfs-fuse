@@ -2263,8 +2263,8 @@ zfsslash2_replay_mkdir(slfid_t pfid, char *name, struct srt_stat *sstb)
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP | FIDLINK_CREATE,
 	    NULL, &pvp);
 	if (error) {
-		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
-		    sstb->sst_fid, slstrerror(error));
+		psclog_errorx("failed to look up or create fidlink "SLPRI_FID": %s",
+		    pfid, slstrerror(error));
 		goto out;
 	}
 
@@ -2279,10 +2279,16 @@ zfsslash2_replay_mkdir(slfid_t pfid, char *name, struct srt_stat *sstb)
 
 	error = VOP_MKDIR(pvp, name, &vattr, &tvp, &cred, NULL, 0, NULL,
 	    NULL); /* zfs_mkdir() */
-	if (error)
+	if (error) {
+		psclog_errorx("failed to mkdir "SLPRI_FID": %s",
+		    sstb->sst_fid, slstrerror(error));
 		goto out;
+	}
 
 	error = zfsslash2_fidlink(sstb->sst_fid, FIDLINK_CREATE, tvp, NULL);
+	if (error)
+		psclog_errorx("failed to create fidlink "SLPRI_FID": %s",
+		    sstb->sst_fid, slstrerror(error));
 
  out:
 	if (pvp)
@@ -2329,7 +2335,9 @@ zfsslash2_replay_create(slfid_t pfid, char *name, struct srt_stat *sstb)
 
 	error = zfsslash2_fidlink(sstb->sst_fid, FIDLINK_CREATE, tvp,
 	    NULL);
-
+	if (error)
+		psclog_errorx("failed to create fidlink "SLPRI_FID": %s",
+		    sstb->sst_fid, slstrerror(error));
  out:
 	if (tvp)
 		VN_RELE(tvp);
