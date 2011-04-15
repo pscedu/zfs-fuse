@@ -287,14 +287,22 @@ txg_rele_to_sync(txg_handle_t *th)
 void
 txg_slash2_wait(dsl_pool_t *dp)
 {
-	uint64_t txg;
 	tx_state_t *tx = &dp->dp_tx;
 
-	txg = tx->tx_open_txg;
+	/*
+ 	 * I used to assert the txg (tx_open_txg) increments by exactly 
+ 	 * one after this function.  But later I realized that doing
+ 	 * do needs locking.
+ 	 */
 	mutex_enter(&tx->tx_slash2_lock);
-	cv_wait(&tx->tx_slash2_cv2, &tx->tx_slash2_lock);
+	/*
+	 * When the cursor starts the first transaction in a group,
+	 * this count is of course one. However, if the quiesce beats 
+	 * the cursor, we should close the transaction.
+	 */
+	if (tx->tx_txg_count)
+		cv_wait(&tx->tx_slash2_cv2, &tx->tx_slash2_lock);
 	mutex_exit(&tx->tx_slash2_lock);
-	ASSERT(txg == tx->tx_open_txg - 1);
 }
 
 static void

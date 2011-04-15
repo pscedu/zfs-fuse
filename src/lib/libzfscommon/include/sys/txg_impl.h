@@ -62,7 +62,7 @@ typedef struct tx_state {
 
 	kcondvar_t	tx_slash2_cv1;
 	kcondvar_t	tx_slash2_cv2;
-	kmutex_t	tx_slash2_lock;	
+	kmutex_t	tx_slash2_lock;	/* the above two conds share this lock */
 
 	uint8_t		tx_threads;	/* number of threads */
 	uint8_t		tx_exiting;	/* set when we're exiting */
