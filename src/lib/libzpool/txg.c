@@ -73,8 +73,8 @@ txg_init(dsl_pool_t *dp, uint64_t txg)
 	cv_init(&tx->tx_quiesce_done_cv, NULL, CV_DEFAULT, NULL);
 	cv_init(&tx->tx_exit_cv, NULL, CV_DEFAULT, NULL);
 
-	cv_init(&tx->tx_slash2_cv, NULL, CV_DEFAULT, NULL);
 	cv_init(&tx->tx_slash2_cv1, NULL, CV_DEFAULT, NULL);
+	cv_init(&tx->tx_slash2_cv2, NULL, CV_DEFAULT, NULL);
 
 	tx->tx_open_txg = txg;
 	tx->tx_txg_count = 0;
@@ -292,7 +292,7 @@ txg_slash2_wait(dsl_pool_t *dp)
 
 	txg = tx->tx_open_txg;
 	mutex_enter(&tx->tx_slash2_lock);
-	cv_wait(&tx->tx_slash2_cv, &tx->tx_slash2_lock);
+	cv_wait(&tx->tx_slash2_cv2, &tx->tx_slash2_lock);
 	mutex_exit(&tx->tx_slash2_lock);
 	ASSERT(txg == tx->tx_open_txg - 1);
 }
@@ -315,7 +315,7 @@ txg_quiesce(dsl_pool_t *dp, uint64_t txg)
 
 	mutex_enter(&tx->tx_slash2_lock);
 	tx->tx_txg_count = 0;
-	cv_broadcast(&tx->tx_slash2_cv);
+	cv_broadcast(&tx->tx_slash2_cv2);
 	mutex_exit(&tx->tx_slash2_lock);
 
 	/*
