@@ -57,9 +57,10 @@
 
 #include "creds.h"
 #include "fid.h"
+#include "inode.h"
 #include "pathnames.h"
+#include "slashrpc.h"
 #include "slerr.h"
-#include "sljournal.h"
 #include "sltypes.h"
 
 #include "slashd/mdsio.h"

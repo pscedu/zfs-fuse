@@ -80,7 +80,7 @@
 
 #include "zfs_slashlib.h"
 #include "slashd/namespace.h"
-#include "sljournal.h"
+#include "slashrpc.h"
 
 /*
  * Programming rules.
