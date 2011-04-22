@@ -47,6 +47,7 @@ __thread int cur_fd = -1;
 
 avl_tree_t fd_avl;
 pthread_mutex_t fd_avl_mtx = PTHREAD_MUTEX_INITIALIZER;
+const char *zfs_sock_name;
 
 /*
  * AVL comparison function used to order the fd tree
@@ -89,25 +90,29 @@ int zfsfuse_socket_create()
 	mkdir(ZPOOL_CACHE_DIR, 0700);
 	mkdir(ZFS_SOCK_DIR, 0700);
 
+	zfs_sock_name = getenv("ZFS_SOCK_NAME");
+	if (zfs_sock_name == NULL)
+		zfs_sock_name = ZFS_SOCK_NAME;
+
 	/* Bind a name to the socket. */
 	name.sun_family = AF_LOCAL;
-	strncpy(name.sun_path, ZFS_SOCK_NAME, sizeof(name.sun_path));
+	strncpy(name.sun_path, zfs_sock_name, sizeof(name.sun_path));
 
 	name.sun_path[sizeof(name.sun_path) - 1] = '\0';
 
 	size = SUN_LEN(&name);
 
-	unlink(ZFS_SOCK_NAME);
+	unlink(zfs_sock_name);
 
 	if(bind(sock, &name, size) != 0) {
 		int err = errno;
-		cmn_err(CE_WARN, "Error binding UNIX socket to %s: %s.", ZFS_SOCK_NAME, strerror(err));
+		cmn_err(CE_WARN, "Error binding UNIX socket to %s: %s.", zfs_sock_name, strerror(err));
 		return -1;
 	}
 
 	if(listen(sock, 5) != 0) {
 		int err = errno;
-		cmn_err(CE_WARN, "Listening error on UNIX socket %s: %s.", ZFS_SOCK_NAME, strerror(err));
+		cmn_err(CE_WARN, "Listening error on UNIX socket %s: %s.", zfs_sock_name, strerror(err));
 		return -1;
 	}
 
@@ -120,7 +125,7 @@ void zfsfuse_socket_close(int fd)
 {
 	close(fd);
 
-	unlink(ZFS_SOCK_NAME);
+	unlink(zfs_sock_name);
 
 	avl_destroy(&fd_avl);
 }
