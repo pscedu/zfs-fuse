@@ -431,6 +431,10 @@ txg_sync_thread(dsl_pool_t *dp)
 			 * We make sure that the transaction that updates the SLASH2
 			 * cursor file is the first to come and the last to go. Wait 
 			 * longer if there are no other activities.
+			 *
+			 * 04/22/2011: Apparently, even with this, ZFS can close a
+			 * transaction group with only the cursor update in it. But
+			 * this is only one code path.
 			 */
 			if (tx->tx_txg_count == 1) {
 				start = lbolt;

@@ -641,8 +641,9 @@ zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr,
 			return (error);
 		}
 
+		logfuncp(datap, dmu_tx_get_txg(tx), 1);
 		txg_slash2_wait(dmu_tx_pool(tx));
-		logfuncp(datap, dmu_tx_get_txg(tx));
+		logfuncp(datap, dmu_tx_get_txg(tx), 2);
 
 		error = dmu_write_uio(zfsvfs->z_os, zp->z_id, uio,
 			    uio->uio_resid, tx);
@@ -906,7 +907,7 @@ All I can hope is that we can simply disable this code without risk */
 			/* Make only one call into slash2 land.
 			 */
 			if (!niter)
-				logfuncp(datap, dmu_tx_get_txg(tx));
+				logfuncp(datap, dmu_tx_get_txg(tx), 0);
 		} else 
 			zfs_log_write(zilog, tx, TX_WRITE, zp, woff, tx_bytes, ioflag);
 
