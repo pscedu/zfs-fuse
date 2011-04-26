@@ -4293,9 +4293,15 @@ main(int argc, char **argv)
 		 * 'freeze' is a vile debugging abomination, so we treat
 		 * it as such.
 		 */
+		const char *sockname;
 		char buf[16384];
+
+		sockname = getenv("ZFS_SOCK_NAME");
+		if (sockname == NULL)
+			sockname = ZFS_SOCK_NAME;
+
 		/* zfs-fuse: zfsfuse_open() connects to the UNIX domain socket */
-		int fd = zfsfuse_open(ZFS_SOCK_NAME, O_RDWR);
+		int fd = zfsfuse_open(sockname, O_RDWR);
 		(void) strcpy((void *)buf, argv[2]);
 		return (!!ioctl(fd, ZFS_IOC_POOL_FREEZE, buf));
 	} else {

@@ -576,13 +576,18 @@ libzfs_handle_t *
 libzfs_init(void)
 {
 	libzfs_handle_t *hdl;
+	const char *sockname;
 
 	if ((hdl = calloc(sizeof (libzfs_handle_t), 1)) == NULL) {
 		return (NULL);
 	}
 
+	sockname = getenv("ZFS_SOCK_NAME");
+	if (sockname == NULL)
+		sockname = ZFS_SOCK_NAME;
+
 	/* ZFSFUSE */
-	if ((hdl->libzfs_fd = zfsfuse_open(ZFS_SOCK_NAME, O_RDWR)) == -1) {
+	if ((hdl->libzfs_fd = zfsfuse_open(sockname, O_RDWR)) == -1) {
 		free(hdl);
 		return (NULL);
 	}
