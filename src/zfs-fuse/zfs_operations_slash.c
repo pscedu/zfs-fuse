@@ -57,12 +57,12 @@
 
 #include "creds.h"
 #include "fid.h"
-#include "inode.h"
 #include "pathnames.h"
 #include "slashrpc.h"
 #include "slerr.h"
 #include "sltypes.h"
 
+#include "slashd/inode.h"
 #include "slashd/mdsio.h"
 
 kmem_cache_t	*file_info_cache;
@@ -1669,9 +1669,9 @@ zfsslash2_unlink(mdsio_fid_t parent, const char *name,
  * Returns errno on failure, 0 on success.
  */
 int
-zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
-    size_t size, size_t *nb, off_t off, int update_mtime, void *finfo,
-    sl_log_write_t funcp, void *datap)
+zfsslash2_pwritev(const struct slash_creds *slcrp,
+    const struct iovec *iovs, int niov, size_t *nb, off_t off,
+    int update_mtime, void *finfo, sl_log_write_t funcp, void *datap)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	file_info_t *info = finfo;
@@ -1684,17 +1684,18 @@ zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
 
 	ZFS_ENTER(zfsvfs);
 
-	iovec_t iovec;
+	size_t size = 0;
+	int i;
+	for (i = 0; i < niov; i++)
+		size += iovs[i].iov_len;
+
 	uio_t uio;
-	uio.uio_iov = &iovec;
-	uio.uio_iovcnt = 1;
+	uio.uio_iov = (struct iovec *)iovs;
+	uio.uio_iovcnt = niov;
 	uio.uio_segflg = UIO_SYSSPACE;
 	uio.uio_fmode = 0;
 	uio.uio_llimit = RLIM64_INFINITY;
-
-	iovec.iov_base = (void *)buf;
-	iovec.iov_len = size;
-	uio.uio_resid = iovec.iov_len;
+	uio.uio_resid = size;
 	uio.uio_loffset = off;
 
 	int error = VOP_WRITE(vp, &uio,
@@ -1710,6 +1711,19 @@ zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
 	}
 
 	return error;
+}
+
+__inline int
+zfsslash2_write(const struct slash_creds *slcrp, const void *buf,
+    size_t size, size_t *nb, off_t off, int update_mtime, void *finfo,
+    sl_log_write_t funcp, void *datap)
+{
+	struct iovec iov;
+
+	iov.iov_base = (void *)buf;
+	iov.iov_len = size;
+	return (zfsslash2_pwritev(slcrp, &iov, 1, nb, off, update_mtime,
+	    finfo, funcp, datap));
 }
 
 int
