@@ -23,6 +23,7 @@
  * Use is subject to license terms.
  */
 
+#include <err.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
@@ -63,7 +64,7 @@ int zfsfuse_open(const char *pathname, int flags)
 
 	if(connect(sock, (struct sockaddr *) &name, size) == -1) {
 		int error = errno;
-		perror("connect");
+		warn("connect: %s", pathname);
 		if(error == ENOENT || error == ECONNREFUSED)
 			fprintf(stderr, "Please make sure that the zfs-fuse daemon is running.\n");
 		return -1;
