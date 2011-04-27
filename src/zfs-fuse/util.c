@@ -63,6 +63,7 @@ pthread_t listener_thread;
 int num_filesystems;
 
 char * fuse_mount_options;
+char * zfs_lock_file;
 
 extern vfsops_t *zfs_vfsops;
 extern int zfs_vfsinit(int fstype, char *name);
@@ -72,6 +73,10 @@ static int zfsfuse_do_locking(int in_child)
 	/* Ignores errors since the directory might already exist */
 	mkdir(LOCKDIR, 0700);
 
+	zfs_lock_file = getenv("ZFS_LOCK_FILE");
+	if (zfs_lock_file == NULL)
+		zfs_lock_file = LOCKFILE;
+
     if (!in_child)
     {
         ASSERT(lock_fd == -1);
@@ -79,7 +84,7 @@ static int zfsfuse_do_locking(int in_child)
          * before the fork, we create the file, truncating it, and locking the
          * first byte
          */
-        lock_fd = creat(LOCKFILE, S_IRUSR | S_IWUSR);
+        lock_fd = creat(zfs_lock_file, S_IRUSR | S_IWUSR);
         if(lock_fd == -1)
             return -1;
 
@@ -101,7 +106,7 @@ static int zfsfuse_do_locking(int in_child)
          * first byte; the file /must/ already exist. Only in this way can we
          * prevent races with locking before or after the daemonization
          */
-        lock_fd = open(LOCKFILE, O_WRONLY|O_CLOEXEC);
+        lock_fd = open(zfs_lock_file, O_WRONLY|O_CLOEXEC);
         if(lock_fd == -1)
             return -1;
 
@@ -192,7 +197,7 @@ void do_daemon(const char *pidfile)
 
     if (0 != zfsfuse_do_locking(1))
     {
-        cmn_err(CE_WARN, "Unexpected locking conflict (%s: %s)", strerror(errno), LOCKFILE);
+        cmn_err(CE_WARN, "Unexpected locking conflict (%s: %s)", strerror(errno), zfs_lock_file);
         exit(1);
     }
 
@@ -218,7 +223,10 @@ extern size_t stack_size;
 int do_init_fusesocket()
 {
 	if(zfsfuse_do_locking(0) != 0) {
-		cmn_err(CE_WARN, "Error locking " LOCKFILE ". Make sure there isn't another zfs-fuse process running and that you have appropriate permissions.");
+		cmn_err(CE_WARN, "Error locking %s.  Make sure "
+		    "there isn't another zfs-fuse process running and "
+		    "that you have appropriate permissions.",
+		    zfs_lock_file);
 		return -1;
 	}
 
