@@ -66,7 +66,7 @@ int zfsfuse_open(const char *pathname, int flags)
 		int error = errno;
 		warn("connect: %s", pathname);
 		if(error == ENOENT || error == ECONNREFUSED)
-			fprintf(stderr, "Please make sure that the zfs-fuse daemon is running.\n");
+			fprintf(stderr, "Please make sure that the zfs-fuse daemon is running, error = %d\n", error);
 		return -1;
 	}
 
