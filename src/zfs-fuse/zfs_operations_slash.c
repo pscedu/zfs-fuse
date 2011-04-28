@@ -926,7 +926,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
  * file system.
  */
 int
-_zfsslash2_fidlink(struct pfl_callerinfo *pfl_callerinfo, slfid_t fid,
+_zfsslash2_fidlink(const struct pfl_callerinfo *pfl_callerinfo, slfid_t fid,
     int flags, vnode_t *svp, vnode_t **vpp)
 {
 	int		 i;
