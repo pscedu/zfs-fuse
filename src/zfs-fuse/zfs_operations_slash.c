@@ -1316,7 +1316,7 @@ zfsslash2_preadv(const struct slash_creds *slcrp, struct iovec *iovs,
 	int i;
 	uio.uio_resid = 0;
 	for (i = 0; i < niov; i++)
-		uio.uio_resid = iovs[i].iov_len;
+		uio.uio_resid += iovs[i].iov_len;
 	uio.uio_loffset = off;
 
 	int error = VOP_READ(vp, &uio, info->flags, &cred, NULL);
