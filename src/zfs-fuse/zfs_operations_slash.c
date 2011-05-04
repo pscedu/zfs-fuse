@@ -1292,8 +1292,8 @@ zfsslash2_readlink(mdsio_fid_t ino, char *buf,
  * Returns errno on failure, 0 on success.
  */
 int
-zfsslash2_read(const struct slash_creds *slcrp, void *buf, size_t size,
-    size_t *nb, off_t off, void *finfo)
+zfsslash2_preadv(const struct slash_creds *slcrp, struct iovec *iovs,
+    int niov, size_t *nb, off_t off, void *finfo)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	file_info_t *info = finfo;
@@ -1306,17 +1306,17 @@ zfsslash2_read(const struct slash_creds *slcrp, void *buf, size_t size,
 
 	ZFS_ENTER(zfsvfs);
 
-	iovec_t iovec;
 	uio_t uio;
-	uio.uio_iov = &iovec;
-	uio.uio_iovcnt = 1;
+	uio.uio_iov = iovs;
+	uio.uio_iovcnt = niov;
 	uio.uio_segflg = UIO_SYSSPACE;
 	uio.uio_fmode = 0;
 	uio.uio_llimit = RLIM64_INFINITY;
 
-	iovec.iov_base = buf;
-	iovec.iov_len = size;
-	uio.uio_resid = iovec.iov_len;
+	int i;
+	uio.uio_resid = 0;
+	for (i = 0; i < niov; i++)
+		uio.uio_resid = iovs[i].iov_len;
 	uio.uio_loffset = off;
 
 	int error = VOP_READ(vp, &uio, info->flags, &cred, NULL);
@@ -1326,6 +1326,17 @@ zfsslash2_read(const struct slash_creds *slcrp, void *buf, size_t size,
 	if (error == 0)
 		*nb = uio.uio_loffset - off;
 	return (error);
+}
+
+int
+zfsslash2_read(const struct slash_creds *slcrp, void *buf, size_t size,
+    size_t *nb, off_t off, void *finfo)
+{
+	struct iovec iov;
+
+	iov.iov_base = buf;
+	iov.iov_len = size;
+	return (zfsslash2_preadv(slcrp, &iov, 1, nb, off, finfo));
 }
 
 int
