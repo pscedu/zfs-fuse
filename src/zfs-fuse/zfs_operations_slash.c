@@ -254,10 +254,13 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb, cred_t *cred)
 	sstb->sst_rdev = vattr.va_rdev;
 	if (S_ISDIR(sstb->sst_mode))
 		/*
-		 * We used to return (vattr.va_blksize * vattr.va_nblocks) here. But
-		 * we couldn't get consistent results from different code paths. So
-		 * we decided to adopt ZFS's way, which the number of entries in a
-		 * directory.
+		 * We used to return this:
+		 *
+		 *	(vattr.va_blksize * vattr.va_nblocks)
+		 *
+		 * But we couldn't get consistent results from different
+		 * code paths.  So we decided to adopt ZFS's way which
+		 * is the number of entries in a directory.
 		 */
 		sstb->sst_size = vattr.va_size;
 	else
@@ -1060,7 +1063,7 @@ zfsslash2_lookup_slfid(slfid_t fid, const struct slash_creds *slcrp,
  * @logfunc: callback for logging create operation.
  * @getslfid: callback for retrieving a unique SLASH FID.
  *
- * Note that ino is the target inode if this is an open, otherwise it is
+ * Note that ino is the target inode if this is an open; otherwise it is
  * the inode of the parent.
  */
 int
