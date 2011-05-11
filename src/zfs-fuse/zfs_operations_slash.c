@@ -223,7 +223,8 @@ zfsslash2_statfs(struct statvfs *sfb)
 }
 
 static int
-fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb, cred_t *cred)
+fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
+    cred_t *cred)
 {
 	struct slash_fidgen fg;
 	vattr_t vattr;
@@ -248,7 +249,8 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb, cred_t *cred)
 
 	sstb->sst_mode = VTTOIF(vattr.va_type) | vattr.va_mode;
 	/* subtract 1 for immutable namespace link */
-	sstb->sst_nlink = (vattr.va_nlink > 1) ? (vattr.va_nlink - 1) : vattr.va_nlink;
+	sstb->sst_nlink = (vattr.va_nlink > 1) ? (vattr.va_nlink - 1) :
+	    vattr.va_nlink;
 	sstb->sst_uid = vattr.va_uid;
 	sstb->sst_gid = vattr.va_gid;
 	sstb->sst_rdev = vattr.va_rdev;
@@ -276,6 +278,27 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb, cred_t *cred)
 	sstb->sst_ctime_ns = vattr.va_ctime.tv_nsec;
 
 	return 0;
+}
+
+static int
+zfsslash2_getmetafsize(void *finfo, const struct slash_creds *slcrp,
+    off_t *sizep)
+{
+	cred_t cred = ZFS_INIT_CREDS(slcrp);
+	file_info_t *info = finfo;
+	vnode_t *vp = info->vp;
+	vattr_t vattr;
+	int error;
+
+	ASSERT(vp);
+
+	memset(&vattr, 0, sizeof(vattr));
+	error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);
+	if (error)
+		return (error);
+
+	*sizep = vattr.va_size;
+	return (0);
 }
 
 int

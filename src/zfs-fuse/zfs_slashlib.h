@@ -25,6 +25,7 @@ typedef struct file_info {
 int	zfsslash2_access(mdsio_fid_t, int, const struct slash_creds *);
 int	zfsslash2_fsync(const struct slash_creds *, int, void *);
 int	zfsslash2_getattr(mdsio_fid_t, void *finfo, const struct slash_creds *, struct srt_stat *);
+int	zfsslash2_getmetafsize(void *finfo, const struct slash_creds *, off_t *);
 int	zfsslash2_link(mdsio_fid_t, mdsio_fid_t, const char *, const struct slash_creds *, struct srt_stat *, sl_log_update_t);
 int	zfsslash2_lookup(mdsio_fid_t, const char *, mdsio_fid_t *, const struct slash_creds *, struct srt_stat *);
 int	zfsslash2_lookup_slfid(slfid_t, const struct slash_creds *, struct srt_stat *, mdsio_fid_t *);
@@ -45,7 +46,6 @@ int	zfsslash2_statfs(struct statvfs *);
 int	zfsslash2_symlink(const char *, mdsio_fid_t, const char *, const struct slash_creds *, struct srt_stat *, mdsio_fid_t *, sl_getslfid_cb_t, sl_log_update_t);
 int	zfsslash2_unlink(mdsio_fid_t, const char *, const struct slash_creds *, sl_log_update_t);
 int	zfsslash2_write(const struct slash_creds *, const void *, size_t, size_t *, off_t, int, void *, sl_log_write_t, void *);
-
 int	zfsslash2_write_cursor(void *, size_t, void *, sl_log_write_t);
 
 int	do_init_fusesocket(void);
