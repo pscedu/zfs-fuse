@@ -280,7 +280,7 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 	return 0;
 }
 
-static int
+int
 zfsslash2_getmetafsize(void *finfo, const struct slash_creds *slcrp,
     off_t *sizep)
 {
@@ -293,7 +293,7 @@ zfsslash2_getmetafsize(void *finfo, const struct slash_creds *slcrp,
 	ASSERT(vp);
 
 	memset(&vattr, 0, sizeof(vattr));
-	error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);
+	error = VOP_GETATTR(vp, &vattr, 0, &cred, NULL);
 	if (error)
 		return (error);
 
