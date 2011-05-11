@@ -267,7 +267,7 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 		sstb->sst_size = vattr.va_size;
 	else
 		sstb->sst_size = vattr.va_s2size;
-	sstb->sst_blksize = vattr.va_blksize;
+	sstb->sst_blksize = vattr.va_size;
 	sstb->sst_blocks = vattr.va_nblocks;
 
 	sstb->sst_atime = vattr.va_s2atime.tv_sec;
@@ -278,27 +278,6 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 	sstb->sst_ctime_ns = vattr.va_ctime.tv_nsec;
 
 	return 0;
-}
-
-int
-zfsslash2_getmetafsize(void *finfo, const struct slash_creds *slcrp,
-    off_t *sizep)
-{
-	cred_t cred = ZFS_INIT_CREDS(slcrp);
-	file_info_t *info = finfo;
-	vnode_t *vp = info->vp;
-	vattr_t vattr;
-	int error;
-
-	ASSERT(vp);
-
-	memset(&vattr, 0, sizeof(vattr));
-	error = VOP_GETATTR(vp, &vattr, 0, &cred, NULL);
-	if (error)
-		return (error);
-
-	*sizep = vattr.va_size;
-	return (0);
 }
 
 int

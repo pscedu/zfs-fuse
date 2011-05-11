@@ -25,7 +25,6 @@ typedef struct file_info {
 int	zfsslash2_access(mdsio_fid_t, int, const struct slash_creds *);
 int	zfsslash2_fsync(const struct slash_creds *, int, void *);
 int	zfsslash2_getattr(mdsio_fid_t, void *finfo, const struct slash_creds *, struct srt_stat *);
-int	zfsslash2_getmetafsize(void *finfo, const struct slash_creds *, off_t *);
 int	zfsslash2_link(mdsio_fid_t, mdsio_fid_t, const char *, const struct slash_creds *, struct srt_stat *, sl_log_update_t);
 int	zfsslash2_lookup(mdsio_fid_t, const char *, mdsio_fid_t *, const struct slash_creds *, struct srt_stat *);
 int	zfsslash2_lookup_slfid(slfid_t, const struct slash_creds *, struct srt_stat *, mdsio_fid_t *);
