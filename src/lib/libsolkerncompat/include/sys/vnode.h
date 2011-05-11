@@ -185,7 +185,6 @@ typedef struct vattr {
 	timestruc_t  va_s2atime;  	/* SLASH2 last access time */
 	timestruc_t  va_s2mtime;  	/* SLASH2 last modification time */
 	uint32_t     va_s2utimgen;	/* SLASH2 utimes generation # */
-	uint32_t     va_s2nxbmaps;	/* SLASH2 # bmaps beyond EOF */
 } vattr_t;
 
 /*

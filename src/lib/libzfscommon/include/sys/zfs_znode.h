@@ -162,8 +162,8 @@ typedef struct znode_phys {
 	uint64_t zp_s2atime[2];		/* 176 - SLASH2 last access time */
 	uint64_t zp_s2mtime[2];		/* 192 - SLASH2 last modification time */
 	uint32_t zp_s2utimgen;		/* 208 - SLASH2 utimes generation # */
-	uint32_t zp_s2nxbmaps;		/* 212 - SLASH2 # bmaps beyond EOF */ 
 
+	uint32_t zp_pad;		/* 212 - unused */ 
 	zfs_acl_phys_t zp_acl;		/* 216 - 307 ACL */
 	/*
 	 * Data may pad out any remaining bytes in the znode buffer, eg:
