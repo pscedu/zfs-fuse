@@ -1074,7 +1074,7 @@ int
 zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
     int fflags, int opflags, mode_t createmode, const char *name,
     mdsio_fid_t *mfp, struct srt_stat *sstb, void *finfop,
-    sl_log_update_t logfunc, sl_getslfid_cb_t getslfid)
+    sl_log_update_t logfunc, sl_getslfid_cb_t getslfid, slfid_t fid)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1145,6 +1145,8 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 		if (getslfid)
 			vattr.va_fid = getslfid();
+		else
+			vattr.va_fid = fid;
 
 		if (flags & FTRUNC) {
 			vattr.va_size = 0;
