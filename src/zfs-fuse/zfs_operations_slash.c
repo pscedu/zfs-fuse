@@ -2385,8 +2385,7 @@ zfsslash2_replay_create(slfid_t pfid, char *name, struct srt_stat *sstb)
 }
 
 int
-zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name,
-    __unusedx struct srt_stat *sstb)
+zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name)
 {
 	vnode_t *dvp, *vp;
 	int error;

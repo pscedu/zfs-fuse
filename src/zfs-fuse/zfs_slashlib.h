@@ -63,7 +63,7 @@ int	zfsslash2_replay_create(slfid_t, char *, struct srt_stat *stat);
 int	zfsslash2_replay_link(slfid_t, slfid_t, char *, struct srt_stat *stat);
 int	zfsslash2_replay_mkdir(slfid_t, char *, struct srt_stat *stat);
 int	zfsslash2_replay_rename(slfid_t, const char *, slfid_t, const char *, struct srt_stat *);
-int	zfsslash2_replay_rmdir(slfid_t, slfid_t, char *, struct srt_stat *);
+int	zfsslash2_replay_rmdir(slfid_t, slfid_t, char *);
 int	zfsslash2_replay_setattr(slfid_t, uint, struct srt_stat *);
 int	zfsslash2_replay_symlink(slfid_t, slfid_t, char *, char *, struct srt_stat *stat);
 int	zfsslash2_replay_unlink(slfid_t, slfid_t, char *);
