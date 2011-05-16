@@ -2438,8 +2438,7 @@ zfsslash2_replay_rmdir(slfid_t pfid, slfid_t fid, char *name,
 }
 
 int
-zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name,
-    __unusedx struct srt_stat *sstb)
+zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name)
 {
 	vnode_t *vp, *dvp;
 	int error;
