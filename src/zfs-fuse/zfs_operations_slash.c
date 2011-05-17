@@ -1417,7 +1417,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 }
 
 int
-zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
+zfsslash2_rmdir(mdsio_fid_t parent, slfid_t *fid, const char *name,
     const struct slash_creds *slcrp, sl_log_update_t logfunc)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
@@ -1463,6 +1463,8 @@ zfsslash2_rmdir(mdsio_fid_t parent, const char *name,
 	if (error == EEXIST)
 		error = ENOTEMPTY;
 
+	if (fid)
+		*fid = VTOZ(vp)->z_phys->zp_s2fid;
 	if (!error)
 		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
 		    FIDLINK_REMOVE|FIDLINK_DIR, NULL, NULL);
@@ -1630,7 +1632,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 }
 
 int
-zfsslash2_unlink(mdsio_fid_t parent, const char *name,
+zfsslash2_unlink(mdsio_fid_t parent, slfid_t *fid, const char *name,
     const struct slash_creds *slcrp, sl_log_update_t logfunc)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
@@ -1671,6 +1673,8 @@ zfsslash2_unlink(mdsio_fid_t parent, const char *name,
 	if (error)
 		goto out;
 
+	if (fid)
+		*fid = VTOZ(vp)->z_phys->zp_s2fid;
 	/*
 	 * The last remaining link is our FID namespace one,
 	 * so remove the file.
