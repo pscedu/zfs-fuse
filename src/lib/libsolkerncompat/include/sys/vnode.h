@@ -180,11 +180,12 @@ typedef struct vattr {
 
 	/* SLASH2 data file fields */
 	u_offset_t   va_s2size; 	/* SLASH2 file size in bytes */
-	uint32_t     va_s2gen;		/* SLASH2 full truncate generation # */
+	uint64_t     va_s2gen;		/* SLASH2 full truncate generation # */
+	uint64_t     va_s2nblks;	/* SLASH2 st_blocks */
 	uint32_t     va_ptruncgen;	/* SLASH2 partial truncation generation # */
+	uint32_t     va_s2utimgen;	/* SLASH2 utimes generation # */
 	timestruc_t  va_s2atime;  	/* SLASH2 last access time */
 	timestruc_t  va_s2mtime;  	/* SLASH2 last modification time */
-	uint32_t     va_s2utimgen;	/* SLASH2 utimes generation # */
 } vattr_t;
 
 /*
@@ -249,6 +250,7 @@ struct pollhead;
 #define AT_SLASH2MTIME	0x100000
 #define AT_SLASH2CTIME	0x200000
 #define AT_SLASH2GEN	0x400000
+#define AT_SLASH2NBLKS	0x800000
 
 #define AT_ALL   (AT_TYPE|AT_MODE|AT_UID|AT_GID|AT_FSID|AT_NODEID|\
                  AT_NLINK|AT_SIZE|AT_ATIME|AT_MTIME|AT_CTIME|\

@@ -188,6 +188,7 @@ zfs_vattr_to_stat(const vattr_t *vap, struct srt_stat *sstb)
 //	sstb->sst_blksize = vap->va_s2blksize;
 //	sstb->sst_nlink = vap->va_s2nlink;
 	sstb->sst_ptruncgen = vap->va_ptruncgen;
+	sstb->sst_blocks = vap->va_s2nblks;
 	sstb->sst_size = vap->va_s2size;
 	sstb->sst_atime = vap->va_s2atime.tv_sec;
 	sstb->sst_atime_ns = vap->va_s2atime.tv_nsec;
@@ -2468,6 +2469,7 @@ zfs_getattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 	vap->va_s2size = pzp->zp_s2size;
 	vap->va_s2gen = pzp->zp_s2gen;
 	vap->va_ptruncgen = pzp->zp_s2ptruncgen;
+	vap->va_s2nblks = pzp->zp_s2nblks;
 	vap->va_s2utimgen = pzp->zp_s2utimgen;
 	vap->va_rdev = vp->v_rdev;
 	vap->va_seq = zp->z_seq;
@@ -3096,6 +3098,8 @@ top:
 
 	if (mask & AT_PTRUNCGEN)
 		pzp->zp_s2ptruncgen = vap->va_ptruncgen;
+	if (mask & AT_SLASH2NBLKS)
+		pzp->zp_s2nblks = vap->va_s2nblks;
 
 	/* XXX - shouldn't this be done *before* the ATIME/MTIME checks? */
 	if (mask & AT_SIZE)
@@ -3175,10 +3179,12 @@ top:
 			 * stat(2) fields, so don't pass changes in fields
 			 * we don't store.
 			 */
-			logfunc(op, txg, 0, 0, &sstb,
-			    vap->va_mask & (AT_UID | AT_GID | AT_TYPE |
-			    AT_MODE | AT_ATIME | AT_MTIME | AT_CTIME |
-			    AT_SIZE | AT_SLASH2ATIME | AT_SLASH2MTIME | AT_SLASH2SIZE), NULL, NULL);
+			logfunc(op, txg, 0, 0, &sstb, vap->va_mask &
+			    (AT_UID | AT_GID | AT_TYPE | AT_MODE |
+			     AT_ATIME | AT_MTIME | AT_CTIME |
+			     AT_SLASH2NBLKS | AT_SIZE | AT_SLASH2ATIME |
+			     AT_SLASH2MTIME | AT_SLASH2SIZE), NULL,
+			    NULL);
 		} else
 			zfs_log_setattr(zilog, tx, TX_SETATTR, zp, vap, mask, fuidp);
 	}

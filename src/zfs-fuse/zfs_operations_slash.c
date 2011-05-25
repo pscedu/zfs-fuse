@@ -142,6 +142,8 @@ zfsslash2_setattrmask_2_slflags(uint mask)
 		to_set |= PSCFS_SETATTRF_DATASIZE;
 	if (mask & AT_PTRUNCGEN)
 		to_set |= SL_SETATTRF_PTRUNCGEN;
+	if (mask & AT_SLASH2NBLKS)
+		to_set |= SL_SETATTRF_NBLKS;
 	if (mask & AT_SLASH2ATIME)
 		to_set |= PSCFS_SETATTRF_ATIME;
 	if (mask & AT_SLASH2MTIME)
@@ -162,6 +164,8 @@ zfsslash2_slflags_2_setattrmask(int to_set)
 		mask |= AT_SLASH2SIZE;
 	if (to_set & SL_SETATTRF_PTRUNCGEN)
 		mask |= AT_PTRUNCGEN;
+	if (to_set & SL_SETATTRF_NBLKS)
+		mask |= AT_SLASH2NBLKS;
 	if (to_set & PSCFS_SETATTRF_ATIME)
 		mask |= AT_SLASH2ATIME;
 	if (to_set & PSCFS_SETATTRF_MTIME)
@@ -266,11 +270,17 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 		 */
 		sstb->sst_size = vattr.va_size;
 		sstb->sst_blksize = vattr.va_blksize;
+		sstb->sst_blocks = vattr.va_nblocks;
 	} else {
+		/*
+		 * sst_blksize is overridden in the MDS for metafsize
+		 * and is overwritten by the CLI for network performance
+		 * to IOD.
+		 */
 		sstb->sst_size = vattr.va_s2size;
 		sstb->sst_blksize = vattr.va_size;
+		sstb->sst_blocks = vattr.va_s2nblks;
 	}
-	sstb->sst_blocks = vattr.va_nblocks;
 
 	sstb->sst_atime = vattr.va_s2atime.tv_sec;
 	sstb->sst_atime_ns = vattr.va_s2atime.tv_nsec;
@@ -1607,6 +1617,10 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		vattr.va_mask |= AT_SLASH2GEN;
 		vattr.va_s2gen = sstb_in->sst_gen;
 	}
+	if (to_set & SL_SETATTRF_NBLKS) {
+		vattr.va_mask |= AT_SLASH2NBLKS;
+		vattr.va_s2nblks = sstb_in->sst_blocks;
+	}
 	if (to_set & SL_SETATTRF_METASIZE) {
 		vattr.va_mask |= AT_SIZE;
 		vattr.va_size = sstb_in->sst_size;
@@ -2170,16 +2184,13 @@ sstb2vattr(const struct srt_stat *sstb, vattr_t *vap)
 	vap->va_s2utimgen	= sstb->sst_utimgen;
 	vap->va_ptruncgen	= sstb->sst_ptruncgen;
 	vap->va_s2size		= sstb->sst_size;
-//	vap->va_s2blocks	= sstb->sst_nblocks;
-//	vap->va_s2blksize	= sstb->sst_blksize;
-//	vap->va_s2nlink		= sstb->sst_nlink;
+	vap->va_s2nblks		= sstb->sst_blocks;
 
 	vap->va_s2atime.tv_sec	= sstb->sst_atime;
 	vap->va_s2atime.tv_nsec	= sstb->sst_atime_ns;
 	vap->va_s2mtime.tv_sec	= sstb->sst_mtime;
 	vap->va_s2mtime.tv_nsec	= sstb->sst_mtime_ns;
 
-//	vap->va_blocks		= sstb->sst_nblocks;
 	vap->va_blksize		= sstb->sst_blksize;
 	vap->va_nlink		= sstb->sst_nlink;
 	vap->va_uid		= sstb->sst_uid;
