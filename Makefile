@@ -9,3 +9,6 @@ clean-hook:
 
 all-hook:
 	@(cd src && ${SCONS} ROOTDIR=${ROOTDIR}/.. debug=4)
+
+install-hook:
+	@(cd src && ${SCONS} ROOTDIR=${ROOTDIR}/.. debug=4 install)
