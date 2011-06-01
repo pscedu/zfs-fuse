@@ -1689,9 +1689,10 @@ zfsslash2_unlink(mdsio_fid_t parent, slfid_t *fid, const char *name,
 
 	if (fid)
 		*fid = VTOZ(vp)->z_phys->zp_s2fid;
+
 	/*
-	 * The last remaining link is our FID namespace one,
-	 * so remove the file.
+	 * The last remaining link is our FID namespace one, so remove
+	 * the file.
 	 */
 	if (vattr.va_nlink == 1)
 		error = zfsslash2_fidlink(VTOZ(vp)->z_phys->zp_s2fid,
