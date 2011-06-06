@@ -941,13 +941,10 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 			if (!txstate->tx_txg_count) {
 				cv_wait(&txstate->tx_slash2_cv1, 
 					&txstate->tx_slash2_lock);
-				if (!txstate->tx_txg_count) {
-					mutex_exit(&txstate->tx_slash2_lock);
-					goto retry;
-				} else
-					/* XXX we could return RESTART below. */
-					txstate->tx_txg_count++;
-			}
+				mutex_exit(&txstate->tx_slash2_lock);
+				goto retry;
+			} else
+				txstate->tx_txg_count++;
 
 		} else {
 			ASSERT(txstate->tx_txg_count == 0);
