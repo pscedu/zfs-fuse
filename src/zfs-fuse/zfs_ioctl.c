@@ -112,6 +112,12 @@ static int zfs_fill_zplprops_root(uint64_t, nvlist_t *, nvlist_t *,
     boolean_t *);
 int zfs_set_prop_nvlist(const char *, zprop_source_t, nvlist_t *, nvlist_t **);
 
+#ifdef ZFS_SLASHLIB
+# include "psc_util/log.h"
+
+# include "slashd/subsys_mds.h"
+#endif
+
 /* _NOTE(PRINTFLIKE(4)) - this is printf-like, but lint is too whiney */
 void
 __dprintf(const char *file, const char *func, int line, const char *fmt, ...)
@@ -130,6 +136,18 @@ __dprintf(const char *file, const char *func, int line, const char *fmt, ...)
 		newfile = file;
 	}
 
+#ifdef ZFS_SLASHLIB
+	struct pfl_callerinfo pci;
+
+	pci.pci_filename = newfile;
+	pci.pci_func = func;
+	pci.pci_lineno = line;
+	pci.pci_subsys = SLMSS_ZFS;
+
+	va_start(adx, fmt);
+	_psclogv_pci(&pci, PLL_DEBUG, 0, fmt, adx);
+	va_end(adx);
+#else
 	va_start(adx, fmt);
 	(void) vsnprintf(buf, sizeof (buf), fmt, adx);
 	va_end(adx);
@@ -146,6 +164,7 @@ __dprintf(const char *file, const char *func, int line, const char *fmt, ...)
 	 */
 	DTRACE_PROBE4(zfs__dprintf,
 	    char *, newfile, char *, func, int, line, char *, buf);
+#endif
 }
 
 static void
