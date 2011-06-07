@@ -181,7 +181,9 @@ void
 zfsslash2_destroy(void)
 {
 #ifdef DEBUG
-	fprintf(stderr, "Calling do_umount()... force %d\n", exit_fuse_listener);
+	extern int pscfs_exit_fuse_listener;
+
+	fprintf(stderr, "Calling do_umount()... force %d\n", pscfs_exit_fuse_listener);
 #endif
 	/*
 	 * If exit_fuse_listener is true, then we received a signal

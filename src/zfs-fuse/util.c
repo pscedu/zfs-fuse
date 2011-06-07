@@ -305,7 +305,7 @@ void do_exit()
 #endif
 
 #ifdef DEBUG
-uint32_t mounted = 0;
+uint32_t t_mounted = 0;
 #endif
 
 int do_mount(char *spec, char *dir, int mflag, char *opt)
@@ -354,7 +354,7 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 		sprintf(&real_opts[strlen(real_opts)],",%s",opt);
 
 #ifdef DEBUG
-	atomic_inc_32(&mounted);;
+	atomic_inc_32(&t_mounted);
 
 	fprintf(stderr, "mounting %s\n", dir);
 #endif
@@ -427,7 +427,7 @@ int do_umount(vfs_t *vfs, boolean_t force)
 	VFS_RELE(vfs);
 
 #ifdef DEBUG
-	fprintf(stderr, "mounted filesystems: %i\n", atomic_dec_32_nv(&mounted));
+	fprintf(stderr, "mounted filesystems: %i\n", atomic_dec_32_nv(&t_mounted));
 #endif
 
 	return 0;
