@@ -45,6 +45,7 @@ int	zfsslash2_statfs(struct statvfs *);
 int	zfsslash2_symlink(const char *, mdsio_fid_t, const char *, const struct slash_creds *, struct srt_stat *, mdsio_fid_t *, sl_getslfid_cb_t, sl_log_update_t);
 int	zfsslash2_unlink(mdsio_fid_t, slfid_t *, const char *, const struct slash_creds *, sl_log_update_t);
 int	zfsslash2_write(const struct slash_creds *, const void *, size_t, size_t *, off_t, int, void *, sl_log_write_t, void *);
+
 int	zfsslash2_write_cursor(void *, size_t, void *, sl_log_write_t);
 
 int	do_init_fusesocket(void);
@@ -60,6 +61,7 @@ int	zfsslash2_setattrmask_2_slflags(uint);
 uint	zfsslash2_slflags_2_setattrmask(int);
 
 int	zfsslash2_replay_create(slfid_t, char *, struct srt_stat *stat);
+int	zfsslash2_replay_fidlink(slfid_t, const struct slash_creds *);
 int	zfsslash2_replay_link(slfid_t, slfid_t, char *, struct srt_stat *stat);
 int	zfsslash2_replay_mkdir(slfid_t, char *, struct srt_stat *stat);
 int	zfsslash2_replay_rename(slfid_t, const char *, slfid_t, const char *, struct srt_stat *);

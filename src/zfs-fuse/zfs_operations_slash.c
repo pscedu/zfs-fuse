@@ -2572,7 +2572,7 @@ zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t
 }
 
 int
-zfsslash2_redo_fidlink(slfid_t fid, const struct slash_creds *slcrp)
+zfsslash2_replay_fidlink(slfid_t fid, const struct slash_creds *slcrp)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	vnode_t *vp;
