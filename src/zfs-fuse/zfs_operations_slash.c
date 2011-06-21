@@ -2523,7 +2523,14 @@ zfsslash2_replay_setattr(slfid_t fid, uint mask, struct srt_stat *sstb)
 	vattr.va_mask = mask;
 
 	flag = (mask & (AT_ATIME | AT_MTIME)) ? ATTR_UTIME : 0;
-	/* not using zrootcreds will return EPERM (1) */
+	if (vattr.va_mask & AT_SLASH2SIZE) {
+		if (vattr.va_s2size == 0) {
+			/* full truncate - zero all old bmaps */
+			vattr.va_mask |= AT_SIZE;
+			vattr.va_size = SL_BMAP_START_OFF;
+		}
+	}
+	/* Note: not using zrootcreds will return EPERM (1) */
 	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL, NULL);		/* zfs_setattr() */
 	if (!error)
 		error = fill_sstb(vp, NULL, sstb, &zrootcreds);
@@ -2562,4 +2569,20 @@ zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t
 	if (np_vp)
 		VN_RELE(np_vp);
 	return (error);
+}
+
+int
+zfsslash2_redo_fidlink(slfid_t fid, const struct slash_creds *slcrp)
+{
+	cred_t cred = ZFS_INIT_CREDS(slcrp);
+	vnode_t *vp;
+	int error;
+
+	vp = NULL;
+	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &vp);
+	if (error)
+		return (error);
+
+	VN_RELE(vp);
+	return 0;
 }
