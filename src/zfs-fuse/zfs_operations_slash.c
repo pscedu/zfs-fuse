@@ -2578,6 +2578,11 @@ zfsslash2_replay_fidlink(slfid_t fid, const struct slash_creds *slcrp)
 	vnode_t *vp;
 	int error;
 
+	/*
+ 	 * ZFS can put the creation of a file and its fidlink into two different
+ 	 * transaction groups.  We must allow this to happen and create the
+ 	 * fidlink if it is missing.
+ 	 */
 	vp = NULL;
 	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &vp);
 	if (error)
