@@ -945,7 +945,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
  * file system.
  */
 int
-_zfsslash2_fidlink(const struct pfl_callerinfo *pfl_callerinfo, slfid_t fid,
+_zfsslash2_fidlink(const struct pfl_callerinfo *pci, slfid_t fid,
     int flags, vnode_t *svp, vnode_t **vpp)
 {
 	int		 i;
@@ -2579,12 +2579,13 @@ zfsslash2_replay_fidlink(slfid_t fid, const struct slash_creds *slcrp)
 	int error;
 
 	/*
- 	 * ZFS can put the creation of a file and its fidlink into two different
- 	 * transaction groups.  We must allow this to happen and create the
- 	 * fidlink if it is missing.
- 	 */
+	 * ZFS can put the creation of a file and its fidlink into two
+	 * different transaction groups.  We must allow this to happen
+	 * and create the fidlink if it is missing.
+	 */
 	vp = NULL;
-	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP|FIDLINK_CREATE, NULL, &vp);
+	error = zfsslash2_fidlink(fid, FIDLINK_LOOKUP | FIDLINK_CREATE,
+	    NULL, &vp);
 	if (error)
 		return (error);
 
