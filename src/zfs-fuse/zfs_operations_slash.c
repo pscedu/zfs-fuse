@@ -2316,10 +2316,10 @@ zfsslash2_replay_mkdir(slfid_t pfid, char *name, struct srt_stat *sstb)
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
-	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP | FIDLINK_CREATE,
+	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP,
 	    NULL, &pvp);
 	if (error) {
-		psclog_errorx("failed to look up or create fidlink "SLPRI_FID": %s",
+		psclog_errorx("failed to look up parent fid "SLPRI_FID": %s",
 		    pfid, slstrerror(error));
 		goto out;
 	}
@@ -2370,7 +2370,7 @@ zfsslash2_replay_create(slfid_t pfid, char *name, struct srt_stat *sstb)
 	error = zfsslash2_fidlink(pfid, FIDLINK_LOOKUP,
 	    NULL, &pvp);
 	if (error) {
-		psclog_errorx("failed to look up fid "SLPRI_FID": %s",
+		psclog_errorx("failed to look up parent fid "SLPRI_FID": %s",
 		    pfid, slstrerror(error));
 		goto out;
 	}
