@@ -1155,9 +1155,11 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
 
-		if (getslfid)
-			vattr.va_fid = getslfid();
-		else
+		if (getslfid) {
+			error = getslfid(&vattr.va_fid);
+			if (error)
+				goto out;
+		} else
 			vattr.va_fid = fid;
 
 		if (flags & FTRUNC) {
@@ -1394,9 +1396,11 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_type = VDIR;
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
-	if (getslfid)
-		vattr.va_fid = getslfid();
-	else
+	if (getslfid) {
+		error = getslfid(&vattr.va_fid);
+		if (error)
+			goto out;
+	} else
 		vattr.va_fid = fid;
 
 	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, &cred, NULL,
@@ -1838,7 +1842,10 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_type = VFIFO;
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
-	vattr.va_fid = getslfid();
+
+	error = getslfid(&vattr.va_fid);
+	if (error)
+		goto out;
 
 	vnode_t *vp = NULL;
 
@@ -1904,7 +1911,10 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 	vattr.va_type = VLNK;
 	vattr.va_mode = 0777;
 	vattr.va_mask = AT_TYPE | AT_MODE;
-	vattr.va_fid = getslfid();
+
+	error = getslfid(&vattr.va_fid);
+	if (error)
+		goto out;
 
 	error = VOP_SYMLINK(dvp, (char *)name, &vattr, (char *)link,
 	    &cred, NULL, 0, logfunc); /* zfs_symlink() */
