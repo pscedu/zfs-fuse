@@ -158,8 +158,12 @@ zfsslash2_setattrmask_2_slflags(uint mask)
 uint
 zfsslash2_slflags_2_setattrmask(int to_set)
 {
-	int mask = 0;
+	uint mask = 0;
 
+	if (to_set & PSCFS_SETATTRF_UID)
+		mask |= AT_UID;
+	if (to_set & PSCFS_SETATTRF_GID)
+		mask |= AT_GID;
 	if (to_set & PSCFS_SETATTRF_DATASIZE)
 		mask |= AT_SLASH2SIZE;
 	if (to_set & SL_SETATTRF_PTRUNCGEN)
