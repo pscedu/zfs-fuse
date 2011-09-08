@@ -1364,8 +1364,9 @@ zfsslash2_read(const struct slash_creds *slcrp, void *buf, size_t size,
 
 int
 zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
-    const struct slash_creds *slcrp, struct srt_stat *sstb,
-    mdsio_fid_t *mfp, sl_log_update_t logfunc, sl_getslfid_cb_t getslfid, slfid_t fid)
+    const struct slash_creds *slcrp, int atflag, struct srt_stat *sstb,
+    mdsio_fid_t *mfp, sl_log_update_t logfunc,
+    sl_getslfid_cb_t getslfid, slfid_t fid)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1396,6 +1397,11 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr.va_type = VDIR;
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
+	if (atflag & AT_UID) {
+		vattr.va_uid = sstb->sst_uid;
+		vattr.va_gid = sstb->sst_gid;
+		vattr.va_mask |= AT_UID | AT_GID;
+	}
 	if (getslfid) {
 		error = getslfid(&vattr.va_fid);
 		if (error)
