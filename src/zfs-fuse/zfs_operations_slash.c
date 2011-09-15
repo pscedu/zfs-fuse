@@ -952,14 +952,12 @@ int
 _zfsslash2_fidlink(const struct pfl_callerinfo *pci, slfid_t fid,
     int flags, vnode_t *svp, vnode_t **vpp)
 {
-	int		 i;
-	vnode_t		*vp;
-	vnode_t		*dvp;
-	int		 error;
-	znode_t		*znode;
-	zfsvfs_t	*zfsvfs = zfsVfs->vfs_data;
-	uint64_t         slot;
-	char             id_name[20];
+	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
+	vnode_t *vp, *dvp;
+	znode_t *znode;
+	char id_name[20];
+	uint64_t slot;
+	int i, error;
 
 #define IMMNSMASK 0x0fff000L
 
@@ -1367,12 +1365,11 @@ zfsslash2_read(const struct slash_creds *slcrp, void *buf, size_t size,
 }
 
 int
-zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
-    const struct slash_creds *slcrp, int atflag, struct srt_stat *sstb,
-    mdsio_fid_t *mfp, sl_log_update_t logfunc,
-    sl_getslfid_cb_t getslfid, slfid_t fid)
+zfsslash2_mkdir(mdsio_fid_t parent, const char *name,
+    const struct srt_stat *sstb_in, int atflag,
+    struct srt_stat *sstb_out, mdsio_fid_t *mfp,
+    sl_log_update_t logfunc, sl_getslfid_cb_t getslfid, slfid_t fid)
 {
-	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1399,11 +1396,11 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	vattr_t vattr;
 	memset(&vattr, 0, sizeof(vattr));
 	vattr.va_type = VDIR;
-	vattr.va_mode = mode & PERMMASK;
+	vattr.va_mode = sstb_in->sst_mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 	if (atflag & AT_UID) {
-		vattr.va_uid = sstb->sst_uid;
-		vattr.va_gid = sstb->sst_gid;
+		vattr.va_uid = sstb_in->sst_uid;
+		vattr.va_gid = sstb_in->sst_gid;
 		vattr.va_mask |= AT_UID | AT_GID;
 	}
 	if (getslfid) {
@@ -1413,8 +1410,8 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	} else
 		vattr.va_fid = fid;
 
-	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, &cred, NULL,
-	    0, NULL, logfunc); /* zfs_mkdir() */
+	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, &zrootcreds,
+	    NULL, 0, NULL, logfunc); /* zfs_mkdir() */
 	if (error)
 		goto out;
 
@@ -1425,12 +1422,12 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 	if (error)
 		goto out;
 
-	if (sstb || mfp)
-		error = fill_sstb(vp, mfp, sstb, &cred);
+	if (sstb_out || mfp)
+		error = fill_sstb(vp, mfp, sstb_out, &zrootcreds);
 
 #if 0
-	fprintf(stderr, "mkdir: name = %s, fid = 0x%lx, txg = %lx, error = %d\n",
-				name, vattr.va_fid, zfsslash2_return_synced(), errno);
+	fprintf(stderr, "mkdir: name=%s fid=0x%lx txg=%lx error=%d\n",
+	    name, vattr.va_fid, zfsslash2_return_synced(), errno);
 #endif
 
  out:
@@ -1438,8 +1435,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name, mode_t mode,
 		VN_RELE(vp);
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
-
-	return error;
+	return (error);
 }
 
 int
