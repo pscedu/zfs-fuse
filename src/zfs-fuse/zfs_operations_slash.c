@@ -1370,6 +1370,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name,
     struct srt_stat *sstb_out, mdsio_fid_t *mfp,
     sl_log_update_t logfunc, sl_getslfid_cb_t getslfid, slfid_t fid)
 {
+	cred_t cred = { sstb_in->sst_uid, sstb_in->sst_gid };
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1399,10 +1400,9 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name,
 	memset(&vattr, 0, sizeof(vattr));
 	vattr.va_type = VDIR;
 	vattr.va_mode = sstb_in->sst_mode & PERMMASK;
-	vattr.va_mask = AT_TYPE | AT_MODE;
+	vattr.va_mask = AT_TYPE | AT_MODE | AT_UID | AT_GID;
 	vattr.va_uid = sstb_in->sst_uid;
 	vattr.va_gid = sstb_in->sst_gid;
-	vattr.va_mask |= AT_UID | AT_GID;
 	if (getslfid) {
 		error = getslfid(&vattr.va_fid);
 		if (error)
@@ -1410,7 +1410,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name,
 	} else
 		vattr.va_fid = fid;
 
-	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, &zrootcreds,
+	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, &cred,
 	    NULL, 0, NULL, logfunc); /* zfs_mkdir() */
 	if (error)
 		goto out;
