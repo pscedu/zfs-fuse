@@ -1382,8 +1382,10 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name,
 	int error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
 	if (error) {
 		ZFS_EXIT(zfsvfs);
-		/* If the inode we are trying to get was recently deleted
-		   dnode_hold_impl will return EEXIST instead of ENOENT */
+		/*
+		 * If the inode we are trying to get was recently deleted
+		 * dnode_hold_impl will return EEXIST instead of ENOENT.
+		 */
 		return error == EEXIST ? ENOENT : error;
 	}
 
@@ -1398,11 +1400,9 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name,
 	vattr.va_type = VDIR;
 	vattr.va_mode = sstb_in->sst_mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
-	if (atflag & AT_UID) {
-		vattr.va_uid = sstb_in->sst_uid;
-		vattr.va_gid = sstb_in->sst_gid;
-		vattr.va_mask |= AT_UID | AT_GID;
-	}
+	vattr.va_uid = sstb_in->sst_uid;
+	vattr.va_gid = sstb_in->sst_gid;
+	vattr.va_mask |= AT_UID | AT_GID;
 	if (getslfid) {
 		error = getslfid(&vattr.va_fid);
 		if (error)
@@ -1455,8 +1455,10 @@ zfsslash2_rmdir(mdsio_fid_t parent, slfid_t *fid, const char *name,
 	int error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
 	if (error) {
 		ZFS_EXIT(zfsvfs);
-		/* If the inode we are trying to get was recently deleted
-		   dnode_hold_impl will return EEXIST instead of ENOENT */
+		/*
+		 * If the inode we are trying to get was recently deleted
+		 * dnode_hold_impl will return EEXIST instead of ENOENT.
+		 */
 		return error == EEXIST ? ENOENT : error;
 	}
 
@@ -1524,8 +1526,10 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 		error = zfs_zget(zfsvfs, ino, &znode, B_TRUE);
 		if (error) {
 			ZFS_EXIT(zfsvfs);
-			/* If the inode we are trying to get was recently deleted
-			   dnode_hold_impl will return EEXIST instead of ENOENT */
+			/*
+			 * If the inode we are trying to get was recently deleted
+			 * dnode_hold_impl will return EEXIST instead of ENOENT.
+			 */
 			return error == EEXIST ? ENOENT : error;
 		}
 		ASSERT(znode);
@@ -1654,7 +1658,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 	ZFS_EXIT(zfsvfs);
 
-	return error;
+	return (error);
 }
 
 int
@@ -1674,8 +1678,10 @@ zfsslash2_unlink(mdsio_fid_t parent, slfid_t *fid, const char *name,
 	int error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
 	if (error) {
 		ZFS_EXIT(zfsvfs);
-		/* If the inode we are trying to get was recently deleted
-		   dnode_hold_impl will return EEXIST instead of ENOENT */
+		/*
+		 * If the inode we are trying to get was recently deleted
+		 * dnode_hold_impl will return EEXIST instead of ENOENT.
+		 */
 		return error == EEXIST ? ENOENT : error;
 	}
 
