@@ -1652,7 +1652,6 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 	if (!error && sstb_out)
 		error = fill_sstb(vp, NULL, sstb_out, &cred);
 
-	/* Do not release if vp was an opened inode */
 	if (release)
 		VN_RELE(vp);
 
