@@ -3183,8 +3183,8 @@ top:
 			    (AT_UID | AT_GID | AT_TYPE | AT_MODE |
 			     AT_ATIME | AT_MTIME | AT_CTIME |
 			     AT_SLASH2NBLKS | AT_SIZE | AT_SLASH2ATIME |
-			     AT_SLASH2MTIME | AT_SLASH2SIZE), NULL,
-			    NULL);
+			     AT_SLASH2MTIME | AT_SLASH2SIZE |
+			     AT_PTRUNCGEN), NULL, NULL);
 		} else
 			zfs_log_setattr(zilog, tx, TX_SETATTR, zp, vap, mask, fuidp);
 	}
