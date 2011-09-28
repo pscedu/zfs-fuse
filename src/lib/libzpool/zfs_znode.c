@@ -972,7 +972,7 @@ zfs_zget(zfsvfs_t *zfsvfs, uint64_t obj_num, znode_t **zpp, boolean_t zget_unlin
 		ASSERT3P(zp->z_dbuf, ==, db);
 		ASSERT3U(zp->z_id, ==, obj_num);
 		if (zp->z_unlinked && !zget_unlinked) {
-            err = ENOENT;
+			err = ENOENT;
 		} else {
 			VN_HOLD(ZTOV(zp));
 			*zpp = zp;
