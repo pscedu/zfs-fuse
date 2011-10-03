@@ -53,6 +53,8 @@ typedef struct vfs {
 	ulong_t       vfs_bcount;
 	uint_t        vfs_count;
 	refstr_t     *vfs_resource;
+	vn_vfslocks_entry_t
+	    	      v_vfsmhlock;
 	int	      fuse_attribute;
 } vfs_t;
 
@@ -81,6 +83,9 @@ extern struct vfs *rootvfs;
 extern void vfs_list_lock();
 extern void vfs_list_read_lock();
 extern void vfs_list_unlock();
+
+int vfs_lock(vfs_t *);
+void vfs_unlock(vfs_t *);
 
 extern void vfs_hold(vfs_t *);
 extern void vfs_rele(vfs_t *);

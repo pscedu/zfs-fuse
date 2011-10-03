@@ -784,6 +784,29 @@ vn_setops(vnode_t *vp, vnodeops_t *vnodeops)
 	vp->v_op = vnodeops;
 }
 
+/*
+ * Retrieve the operations vector for a vnode
+ */
+vnodeops_t *
+vn_getops(vnode_t * vp)
+{
+	vnodeops_t *op;
+
+	ASSERT(vp != NULL);
+
+	return (vp->v_op);
+}
+
+/*
+ * Returns non-zero (1) if the vnodeops matches that of the vnode.
+ * Returns zero (0) if not.
+ */
+int
+vn_matchops(vnode_t * vp, vnodeops_t * vnodeops)
+{
+	return (vn_getops(vp) == vnodeops);
+}
+
 int
 vn_is_readonly(vnode_t *vp)
 {

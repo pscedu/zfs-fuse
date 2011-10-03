@@ -68,6 +68,8 @@ extern const fs_operation_def_t fd_fvnodeops_template[];
 
 void vfs_init()
 {
+	vn_vfslocks_entry_t *vpvfsentry;
+
 	VERIFY(pthread_rwlock_init(&vfslist, NULL) == 0);
 
 	rootvfs->vfs_next = rootvfs;
@@ -84,6 +86,44 @@ void vfs_init()
 	    &fd_fvnodeops);
 	if (error)
 		abort();
+
+	vpvfsentry = vn_vfslocks_getlock(rootdir);
+	rwst_init(&vpvfsentry->ve_lock, NULL, RW_DEFAULT, NULL);
+}
+
+int
+vfs_lock(vfs_t *vfsp)
+{
+	vn_vfslocks_entry_t *vpvfsentry;
+
+	vpvfsentry = vn_vfslocks_getlock(vfsp);
+	if (rwst_tryenter(&vpvfsentry->ve_lock, RW_WRITER))
+		return (0);
+
+	vn_vfslocks_rele(vpvfsentry);
+	return (EBUSY);
+}
+
+/*
+ * Unlock a locked filesystem.
+ */
+void
+vfs_unlock(vfs_t *vfsp)
+{
+	vn_vfslocks_entry_t *vpvfsentry;
+
+	/*
+	 * ve_refcount needs to be dropped twice here.
+	 * 1. To release reference after a call to vfs_locks_getlock()
+	 * 2. To release the reference from the locking routines like
+	 *    vfs_rlock_wait/vfs_wlock_wait/vfs_wlock etc.
+	 */
+
+	vpvfsentry = vn_vfslocks_getlock(vfsp);
+	vn_vfslocks_rele(vpvfsentry);
+
+	rwst_exit(&vpvfsentry->ve_lock);
+	vn_vfslocks_rele(vpvfsentry);
 }
 
 void vfs_list_lock()
@@ -103,7 +143,11 @@ void vfs_list_unlock()
 
 void vfs_exit()
 {
+	vn_vfslocks_entry_t *vpvfsentry;
+
 	VERIFY(pthread_rwlock_destroy(&vfslist) == 0);
+	vpvfsentry = vn_vfslocks_getlock(rootdir);
+	rwst_destroy(&vpvfsentry->ve_lock);
 }
 
 /*

@@ -500,6 +500,8 @@ typedef struct vnodeops {
 	VNODE_OPS;	/* Signatures of all vnode operations (vops) */
 } vnodeops_t;
 
+int    	vn_matchops(vnode_t *, vnodeops_t *);
+
 extern int	fop_open(vnode_t **, int, cred_t *, caller_context_t *);
 extern int	fop_close(vnode_t *, int, int, offset_t, cred_t *,
 				caller_context_t *);
