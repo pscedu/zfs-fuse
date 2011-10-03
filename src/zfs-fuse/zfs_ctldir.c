@@ -881,35 +881,15 @@ zfsctl_snapdir_lookup(vnode_t *dvp, char *nm, vnode_t **vpp, pathname_t *pnp,
 
 	dmu_objset_rele(snap, FTAG);
  domount:
-	mountpoint_len = strlen(refstr_value(dvp->v_vfsp->vfs_mntpt)) +
-	    strlen("/" ZFS_CTLDIR_NAME "/snapshot/") + strlen(nm) + 1;
-	mountpoint = kmem_alloc(mountpoint_len, KM_SLEEP);
-	(void)snprintf(mountpoint, mountpoint_len,
-	    "%s/" ZFS_CTLDIR_NAME "/snapshot/%s",
-	    refstr_value(dvp->v_vfsp->vfs_mntpt), nm);
 
-	margs.spec = snapname;
-	margs.dir = mountpoint;
-	margs.flags = MS_SYSSPACE | MS_NOMNTTAB;
-	margs.fstype = "zfs";
-	margs.dataptr = NULL;
-	margs.datalen = 0;
-	margs.optptr = NULL;
-	margs.optlen = 0;
-
-	err = domount("zfs", &margs, *vpp, kcred, &vfsp);
-	kmem_free(mountpoint, mountpoint_len);
-
-	if (err == 0) {
-		/*
-		 * Return the mounted root rather than the covered mount point.
-		 * Takes the GFS vnode at .zfs/snapshot/<snapname> and returns
-		 * the ZFS vnode mounted on top of the GFS node.  This ZFS
-		 * vnode is the root of the newly created vfsp.
-		 */
-		VFS_RELE(vfsp);
-		err = traverse(vpp);
-	}
+	/*
+	 * Return the mounted root rather than the covered mount point.
+	 * Takes the GFS vnode at .zfs/snapshot/<snapname> and returns
+	 * the ZFS vnode mounted on top of the GFS node.  This ZFS
+	 * vnode is the root of the newly created vfsp.
+	 */
+	VFS_RELE(vfsp);
+	err = traverse(vpp);
 
 	if (err == 0) {
 		/*
