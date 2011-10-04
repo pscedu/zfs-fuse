@@ -3074,14 +3074,6 @@ top:
 	if (mask & AT_MTIME)
 		ZFS_TIME_ENCODE(&vap->va_mtime, pzp->zp_mtime);
 
-	if (mask & AT_SLASH2ATIME)
-		ZFS_TIME_ENCODE(&vap->va_s2atime, pzp->zp_s2atime);
-
-	if (mask & AT_SLASH2MTIME) {
-		ZFS_TIME_ENCODE(&vap->va_s2mtime, pzp->zp_s2mtime);
-		pzp->zp_s2utimgen++;
-	}
-
 	if (mask & AT_SLASH2SIZE) {
 		pzp->zp_s2size = vap->va_s2size;		
 		/*
@@ -3108,6 +3100,19 @@ top:
 		zfs_time_stamper_locked(zp, S2CONTENT_MODIFIED|AT_CTIME, tx);
 	else if (mask != 0)
 		zfs_time_stamper_locked(zp, STATE_CHANGED, tx);
+
+	/* 
+	 * SLASH2 timestamps could have already been set to the current time
+	 * if AT_SLASH2SIZE is set, but our caller may want its own timestamps.
+	 */
+	if (mask & AT_SLASH2ATIME)
+		ZFS_TIME_ENCODE(&vap->va_s2atime, pzp->zp_s2atime);
+
+	if (mask & AT_SLASH2MTIME) {
+		ZFS_TIME_ENCODE(&vap->va_s2mtime, pzp->zp_s2mtime);
+		pzp->zp_s2utimgen++;
+	}
+
 	/*
 	 * Do this after setting timestamps to prevent timestamp
 	 * update from toggling bit
