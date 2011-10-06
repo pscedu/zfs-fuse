@@ -81,6 +81,7 @@
 #include "zfs_slashlib.h"
 #include "slashd/namespace.h"
 #include "slashrpc.h"
+#include "sltypes.h"
 
 /*
  * Programming rules.
@@ -1443,7 +1444,8 @@ top:
 			zfs_fuid_sync(zfsvfs, tx);
 
 		zp->z_phys->zp_s2fid = vap->va_fid;
-		(void) zfs_link_create(dl, zp, tx, ZNEW);
+		(void) zfs_link_create(dl, zp, tx, ZNEW |
+		    (flag & SLASH2_IGNORE_MTIME ? ZNOMTIM_S2 : 0));
 
 		if (logfunc) {
 			struct srt_stat sstb;
@@ -1901,7 +1903,8 @@ top:
 	 * Now put new name in parent dir.
 	 */
 	zp->z_phys->zp_s2fid = vap->va_fid;
-	(void) zfs_link_create(dl, zp, tx, ZNEW);
+	(void) zfs_link_create(dl, zp, tx, ZNEW |
+	    (flags & SLASH2_IGNORE_MTIME ? ZNOMTIM_S2 : 0));
 
 	*vpp = ZTOV(zp);
 

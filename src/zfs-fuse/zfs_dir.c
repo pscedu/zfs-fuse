@@ -715,7 +715,7 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	 * available.
 	 */
 	if ((flag & ZPARENT) && zp_is_dir)
-	zp->z_phys->zp_parent = dzp->z_id;	/* dzp is now zp's parent */
+		zp->z_phys->zp_parent = dzp->z_id;	/* dzp is now zp's parent */
 
 	if (!(flag & ZNEW))
 		zfs_time_stamper_locked(zp, STATE_CHANGED, tx);
@@ -725,7 +725,8 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	mutex_enter(&dzp->z_lock);
 	dzp->z_phys->zp_size++;			/* one dirent added */
 	dzp->z_phys->zp_links += zp_is_dir;	/* ".." link from zp */
-	zfs_time_stamper_locked(dzp, CONTENT_MODIFIED | S2CONTENT_MODIFIED, tx);
+	zfs_time_stamper_locked(dzp, CONTENT_MODIFIED |
+	    (flag & ZNOMTIM_S2 ? 0 : S2CONTENT_MODIFIED), tx);
 	mutex_exit(&dzp->z_lock);
 
 	value = zfs_dirent(zp);

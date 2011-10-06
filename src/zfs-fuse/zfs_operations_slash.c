@@ -1178,7 +1178,8 @@ zfsslash2_opencreate(mdsio_fid_t ino, const struct slash_creds *slcrp,
 
 		/* FIXME: check filesystem boundaries */
 		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode,
-		    &new_vp, &cred, 0, NULL, NULL, logfunc);	/* zfs_create() */
+		    &new_vp, &cred, opflags & MDSIO_OPENCRF_NOMTIM ?
+		    SLASH2_IGNORE_MTIME : 0, NULL, NULL, logfunc); /* zfs_create() */
 
 		if (error)
 			goto out;
@@ -1367,7 +1368,7 @@ zfsslash2_read(const struct slash_creds *slcrp, void *buf, size_t size,
 
 int
 zfsslash2_mkdir(mdsio_fid_t parent, const char *name,
-    const struct srt_stat *sstb_in, int atflag,
+    const struct srt_stat *sstb_in, int atflag, int opflags,
     struct srt_stat *sstb_out, mdsio_fid_t *mfp,
     sl_log_update_t logfunc, sl_getslfid_cb_t getslfid, slfid_t fid)
 {
@@ -1385,7 +1386,7 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name,
 	if (error) {
 		ZFS_EXIT(zfsvfs);
 		/*
-		 * If the inode we are trying to get was recently deleted
+		 * If the inode we are trying to get was recently deleted,
 		 * dnode_hold_impl will return EEXIST instead of ENOENT.
 		 */
 		return error == EEXIST ? ENOENT : error;
@@ -1411,8 +1412,9 @@ zfsslash2_mkdir(mdsio_fid_t parent, const char *name,
 	} else
 		vattr.va_fid = fid;
 
-	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, &cred,
-	    NULL, 0, NULL, logfunc); /* zfs_mkdir() */
+	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, &cred, NULL,
+	    opflags & MDSIO_OPENCRF_NOMTIM ? SLASH2_IGNORE_MTIME : 0,
+	    NULL, logfunc); /* zfs_mkdir() */
 	if (error)
 		goto out;
 
@@ -2355,6 +2357,7 @@ zfsslash2_replay_mkdir(slfid_t pfid, char *name, struct srt_stat *sstb)
 	cred.cr_uid = sstb->sst_uid;
 	cred.cr_gid = sstb->sst_gid;
 
+	/* pass opflags */
 	error = VOP_MKDIR(pvp, name, &vattr, &tvp, &cred, NULL, 0, NULL,
 	    NULL); /* zfs_mkdir() */
 	if (error) {
@@ -2406,6 +2409,7 @@ zfsslash2_replay_create(slfid_t pfid, char *name, struct srt_stat *sstb)
 	cred.cr_uid = sstb->sst_uid;
 	cred.cr_gid = sstb->sst_gid;
 
+	/* pass opflags */
 	error = VOP_CREATE(pvp, name, &vattr, EXCL, 0, &tvp, &cred, 0,
 	    NULL, NULL, NULL); /* zfs_create() */
 	if (error)

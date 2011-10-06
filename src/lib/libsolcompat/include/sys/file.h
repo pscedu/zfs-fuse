@@ -48,7 +48,7 @@
 #define FIGNORECASE     0x80000 /* request case-insensitive lookups */
 #define FALLOWDIRLINK   0x100000 /* allow hard directory links */
 #define FKEEPPARENT	0x200000 /* don't update parent pointer */
-/* 0x400000 is reserved for SLASH_IGNORE_MTIME (sltypes.h) */
+/* 0x400000 is reserved for SLASH2_IGNORE_MTIME (sltypes.h) */
 
 #ifndef O_CLOEXEC
 #define O_CLOEXEC 02000000
