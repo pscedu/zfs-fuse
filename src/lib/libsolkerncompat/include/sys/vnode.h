@@ -281,6 +281,7 @@ enum create { CRCREAT, CRMKNOD, CRMKDIR }; /* reason for create */
 #define ATTR_REAL       0x10    /* yield attributes of the real vp */
 #define ATTR_NOACLCHECK 0x20    /* Don't check ACL when checking permissions */
 #define ATTR_TRIGGER    0x40    /* Mount first if vnode is a trigger mount */
+
 #define ATTR_S2UTIME    0x80    /* slash2 utime(2) request */
 
 /* Vnode Events - Used by VOP_VNEVENT */
@@ -414,7 +415,7 @@ extern void vn_setops(vnode_t *vp, struct vnodeops *vnodeops);
 				caller_context_t *, int, void *);	\
 	int	(*vop_rename)(vnode_t *, char *, vnode_t *, char *,	\
 				cred_t *, caller_context_t *, int,	\
-				void *);				\
+				void *, void *);			\
 	int	(*vop_mkdir)(vnode_t *, char *, vattr_t *, vnode_t **,	\
 				cred_t *, caller_context_t *, int,	\
 				vsecattr_t *, void *);			\
@@ -527,7 +528,7 @@ extern int	fop_remove(vnode_t *vp, char *, cred_t *, caller_context_t *,
 extern int	fop_link(vnode_t *, vnode_t *, char *, cred_t *,
 				caller_context_t *, int, void *);
 extern int	fop_rename(vnode_t *, char *, vnode_t *, char *, cred_t *,
-				caller_context_t *, int, void *);
+				caller_context_t *, int, void *, void *);
 extern int	fop_mkdir(vnode_t *, char *, vattr_t *, vnode_t **, cred_t *,
 				caller_context_t *, int, vsecattr_t *, void *);
 extern int	fop_rmdir(vnode_t *, char *, vnode_t *, cred_t *,
@@ -612,8 +613,8 @@ extern int	fop_vnevent(vnode_t *, vnevent_t, vnode_t *, char *,
 	fop_remove(dvp, p, cr, ct, f, funcp)
 #define	VOP_LINK(tdvp, fvp, p, cr, ct, f, funcp) \
 	fop_link(tdvp, fvp, p, cr, ct, f, funcp)
-#define	VOP_RENAME(fvp, fnm, tdvp, tnm, cr, ct, f, funcp) \
-	fop_rename(fvp, fnm, tdvp, tnm, cr, ct, f, funcp)
+#define	VOP_RENAME(fvp, fnm, tdvp, tnm, cr, ct, f, funcp, arg) \
+	fop_rename(fvp, fnm, tdvp, tnm, cr, ct, f, funcp, arg)
 #define	VOP_MKDIR(dp, p, vap, vpp, cr, ct, f, vsap, funcp) \
 	fop_mkdir(dp, p, vap, vpp, cr, ct, f, vsap, funcp)
 #define	VOP_RMDIR(dp, p, cdir, cr, ct, f, funcp) \

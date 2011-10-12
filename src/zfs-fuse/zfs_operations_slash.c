@@ -1966,7 +1966,7 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 int
 zfsslash2_rename(mdsio_fid_t oldparent, const char *oldname,
     mdsio_fid_t newparent, const char *newname,
-    const struct slash_creds *slcrp, sl_log_update_t logfunc)
+    const struct slash_creds *slcrp, sl_log_update_t logfunc, void *arg)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -2008,7 +2008,7 @@ zfsslash2_rename(mdsio_fid_t oldparent, const char *oldname,
 	ASSERT(np_vp);
 
 	error = VOP_RENAME(op_vp, (char *)oldname, np_vp, (char *)newname,
-	    &cred, NULL, 0, logfunc);  /* zfs_rename() */
+	    &cred, NULL, 0, logfunc, arg);  /* zfs_rename() */
 
 	VN_RELE(op_vp);
 	VN_RELE(np_vp);
@@ -2588,7 +2588,7 @@ zfsslash2_replay_rename(slfid_t parent, const char *name, slfid_t
 	}
 
 	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname,
-	    &zrootcreds, NULL, 0, NULL);  /* zfs_rename() */
+	    &zrootcreds, NULL, 0, NULL, NULL);  /* zfs_rename() */
  out:
 	if (p_vp)
 		VN_RELE(p_vp);

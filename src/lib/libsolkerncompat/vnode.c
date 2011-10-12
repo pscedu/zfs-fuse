@@ -1189,11 +1189,12 @@ fop_rename(
 	cred_t *cr,
 	caller_context_t *ct,
 	int flags,
-	void *logfunc)
+	void *logfunc,
+	void *arg)
 {
 	int	err;
 
-	err = (*(sdvp)->v_op->vop_rename)(sdvp, snm, tdvp, tnm, cr, ct, flags, logfunc);
+	err = (*(sdvp)->v_op->vop_rename)(sdvp, snm, tdvp, tnm, cr, ct, flags, logfunc, arg);
 	VOPSTATS_UPDATE(sdvp, rename);
 	return (err);
 }

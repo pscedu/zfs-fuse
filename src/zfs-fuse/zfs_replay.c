@@ -610,7 +610,7 @@ zfs_replay_rename(zfsvfs_t *zfsvfs, lr_rename_t *lr, boolean_t byteswap)
 		vflg |= FIGNORECASE;
 
 	error = VOP_RENAME(ZTOV(sdzp), sname, ZTOV(tdzp), tname, kcred,
-	    NULL, vflg, NULL);
+	    NULL, vflg, NULL, NULL);
 
 	VN_RELE(ZTOV(tdzp));
 	VN_RELE(ZTOV(sdzp));

@@ -1467,7 +1467,7 @@ top:
 
 			logfunc(NS_OP_CREATE, txg,
 			    dzp->z_phys->zp_s2fid, 0, &sstb,
-			    vap->va_mask, name, NULL);
+			    vap->va_mask, name, NULL, NULL);
 		} else {
 			txtype = zfs_log_create_txtype(Z_FILE, vsecp, vap);
 			if (flag & FIGNORECASE)
@@ -1728,7 +1728,7 @@ top:
 		sstb.sst_gen = zp->z_phys->zp_s2gen;
 		sstb.sst_nlink = zp->z_phys->zp_links;
 		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2fid, 0,
-		    &sstb, 0, name, NULL);
+		    &sstb, 0, name, NULL, NULL);
 	} else {
 		txtype = TX_REMOVE;
 		if (flags & FIGNORECASE)
@@ -1794,6 +1794,7 @@ zfs_mkdir(vnode_t *dvp, char *dirname, vattr_t *vap, vnode_t **vpp, cred_t *cr,
 	boolean_t	fuid_dirtied;
 
 	sl_log_update_t	logfunc = funcp;
+
 	ASSERT(vap->va_type == VDIR);
 
 	/*
@@ -1929,7 +1930,7 @@ top:
 
 		logfunc(NS_OP_MKDIR, txg, dzp->z_phys->zp_s2fid,
 		    zp->z_phys->zp_s2fid, &sstb, vap->va_mask, dirname,
-		    NULL);
+		    NULL, NULL);
 	} else {
 		txtype = zfs_log_create_txtype(Z_DIR, vsecp, vap);
 		if (flags & FIGNORECASE)
@@ -2064,8 +2065,8 @@ top:
 			sstb.sst_gid = cr->cr_gid;
 			sstb.sst_fid = zp->z_phys->zp_s2fid;
 
-			logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2fid, 0,
-			    &sstb, 0, name, NULL);
+			logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2fid,
+			    0, &sstb, 0, name, NULL, NULL);
 		} else { 
 			uint64_t txtype = TX_RMDIR;
 			if (flags & FIGNORECASE)
@@ -3182,6 +3183,7 @@ top:
 			zfs_vattr_to_stat(vap, &sstb);
 
 			op = (mask & AT_SLASH2SIZE) ? NS_OP_SETSIZE : NS_OP_SETATTR;
+
 			/*
 			 * At this time, SLASH only journals certain
 			 * stat(2) fields, so don't pass changes in fields
@@ -3192,7 +3194,7 @@ top:
 			     AT_ATIME | AT_MTIME | AT_CTIME |
 			     AT_SLASH2NBLKS | AT_SIZE | AT_SLASH2ATIME |
 			     AT_SLASH2MTIME | AT_SLASH2SIZE |
-			     AT_PTRUNCGEN), NULL, NULL);
+			     AT_PTRUNCGEN), NULL, NULL, NULL);
 		} else
 			zfs_log_setattr(zilog, tx, TX_SETATTR, zp, vap, mask, fuidp);
 	}
@@ -3340,7 +3342,7 @@ zfs_rename_lock(znode_t *szp, znode_t *tdzp, znode_t *sdzp, zfs_zlock_t **zlpp)
 /*ARGSUSED*/
 static int
 zfs_rename(vnode_t *sdvp, char *snm, vnode_t *tdvp, char *tnm, cred_t *cr,
-    caller_context_t *ct, int flags, void *funcp)
+    caller_context_t *ct, int flags, void *funcp, void *arg)
 {
 	znode_t		*tdzp, *szp, *tzp;
 	znode_t		*sdzp = VTOZ(sdvp);
@@ -3627,7 +3629,7 @@ top:
 				logfunc(NS_OP_RENAME, txg,
 				    sdzp->z_phys->zp_s2fid,
 				    tdzp->z_phys->zp_s2fid, &sstb, 0,
-				    snm, tnm);
+				    snm, tnm, arg);
 
 				if (tzp) {
 					memset(&sstb, 0, sizeof(sstb));
@@ -3635,7 +3637,7 @@ top:
 					sstb.sst_gen = tzp->z_phys->zp_s2gen;
 					logfunc(NS_OP_RECLAIM, txg, 
 					    tzp->z_phys->zp_s2fid, 0, 
-					    &sstb, 0, NULL, NULL);
+					    &sstb, 0, NULL, NULL, NULL);
 				}
 			} else
 				zfs_log_rename(zilog, tx,
@@ -3822,7 +3824,7 @@ top:
 
 			logfunc(NS_OP_SYMLINK, txg,
 			    dzp->z_phys->zp_s2fid, zp->z_phys->zp_s2fid,
-			    &sstb, vap->va_mask, name, link);
+			    &sstb, vap->va_mask, name, link, NULL);
 		} else {
 			uint64_t txtype = TX_SYMLINK;
 			if (flags & FIGNORECASE)
@@ -4019,7 +4021,7 @@ top:
 			txg = dmu_tx_get_txg(tx);
 			sstb.sst_fid = szp->z_phys->zp_s2fid;
 			logfunc(NS_OP_LINK, txg, dzp->z_phys->zp_s2fid,
-			    0, &sstb, 0, name, NULL);
+			    0, &sstb, 0, name, NULL, NULL);
 		} else {
 			uint64_t txtype = TX_LINK;
 			if (flags & FIGNORECASE)

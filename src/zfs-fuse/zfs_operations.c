@@ -1636,7 +1636,8 @@ static int zfsfuse_rename(fuse_req_t req, fuse_ino_t parent, const char *name, f
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	error = VOP_RENAME(p_vp, (char *) name, np_vp, (char *) newname, &cred, NULL, 0, NULL);
+	error = VOP_RENAME(p_vp, (char *) name, np_vp, (char *) newname,
+	    &cred, NULL, 0, NULL, NULL);
 
 	VN_RELE(p_vp);
 	VN_RELE(np_vp);
