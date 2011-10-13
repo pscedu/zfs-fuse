@@ -410,7 +410,8 @@ extern void vn_setops(vnode_t *vp, struct vnodeops *vnodeops);
 				caller_context_t *, vsecattr_t *, 	\
 				void *);				\
 	int	(*vop_remove)(vnode_t *, char *, cred_t *,		\
-				caller_context_t *, int, void *);	\
+				caller_context_t *, int, void *,	\
+	    			void *);				\
 	int	(*vop_link)(vnode_t *, vnode_t *, char *, cred_t *,	\
 				caller_context_t *, int, void *);	\
 	int	(*vop_rename)(vnode_t *, char *, vnode_t *, char *,	\
@@ -524,7 +525,7 @@ extern int	fop_create(vnode_t *, char *, vattr_t *, vcexcl_t, int,
 				vnode_t **, cred_t *, int, caller_context_t *,
 				vsecattr_t *, void *);
 extern int	fop_remove(vnode_t *vp, char *, cred_t *, caller_context_t *,
-				int, void *);
+				int, void *, void *);
 extern int	fop_link(vnode_t *, vnode_t *, char *, cred_t *,
 				caller_context_t *, int, void *);
 extern int	fop_rename(vnode_t *, char *, vnode_t *, char *, cred_t *,
@@ -609,8 +610,8 @@ extern int	fop_vnevent(vnode_t *, vnevent_t, vnode_t *, char *,
 	fop_lookup(vp, cp, vpp, pnp, f, rdir, cr, ct, defp, rpnp)
 #define	VOP_CREATE(dvp, p, vap, ex, mode, vpp, cr, flag, ct, vsap, funcp) \
 	fop_create(dvp, p, vap, ex, mode, vpp, cr, flag, ct, vsap, funcp)
-#define	VOP_REMOVE(dvp, p, cr, ct, f, funcp) \
-	fop_remove(dvp, p, cr, ct, f, funcp)
+#define	VOP_REMOVE(dvp, p, cr, ct, f, funcp, arg) \
+	fop_remove(dvp, p, cr, ct, f, funcp, arg)
 #define	VOP_LINK(tdvp, fvp, p, cr, ct, f, funcp) \
 	fop_link(tdvp, fvp, p, cr, ct, f, funcp)
 #define	VOP_RENAME(fvp, fnm, tdvp, tnm, cr, ct, f, funcp, arg) \

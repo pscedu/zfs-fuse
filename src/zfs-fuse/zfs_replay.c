@@ -542,7 +542,7 @@ zfs_replay_remove(zfsvfs_t *zfsvfs, lr_remove_t *lr, boolean_t byteswap)
 
 	switch ((int)lr->lr_common.lrc_txtype) {
 	case TX_REMOVE:
-		error = VOP_REMOVE(ZTOV(dzp), name, kcred, NULL, vflg, NULL);
+		error = VOP_REMOVE(ZTOV(dzp), name, kcred, NULL, vflg, NULL, NULL);
 		break;
 	case TX_RMDIR:
 		error = VOP_RMDIR(ZTOV(dzp), name, NULL, kcred, NULL, vflg, NULL);

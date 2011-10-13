@@ -587,7 +587,7 @@ zfsfuse_removexattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
 	MY_LOOKUP_XATTR();
-	error = VOP_REMOVE(vp, (char *)name, &cred, NULL, 0, NULL);
+	error = VOP_REMOVE(vp, (char *)name, &cred, NULL, 0, NULL, NULL);
 
  out:
 	if (vp)
@@ -989,7 +989,7 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *pci, slfid_t fid,
 		return 0;
 	}
 
-	error = zfs_zget(zfsvfs, (uint64_t)immnsIdCache[(fid & IMMNSMASK) >> 12],
+	error = zfs_zget(zfsvfs, immnsIdCache[(fid & IMMNSMASK) >> 12],
 	    &znode, B_TRUE);
 	if (error)
 		return error == EEXIST ? ENOENT : error;
@@ -1011,11 +1011,12 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *pci, slfid_t fid,
 	if (flags & FIDLINK_CREATE) {
 		if (svp) {
 			/*
-			 * Create an extra link to the name in the regular name
-			 * space, keeping the parent pointer intact.
+			 * Create an extra link to the name in the
+			 * regular name space, keeping the parent
+			 * pointer intact.
 			 */
-			error = VOP_LINK(dvp, svp, id_name, &zrootcreds, NULL,
-			    FALLOWDIRLINK | FKEEPPARENT, NULL);
+			error = VOP_LINK(dvp, svp, id_name, &zrootcreds,
+			    NULL, FALLOWDIRLINK | FKEEPPARENT, NULL);
 		} else {
 			vattr_t vattr;
 
@@ -1031,12 +1032,15 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *pci, slfid_t fid,
 	}
 	assert(flags & FIDLINK_REMOVE);
 	/*
-	 * ZFS returns EPERM (1) even if root attempts to VOP_REMOVE() a directory.
+	 * ZFS returns EPERM (1) even if root attempts to VOP_REMOVE() a
+	 * directory.
 	 */
 	if (flags & FIDLINK_DIR)
-		error = VOP_RMDIR(dvp, id_name, NULL, &zrootcreds, NULL, 0, NULL);
+		error = VOP_RMDIR(dvp, id_name, NULL, &zrootcreds, NULL,
+		    0, NULL);
 	else
-		error = VOP_REMOVE(dvp, id_name, &zrootcreds, NULL, 0, NULL);
+		error = VOP_REMOVE(dvp, id_name, &zrootcreds, NULL, 0,
+		    NULL, NULL);
 
  out:
 	psclog_debug("id_name=%s parent=%#"PRIx64" fid="SLPRI_FID" "
@@ -1665,7 +1669,7 @@ zfsslash2_setattr(mdsio_fid_t ino, const struct srt_stat *sstb_in,
 
 int
 zfsslash2_unlink(mdsio_fid_t parent, slfid_t *fid, const char *name,
-    const struct slash_creds *slcrp, sl_log_update_t logfunc)
+    const struct slash_creds *slcrp, sl_log_update_t logfunc, void *arg)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1697,7 +1701,8 @@ zfsslash2_unlink(mdsio_fid_t parent, slfid_t *fid, const char *name,
 	if (error)
 		goto out;
 
-	error = VOP_REMOVE(dvp, (char *)name, &cred, NULL, 0, logfunc);	/* zfs_remove() */
+	error = VOP_REMOVE(dvp, (char *)name, &cred, NULL, 0, logfunc,
+	    arg);	/* zfs_remove() */
 	if (error)
 		goto out;
 
@@ -2504,7 +2509,7 @@ zfsslash2_replay_unlink(slfid_t pfid, slfid_t fid, char *name)
 		goto out;
 	}
 
-	error = VOP_REMOVE(dvp, name, &zrootcreds, NULL, 0, NULL);
+	error = VOP_REMOVE(dvp, name, &zrootcreds, NULL, 0, NULL, NULL);
 
 	if (error)
 		goto out;

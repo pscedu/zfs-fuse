@@ -1560,7 +1560,7 @@ out:
 /*ARGSUSED*/
 static int
 zfs_remove(vnode_t *dvp, char *name, cred_t *cr, caller_context_t *ct,
-    int flags, void *funcp)
+    int flags, void *funcp, void *arg)
 {
 	znode_t		*zp, *dzp = VTOZ(dvp);
 	znode_t		*xzp = NULL;
@@ -1728,7 +1728,7 @@ top:
 		sstb.sst_gen = zp->z_phys->zp_s2gen;
 		sstb.sst_nlink = zp->z_phys->zp_links;
 		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2fid, 0,
-		    &sstb, 0, name, NULL, NULL);
+		    &sstb, 0, name, NULL, arg);
 	} else {
 		txtype = TX_REMOVE;
 		if (flags & FIGNORECASE)

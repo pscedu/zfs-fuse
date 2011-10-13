@@ -4093,7 +4093,7 @@ zfs_smb_acl_purge(znode_t *dzp)
 	    (error = zap_cursor_retrieve(&zc, &zap)) == 0;
 	    zap_cursor_advance(&zc)) {
 		if ((error = VOP_REMOVE(ZTOV(dzp), zap.za_name, kcred,
-		    NULL, 0, NULL)) != 0)
+		    NULL, 0, NULL, NULL)) != 0)
 			break;
 	}
 	zap_cursor_fini(&zc);

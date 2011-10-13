@@ -43,7 +43,7 @@ int	zfsslash2_rmdir(mdsio_fid_t, slfid_t *, const char *, const struct slash_cre
 int	zfsslash2_setattr(mdsio_fid_t, const struct srt_stat *, int, const struct slash_creds *, struct srt_stat *, void *, sl_log_update_t);
 int	zfsslash2_statfs(struct statvfs *);
 int	zfsslash2_symlink(const char *, mdsio_fid_t, const char *, const struct slash_creds *, struct srt_stat *, mdsio_fid_t *, sl_getslfid_cb_t, sl_log_update_t);
-int	zfsslash2_unlink(mdsio_fid_t, slfid_t *, const char *, const struct slash_creds *, sl_log_update_t);
+int	zfsslash2_unlink(mdsio_fid_t, slfid_t *, const char *, const struct slash_creds *, sl_log_update_t, void *);
 int	zfsslash2_write(const struct slash_creds *, const void *, size_t, size_t *, off_t, int, void *, sl_log_write_t, void *);
 
 int	zfsslash2_write_cursor(void *, size_t, void *, sl_log_write_t);

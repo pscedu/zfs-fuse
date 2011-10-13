@@ -440,7 +440,7 @@ out:
 static void zfsfuse_removexattr(fuse_req_t req, fuse_ino_t ino, const char *name)
 {
     MY_LOOKUP_XATTR();
-    error = VOP_REMOVE(vp, (char *) name, &cred, NULL, 0, NULL);
+    error = VOP_REMOVE(vp, (char *) name, &cred, NULL, 0, NULL, NULL);
 
 out:
     if(vp != NULL)
@@ -1358,7 +1358,7 @@ static int zfsfuse_unlink(fuse_req_t req, fuse_ino_t parent, const char *name)
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	error = VOP_REMOVE(dvp, (char *) name, &cred, NULL, 0, NULL);
+	error = VOP_REMOVE(dvp, (char *) name, &cred, NULL, 0, NULL, NULL);
 
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);

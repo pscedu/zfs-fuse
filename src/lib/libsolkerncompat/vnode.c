@@ -1137,11 +1137,12 @@ fop_remove(
 	cred_t *cr,
 	caller_context_t *ct,
 	int flags,
-	void *logfunc)
+	void *logfunc,
+	void *arg)
 {
 	int	err;
 
-	err = (*(dvp)->v_op->vop_remove)(dvp, nm, cr, ct, flags, logfunc);
+	err = (*(dvp)->v_op->vop_remove)(dvp, nm, cr, ct, flags, logfunc, arg);
 	VOPSTATS_UPDATE(dvp, remove);
 	return (err);
 }
