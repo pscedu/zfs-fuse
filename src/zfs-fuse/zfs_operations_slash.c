@@ -71,6 +71,7 @@ vfs_t		*zfsVfs;			/* initialized by do_mount() */
 int		 stack_size;
 
 uint64_t        *immnsIdCache;
+uint64_t         immnsIdMask;
 
 /* flags for zfsslash2_fidlink() */
 #define	FIDLINK_CREATE		(1 << 0)
@@ -769,18 +770,22 @@ zfsslash2_build_immns_cache(void)
 	vnode_t		*dvp;
 	int		 error, cnt=0;
 	zfsvfs_t	*zfsvfs = zfsVfs->vfs_data;
+	uint64_t ndirs;
 
-	immnsIdCache = malloc(sizeof(uint64_t) * pow(16, FID_PATH_DEPTH));
+	ndirs = 1 << (BPHXC * FID_PATH_DEPTH);
+	immnsIdCache = malloc(sizeof(uint64_t) * ndirs);
+	immnsIdMask = (ndirs - 1) << (BPHXC * FID_PATH_START);
 
 	error = zfs_zget(zfsvfs, mds_fidnsdir_inum, &znode, B_TRUE);
 	if (error)
-		abort();
+		psc_fatal("error=%d", error);
 
 	ASSERT(znode);
 	dvp = ZTOV(znode);
 	ASSERT(dvp);
 
-	zfsslash2_build_immns_cache_helper(dvp, 1, FID_PATH_DEPTH, &cnt);
+	zfsslash2_build_immns_cache_helper(dvp, 1, FID_PATH_DEPTH,
+	    &cnt);
 	VN_RELE(dvp);
 }
 
@@ -960,8 +965,6 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *pci, slfid_t fid,
 	uint64_t slot;
 	int i, error;
 
-#define IMMNSMASK 0x0fff000L
-
 	/*
 	 * Map the root of SLASH2 metadir to the root of the underlying ZFS.
 	 */
@@ -989,7 +992,8 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *pci, slfid_t fid,
 		return 0;
 	}
 
-	error = zfs_zget(zfsvfs, immnsIdCache[(fid & IMMNSMASK) >> 12],
+	error = zfs_zget(zfsvfs,
+	    immnsIdCache[(fid & immnsIdMask) >> (BPHXC * FID_PATH_START)],
 	    &znode, B_TRUE);
 	if (error)
 		return error == EEXIST ? ENOENT : error;
