@@ -3626,6 +3626,7 @@ top:
 				sstb.sst_gid = cr->cr_gid;
 				sstb.sst_fid = szp->z_phys->zp_s2fid;
 				sstb.sst_size = szp->z_phys->zp_s2size;
+				sstb.sst_nlink = szp->z_phys->zp_links;
 
 				logfunc(NS_OP_RENAME, txg,
 				    sdzp->z_phys->zp_s2fid,
