@@ -319,8 +319,10 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	if(vfs == NULL)
 		return ENOMEM;
 
+#if 0
 	if (mounted) 
 		return EALREADY;
+#endif
 
 	VFS_INIT(vfs, zfs_vfsops, 0);
 	VFS_HOLD(vfs);
