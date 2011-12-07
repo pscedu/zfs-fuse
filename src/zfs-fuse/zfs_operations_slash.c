@@ -266,7 +266,7 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 	sstb->sst_uid = vattr.va_uid;
 	sstb->sst_gid = vattr.va_gid;
 	sstb->sst_rdev = vattr.va_rdev;
-	if (S_ISDIR(sstb->sst_mode)) {
+	if (S_ISDIR(sstb->sst_mode) || S_ISLNK(sstb->sst_mode)) {
 		/*
 		 * We used to return this:
 		 *
