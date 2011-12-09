@@ -35,6 +35,9 @@
 #include <sys/spa.h>
 #include <sys/zfs_context.h>
 
+#include <sys/signal.h>
+
+
 typedef void (*dmu_tx_hold_func_t)(dmu_tx_t *tx, struct dnode *dn,
     uint64_t arg1, uint64_t arg2);
 
@@ -947,7 +950,13 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 				txstate->tx_txg_count++;
 
 		} else {
+#if 0
 			ASSERT(txstate->tx_txg_count == 0);
+#endif
+			/* dropped into gdb if this happens */
+			if (txstate->tx_txg_count == 0)
+				pthread_kill(pthread_self(), SIGINT);
+
 			txstate->tx_txg_count = 1;
 			cv_broadcast(&txstate->tx_slash2_cv1);
 		}
