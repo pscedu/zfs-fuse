@@ -954,7 +954,7 @@ dmu_tx_try_assign(dmu_tx_t *tx, uint64_t txg_how)
 			ASSERT(txstate->tx_txg_count == 0);
 #endif
 			/* dropped into gdb if this happens */
-			if (txstate->tx_txg_count == 0)
+			if (txstate->tx_txg_count != 0)
 				pthread_kill(pthread_self(), SIGINT);
 
 			txstate->tx_txg_count = 1;
