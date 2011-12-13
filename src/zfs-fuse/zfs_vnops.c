@@ -3100,8 +3100,10 @@ top:
 	/* XXX - shouldn't this be done *before* the ATIME/MTIME checks? */
 	if (mask & AT_SIZE)
 		zfs_time_stamper_locked(zp, CONTENT_MODIFIED, tx);
+#if 0
 	else if (mask & AT_SLASH2SIZE) 
 		zfs_time_stamper_locked(zp, S2CONTENT_MODIFIED|AT_CTIME, tx);
+#endif
 	else if (mask != 0)
 		zfs_time_stamper_locked(zp, STATE_CHANGED, tx);
 
