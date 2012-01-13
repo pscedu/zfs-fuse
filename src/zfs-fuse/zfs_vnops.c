@@ -3101,6 +3101,7 @@ top:
 	if (mask & AT_SIZE)
 		zfs_time_stamper_locked(zp, CONTENT_MODIFIED, tx);
 #if 0
+	/* our caller should ask for s2 timestamp changes explicitly */
 	else if (mask & AT_SLASH2SIZE) 
 		zfs_time_stamper_locked(zp, S2CONTENT_MODIFIED|AT_CTIME, tx);
 #endif
