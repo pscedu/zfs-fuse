@@ -285,7 +285,11 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 		 * and is overwritten by the CLI for network performance
 		 * to IOD.
 		 */
-		sstb->sst_size = vattr.va_s2size;
+		if (fg.fg_fid == 0 && fg.fg_gen == 0)
+			/* XXX, we want return local file size */
+			sstb->sst_size = vattr.va_size;
+		else
+			sstb->sst_size = vattr.va_s2size;
 		sstb->sst_blksize = vattr.va_size;
 		sstb->sst_blocks = vattr.va_s2nblks;
 	}
