@@ -805,6 +805,8 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	vnode_t *vp = ((file_info_t *)finfo)->vp;
 
+	struct timespec ts_zget_start, ts_end;
+
 	ASSERT(vp);
 	ASSERT(VTOZ(vp));
 
@@ -870,13 +872,22 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 
 		/* XXX XXX avoid doing a zfs_zget() here XXX XXX */
 		znode_t *znode;
+
+		SL_GETTIMESPEC(&ts_zget_start);
 		error = zfs_zget(zfsvfs, entry.dirent.d_ino, &znode, B_TRUE);
 		if (error)
 			break;
 
+		SL_GETTIMESPEC(&ts_end);
+		timespecsub(&ts_end, &ts_zget_start, &ts_end);
+
+		psclog_dbg("*nents=%zu *outbuf_len=%zu zget_ino=0x%"PRIx64" zget_time="SLPRI_TIMESPEC, 
+		    nents ? *nents : 0, outbuf_len ? *outbuf_len : 0, entry.dirent.d_ino, 
+		    SLPRI_TIMESPEC_ARGS(&ts_end));		
+
 		ASSERT(znode);
 		vnode_t *tvp = ZTOV(znode);
-
+		
 		/*
 		 * Skip internal SLASH meta-structure.
 		 * This check should be pushed out to mount_slash once
