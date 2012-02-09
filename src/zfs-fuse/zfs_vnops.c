@@ -3614,7 +3614,8 @@ top:
 		error = zfs_link_destroy(tdl, tzp, tx, zflg, NULL);
 
 	if (error == 0) {
-		error = zfs_link_create(tdl, szp, tx, ZRENAMING);
+		error = zfs_link_create(tdl, szp, tx, (ZRENAMING | ZPARENT));
+		//		error = zfs_link_create(tdl, szp, tx, ZRENAMING);
 		if (error == 0) {
 			szp->z_phys->zp_flags |= ZFS_AV_MODIFIED;
 
