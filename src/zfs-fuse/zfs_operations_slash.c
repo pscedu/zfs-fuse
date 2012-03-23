@@ -776,6 +776,7 @@ zfsslash2_build_immns_cache(void)
 	zfsvfs_t	*zfsvfs = zfsVfs->vfs_data;
 	uint64_t ndirs;
 
+	/* the number of directories at the lowest level */
 	ndirs = 1 << (BPHXC * FID_PATH_DEPTH);
 	immnsIdCache = malloc(sizeof(uint64_t) * ndirs);
 	immnsIdMask = (ndirs - 1) << (BPHXC * FID_PATH_START);
