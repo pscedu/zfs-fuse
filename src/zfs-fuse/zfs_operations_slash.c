@@ -879,7 +879,7 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		if (error) {
 			psclog_error("zget failed in dnode=0x%"PRIx64
 			     " name=%s ino=0x%"PRIx64" (rc=%d)",
-			     VTOZ(vp)->z_phys->zp_s2fid, entry.dirent.d_name, 
+			     VTOZ(vp)->z_phys->zp_s2fid, entry.dirent.d_name,
 			     entry.dirent.d_ino, error);
 
 			next = entry.dirent.d_off;
@@ -890,13 +890,13 @@ zfsslash2_readdir(const struct slash_creds *slcrp, size_t size,
 		timespecsub(&ts_end, &ts_zget_start, &ts_end);
 
 		psclog_dbg("*nents=%zu *outbuf_len=%zu zget_ino=0x%"PRIx64
-		   " zget_time="SLPRI_TIMESPEC, nents ? *nents : 0, 
+		   " zget_time="SLPRI_TIMESPEC, nents ? *nents : 0,
 		   outbuf_len ? *outbuf_len : 0, entry.dirent.d_ino,
-		   SLPRI_TIMESPEC_ARGS(&ts_end));		
+		   SLPRI_TIMESPEC_ARGS(&ts_end));
 
 		ASSERT(znode);
 		vnode_t *tvp = ZTOV(znode);
-		
+
 		/*
 		 * Skip internal SLASH meta-structure.
 		 * This check should be pushed out to mount_slash once
