@@ -253,10 +253,10 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 	if (error)
 		return (error);
 
-	if (sstb->sst_fid != fg->fg_fid)
-		sstb->sst_fid = fg->fg_fid;
-	if (sstb->sst_gen != fg->fg_gen)
-		sstb->sst_gen = fg->fg_gen;
+	if (sstb->sst_fid != fg.fg_fid)
+		sstb->sst_fid = fg.fg_fid;
+	if (sstb->sst_gen != fg.fg_gen)
+		sstb->sst_gen = fg.fg_gen;
 
 	sstb->sst_dev = vattr.va_fsid;
 	sstb->sst_ptruncgen = vattr.va_ptruncgen;
