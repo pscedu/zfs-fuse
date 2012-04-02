@@ -241,7 +241,6 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 	struct slash_fidgen fg;
 	vattr_t vattr;
 	int error;
-	size_t n;
 
 	ASSERT(vp);
 	get_vnode_fids(vp, &fg, mfp);
