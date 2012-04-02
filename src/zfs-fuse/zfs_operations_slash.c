@@ -241,6 +241,7 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 	struct slash_fidgen fg;
 	vattr_t vattr;
 	int error;
+	size_t n;
 
 	ASSERT(vp);
 	get_vnode_fids(vp, &fg, mfp);
@@ -253,8 +254,11 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 	if (error)
 		return (error);
 
-	memset(sstb, 0, sizeof(*sstb));
-	sstb->sst_fg = fg;
+	if (sstb->sst_fid != fg->fg_fid)
+		sstb->sst_fid = fg->fg_fid;
+	if (sstb->sst_gen != fg->fg_gen)
+		sstb->sst_gen = fg->fg_gen;
+
 	sstb->sst_dev = vattr.va_fsid;
 	sstb->sst_ptruncgen = vattr.va_ptruncgen;
 	sstb->sst_utimgen = vattr.va_s2utimgen;
@@ -301,7 +305,7 @@ fill_sstb(vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 	sstb->sst_ctime = vattr.va_ctime.tv_sec;
 	sstb->sst_ctime_ns = vattr.va_ctime.tv_nsec;
 
-	return 0;
+	return (0);
 }
 
 int
