@@ -84,7 +84,8 @@ uint64_t         immnsIdMask;
  *	ZFS/MDSIO layer inum "fid" (internal) for a vnode.
  */
 static __inline void
-get_vnode_fids(const vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
+get_vnode_fids(const vnode_t *vp, struct slash_fidgen *fgp,
+    mdsio_fid_t *mfp)
 {
 	if (fgp) {
 		if (VTOZ(vp)->z_id == MDSIO_FID_ROOT)
