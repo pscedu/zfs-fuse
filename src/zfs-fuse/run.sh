@@ -8,11 +8,13 @@ usage()
 }
 
 core=unlimited
+fl=
 
-while getopts "c:" c; do
+while getopts "c:x" c; do
 	case $c in
-	c) core=$OPTARG;;
-	*) usage;;
+	c) core=$OPTARG	;;
+	x) fl=-x	;;
+	*) usage	;;
 	esac
 done
 
@@ -26,4 +28,4 @@ dir=$(dirname $0)
 
 ulimit -c $core
 
-exec $dir/zfs-fuse --no-daemon
+exec $dir/zfs-fuse $fl --no-daemon
