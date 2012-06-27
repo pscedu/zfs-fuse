@@ -1929,8 +1929,8 @@ zfsslash2_mknod(mdsio_fid_t parent, const char *name, mode_t mode,
 
 int
 zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
-    const struct slash_creds *slcrp, struct srt_stat *sstb,
-    mdsio_fid_t *mfp, sl_getslfid_cb_t getslfid, sl_log_update_t logfunc)
+    const struct slash_creds *slcrp, struct srt_stat *sstb, mdsio_fid_t *mfp, 
+    sl_log_update_t logfunc, sl_getslfid_cb_t getslfid, slfid_t fid)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	zfsvfs_t *zfsvfs = zfsVfs->vfs_data;
@@ -1963,9 +1963,12 @@ zfsslash2_symlink(const char *link, mdsio_fid_t parent, const char *name,
 	vattr.va_mode = 0777;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 
-	error = getslfid(&vattr.va_fid);
-	if (error)
-		goto out;
+	if (getslfid) {
+		error = getslfid(&vattr.va_fid);
+		if (error)
+			goto out;
+	} else
+		vattr.va_fid = fid;
 
 	error = VOP_SYMLINK(dvp, (char *)name, &vattr, (char *)link,
 	    &cred, NULL, 0, logfunc); /* zfs_symlink() */
