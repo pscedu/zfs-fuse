@@ -83,7 +83,8 @@ uint64_t         immnsIdMask;
  *	ZFS/MDSIO layer inum "fid" (internal) for a vnode.
  */
 static __inline void
-get_vnode_fids(int vfsid, const vnode_t *vp, struct slash_fidgen *fgp, mdsio_fid_t *mfp)
+get_vnode_fids(int vfsid, const vnode_t *vp, struct slash_fidgen *fgp,
+    mdsio_fid_t *mfp)
 {
 	if (fgp) {
 		if (VTOZ(vp)->z_id == MDSIO_FID_ROOT) {
@@ -807,7 +808,7 @@ zfsslash2_build_immns_cache(int vfsid)
 	dvp = ZTOV(znode);
 	ASSERT(dvp);
 
-	error = zfsslash2_build_immns_cache_helper(vfsid, dvp, 1, 
+	error = zfsslash2_build_immns_cache_helper(vfsid, dvp, 1,
 			FID_PATH_DEPTH, &cnt);
 	VN_RELE(dvp);
 	return (error);
@@ -898,9 +899,9 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 		error = zfs_zget(zfsvfs, entry.dirent.d_ino, &znode, B_TRUE);
 		if (error) {
 			psclog_error("zget failed in dnode=0x%"PRIx64
-			     " name=%s ino=0x%"PRIx64" (rc=%d)",
-			     VTOZ(vp)->z_phys->zp_s2fid, entry.dirent.d_name,
-			     entry.dirent.d_ino, error);
+			    " name=%s ino=0x%"PRIx64" (rc=%d)",
+			    VTOZ(vp)->z_phys->zp_s2fid, entry.dirent.d_name,
+			    entry.dirent.d_ino, error);
 
 			next = entry.dirent.d_off;
 			continue;
@@ -1963,7 +1964,7 @@ zfsslash2_mknod(int vfsid, mdsio_fid_t parent, const char *name, mode_t mode,
 
 int
 zfsslash2_symlink(int vfsid, const char *link, mdsio_fid_t parent, const char *name,
-    const struct slash_creds *slcrp, struct srt_stat *sstb, mdsio_fid_t *mfp, 
+    const struct slash_creds *slcrp, struct srt_stat *sstb, mdsio_fid_t *mfp,
     sl_log_update_t logfunc, sl_getslfid_cb_t getslfid, slfid_t fid)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
