@@ -35,6 +35,8 @@
 #include <syslog.h>
 #include <signal.h>
 
+#include "sys/zfs_znode.h"
+
 #include "libsolkerncompat.h"
 #include "zfs_ioctl.h"
 #include "zfsfuse_socket.h"
@@ -51,6 +53,8 @@
 #endif
 #include "util.h"
 
+#include "zfs_slashlib.h"
+
 static int ioctl_fd = -1;
 static int lock_fd = -1;
 
@@ -61,6 +65,11 @@ boolean_t listener_thread_started = B_FALSE;
 pthread_t listener_thread;
 
 int num_filesystems;
+
+int		mount_index;
+mount_info_t	zfsMount[MAX_FILESYSTEMS];
+
+void (*zfsslash2_hook_func)(int) = NULL;
 
 char * fuse_mount_options;
 char * zfs_lock_file;
@@ -313,21 +322,19 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	static int mounted=0;
 	extern void *zfsVfs;
 
+	int error;
+	znode_t *rootzp;
+	zfsvfs_t *zfsvfs;
+	file_info_t *finfo;
+
 	VERIFY(mflag == 0);
 
 	vfs_t *vfs = kmem_zalloc(sizeof(vfs_t), KM_SLEEP);
 	if(vfs == NULL)
 		return ENOMEM;
 
-#if 0
-	if (mounted) 
-		return EALREADY;
-#endif
-
 	VFS_INIT(vfs, zfs_vfsops, 0);
 	VFS_HOLD(vfs);
-
-	zfsVfs = vfs;
 
 	struct mounta uap = {
 	.spec = spec,
@@ -341,7 +348,7 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	};
 
 	int ret;
-	if ((ret = VFS_MOUNT(vfs, rootdir, &uap, kcred)) != 0) {
+	if ((ret = VFS_MOUNT(vfs, rootdir, &uap, kcred)) != 0) {	/* zfs_mount */
 		kmem_free(vfs, sizeof(vfs_t));
 		return ret;
 	} else
@@ -414,6 +421,45 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 		return EIO;
 	}
 #endif
+
+#ifdef ZFS_SLASHLIB
+	if (mount_index >= MAX_FILESYSTEMS - 1)
+		return ENOMEM;
+
+	zfsvfs = vfs->vfs_data;
+	ASSERT(zfsvfs->z_root == 3);
+	zfsMount[mount_index].rootid = zfsvfs->z_root; 
+
+	error = zfs_zget(zfsvfs, zfsvfs->z_root, &rootzp, B_FALSE);
+	ASSERT(!error);
+
+	finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
+	ASSERT(finfo);
+
+	finfo->vp = ZTOV(rootzp);
+	finfo->flags = 0;
+
+	zfsMount[mount_index].rootinfo = finfo;
+
+	zfsMount[mount_index].flag = 0;
+	zfsMount[mount_index].vfs = vfs;
+	zfsMount[mount_index].uuid = -1; 
+	zfsMount[mount_index].siteid = -1;
+	strcpy(zfsMount[mount_index].name, dir);
+
+#if 0
+	/* 
+	 * A better idea is to scan for new file systems when we do 
+ 	 * a readdir under the root file system. Yeah, that is on-demand
+ 	 * registration.
+ 	 */
+	if (zfsslash2_hook_func)
+		zfsslash2_hook_func(mount_index);
+#endif
+
+	mount_index++;
+#endif
+
 	return 0;
 }
 

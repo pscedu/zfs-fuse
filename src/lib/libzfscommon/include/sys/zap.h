@@ -312,7 +312,12 @@ typedef struct {
 	boolean_t za_normalization_conflict;
 	uint64_t za_num_integers;
 	uint64_t za_first_integer;	/* no sign extension for <8byte ints */
+	/* 
+	 * We don't really need this, but removing it requires an
+	 * on-disk format change.
+	 */
 	uint64_t za_second_integer;	/* slash2: may be used to store s2id */
+					
 	char za_name[MAXNAMELEN];
 } zap_attribute_t;
 
