@@ -71,7 +71,7 @@ mount_info_t	zfsMount[MAX_FILESYSTEMS];
 
 void (*zfsslash2_hook_func)(int) = NULL;
 
-char * fuse_mount_options;
+char * fuse_mount_options = NULL;
 char * zfs_lock_file;
 
 extern vfsops_t *zfs_vfsops;
@@ -115,7 +115,7 @@ static int zfsfuse_do_locking(int in_child)
          * first byte; the file /must/ already exist. Only in this way can we
          * prevent races with locking before or after the daemonization
          */
-        lock_fd = open(zfs_lock_file, O_WRONLY|O_CLOEXEC);
+        lock_fd = open(zfs_lock_file, O_WRONLY);
         if(lock_fd == -1)
             return -1;
 
@@ -258,13 +258,15 @@ int do_init()
     VERIFY(cmd_listener_init() == 0);
 
 	pthread_attr_t attr;
-	pthread_attr_init(&attr);
+	VERIFY(0 == pthread_attr_init(&attr));
 	if (stack_size)
 	    pthread_attr_setstacksize(&attr,stack_size);
 	if(pthread_create(&listener_thread, &attr, listener_loop, (void *) &ioctl_fd) != 0) {
+		VERIFY(0 == pthread_attr_destroy(&attr));
 		cmn_err(CE_WARN, "Error creating listener thread.");
 		return -1;
 	}
+	VERIFY(0 == pthread_attr_destroy(&attr));
 
 	listener_thread_started = B_TRUE;
 
@@ -286,11 +288,11 @@ void do_exit()
 			cmn_err(CE_WARN, "Error in pthread_join().");
 	}
 
-    cmd_listener_fini();
-
 #ifndef ZFS_SLASHLIB
 	zfsfuse_listener_exit();
 #endif
+
+    cmd_listener_fini();
 
 #ifdef ZFS_SLASHLIB
 	if (file_info_cache)
@@ -310,12 +312,37 @@ void do_exit()
 /* big_writes added if fuse 2.8 is detected at runtime */
 /* other mount options are added if specified in the command line */
 #ifndef ZFS_SLASHLIB
-#define FUSE_OPTIONS "fsname=%s,allow_other,suid,dev%s" // ,big_writes"
+#define FUSE_OPTIONS "subtype=zfs,fsname=%s,allow_other,suid,dev%s" // ,big_writes"
 #endif
 
 #ifdef DEBUG
 uint32_t t_mounted = 0;
 #endif
+
+static int detect_fuseoption(const char* options, const char* option)
+{
+	if ((!options) || (!option))
+		return 0;
+	ASSERT(NULL == strchr(option, '%'));
+
+	char* spec = 0;
+	VERIFY(asprintf(&spec, "%s%%n", option));
+	ASSERT(spec);
+
+	int pos = -1;
+	int detected = 0;
+	char* tmp = strdup(options);
+	for (char* tok=strtok(tmp, ","); tok && !detected; tok=strtok(NULL, ","))
+		if (sscanf(tok, spec, &pos) >= 0 && (-1!=pos))
+			detected = 1;
+
+	free(tmp);
+	free(spec);
+
+	if (detected)
+		fprintf(stderr, "detected: %s\n", option);
+	return detected;
+}
 
 int do_mount(char *spec, char *dir, int mflag, char *opt)
 {
@@ -355,6 +382,8 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 		mounted = 1;
 	/* Actually, optptr is totally ignored by VFS_MOUNT.
 	 * So we are going to pass this with fuse_mount_options if possible */
+    if (fuse_mount_options == NULL)
+        fuse_mount_options = "";
 	char real_opts[1024];
 	*real_opts = 0;
 	if (*fuse_mount_options)
@@ -369,7 +398,8 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 #endif
 
 #ifndef ZFS_SLASHLIB
-	char *fuse_opts;
+	char *fuse_opts = NULL;
+	int has_default_perm = 0;
 	if (fuse_version() <= 27) {
 	if(asprintf(&fuse_opts, FUSE_OPTIONS, spec, real_opts) == -1) {
 		VERIFY(do_umount(vfs, B_FALSE) == 0);
@@ -392,6 +422,7 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 		VERIFY(do_umount(vfs, B_FALSE) == 0);
 		return ENOMEM;
 	}
+	has_default_perm = detect_fuseoption(fuse_opts,"default_permissions");
 	free(fuse_opts);
 
 	struct fuse_chan *ch = fuse_mount(dir, &args);
@@ -401,7 +432,7 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 		return EIO;
 	}
 
-	if (strstr(fuse_opts,"default_permissions"))
+	if (has_default_perm)
 	    vfs->fuse_attribute = FUSE_VFS_HAS_DEFAULT_PERM;
 
 	struct fuse_session *se = fuse_lowlevel_new(&args, &zfs_operations, sizeof(zfs_operations), vfs);
