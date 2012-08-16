@@ -315,6 +315,14 @@ typedef struct {
 	/* 
 	 * We don't really need this, but removing it requires an
 	 * on-disk format change.
+	 *
+	 * It is created by zfs_link_create().
+	 *
+	 * Initially, I thought this was a cool idea. It turns out
+	 * that we can store s2id in struct znode_phys.
+	 *
+	 * This causes an inconsistence with the rest of the ZFS code, which
+	 * could be a problem.
 	 */
 	uint64_t za_second_integer;	/* slash2: may be used to store s2id */
 					
