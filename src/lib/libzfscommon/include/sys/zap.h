@@ -323,6 +323,23 @@ typedef struct {
 	 *
 	 * This causes an inconsistence with the rest of the ZFS code, which
 	 * could be a problem.
+	 *
+	 * 08/17/2012
+	 * ----------
+	 *
+	 * ZFS code uses the following code to read a ZAP:
+	 *
+	 * 	zap_entry_read(&zeh, 8, 1, &za->za_first_integer);
+	 *
+	 * It reads 1 integer and put it into the buffer starting at za->za_first_integer.
+	 * If we read two integers, and there is really only one integer there, we might 
+	 * put garbage into the following field.  This should be fine.
+	 *
+	 * ZFS also has zap_entry_read_name() to read the name of a ZAP and put the name
+	 * into the last field za_name[].
+	 *
+	 * In theory, ZFS should be able to handle multiple integers, but it always uses
+	 * one integer.
 	 */
 	uint64_t za_second_integer;	/* slash2: may be used to store s2id */
 					

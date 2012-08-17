@@ -1083,6 +1083,7 @@ again:
 		if (zeh.zeh_num_integers == 0) {
 			za->za_first_integer = 0;
 		} else {
+			/* slash2: should I replace 2 with za->za_num_integers */
 			err = zap_entry_read(&zeh, 8, 2, &za->za_first_integer);
 			ASSERT(err == 0 || err == EOVERFLOW);
 		}
