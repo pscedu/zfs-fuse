@@ -2253,6 +2253,10 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 			}
 
 			objnum = ZFS_DIRENT_OBJ(zap.za_first_integer);
+			/*
+			 * This seems bogus because we have our own format.  See 
+			 * zfs_link_create() for how we fill it.
+			 */
 			s2num = ZFS_DIRENT_OBJ(zap.za_second_integer);
 
 			/*
