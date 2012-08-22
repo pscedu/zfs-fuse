@@ -321,9 +321,9 @@ zfsslash2_getattr(int vfsid, mdsio_fid_t ino, void *finfo,
 	struct vfs *vfs = zfsMount[vfsid].vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 	file_info_t *info = finfo;
+	boolean_t release;
 	vnode_t *vp;
 	int error;
-	boolean_t release;
 
 	ZFS_ENTER(zfsvfs);
 
