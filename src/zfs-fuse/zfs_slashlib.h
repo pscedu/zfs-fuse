@@ -76,6 +76,11 @@ int	zfsslash2_symlink(int, const char *, mdsio_fid_t, const char *, const struct
 int	zfsslash2_unlink(int, mdsio_fid_t, slfid_t *, const char *, const struct slash_creds *, sl_log_update_t, void *);
 int	zfsslash2_write(int, const struct slash_creds *, const void *, size_t, size_t *, off_t, int, void *, sl_log_write_t, void *);
 
+int	zfsslash2_listxattr(int, const struct slash_creds *, char *, size_t, size_t *, mdsio_fid_t);
+int	zfsslash2_setxattr(int, const struct slash_creds *, const char *, const char *, size_t, mdsio_fid_t);
+int	zfsslash2_getxattr(int, const struct slash_creds *, const char *, char *, size_t, size_t *, mdsio_fid_t);
+int	zfsslash2_removexattr(int, const struct slash_creds *, const char *, mdsio_fid_t);
+
 int	zfsslash2_write_cursor(int, void *, size_t, void *, sl_log_write_t);
 
 int	do_init_fusesocket(void);
@@ -100,6 +105,9 @@ int	zfsslash2_replay_rmdir(int, slfid_t, slfid_t, char *);
 int	zfsslash2_replay_setattr(int, slfid_t, uint, struct srt_stat *);
 int	zfsslash2_replay_symlink(int, slfid_t, slfid_t, char *, char *, struct srt_stat *stat);
 int	zfsslash2_replay_unlink(int, slfid_t, slfid_t, char *);
+
+int	zfsslash2_replay_setxattr(int, slfid_t, const char *, const char *, size_t);
+int	zfsslash2_replay_removexattr(int, slfid_t, const char *);
 
 uint64_t	zfsslash2_last_synced_txg(void);
 uint64_t	zfsslash2_return_synced(void);

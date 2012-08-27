@@ -359,8 +359,8 @@ zfsslash2_getattr(int vfsid, mdsio_fid_t ino, void *finfo,
 
 /* This macro makes the lookup for the xattr directory, necessary for listxattr
  * getxattr and setxattr */
-#define MY_LOOKUP_XATTR()						\
-	vfs_t *vfs = (vfs_t *) fuse_req_userdata(req);			\
+#define MY_LOOKUP_XATTR(vfsid)						\
+	vfs_t *vfs = zfsMount[(vfsid)].vfs;				\
 	zfsvfs_t *zfsvfs = vfs->vfs_data;				\
 	if (ino == 1) ino = 3;						\
 									\
@@ -388,13 +388,14 @@ zfsslash2_getattr(int vfsid, mdsio_fid_t ino, void *finfo,
 	}
 
 int
-zfsslash2_listxattr(fuse_req_t req, fuse_ino_t ino, size_t size,
-    const struct slash_creds *slcrp)
+zfsslash2_listxattr(int vfsid, const struct slash_creds *slcrp,
+    char *outbuf, size_t size, size_t *outbuf_len, mdsio_fid_t ino)
 {
+	int tmperror;
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
 	/* It's like a lookup, but passing LOOKUP_XATTR as a flag to VOP_LOOKUP */
-	MY_LOOKUP_XATTR();
+	MY_LOOKUP_XATTR(vfsid);
 
 	error = VOP_OPEN(&vp, FREAD, &cred, NULL);
 	if (error) {
@@ -402,8 +403,7 @@ zfsslash2_listxattr(fuse_req_t req, fuse_ino_t ino, size_t size,
 	}
 
 	// Now try a readdir...
-	char *outbuf = NULL;
-	size_t alloc = 0, used = 0;
+	size_t alloc = 0, used = 0, remaining = 0;
 	union {
 		char buf[DIRENT64_RECLEN(MAXNAMELEN)];
 		struct dirent64 dirent;
@@ -442,24 +442,24 @@ zfsslash2_listxattr(fuse_req_t req, fuse_ino_t ino, size_t size,
 		char *s = entry.dirent.d_name;
 		if (*s == '.' && (s[1] == 0 || (s[1] == '.' && s[2] == 0)))
 			continue;
-		while (used + strlen(s)+1 > alloc) {
-			alloc += 1024;
-			outbuf = realloc(outbuf, alloc);
+
+		if (outbuf == NULL) {
+			used += strlen(s)+1;
+			continue;
+		}
+		if (used + strlen(s)+1 > size) {
+			error = ERANGE;
+			break;
 		}
 		strcpy(&outbuf[used],s);
 		used += strlen(s)+1;
 
 	}
+	*outbuf_len = used;
 
-	error = VOP_CLOSE(vp, FREAD, 1, (offset_t) 0, &cred, NULL);
-	if (size == 0) {
-		fuse_reply_xattr(req,used);
-	} else if (size < used) {
-		error = ERANGE;
-	} else {
-		fuse_reply_buf(req,outbuf,used);
-	}
-	free(outbuf);
+	tmperror = VOP_CLOSE(vp, FREAD, 1, (offset_t) 0, &cred, NULL);
+	if (!error)
+		error = tmperror;
  out:
 	if (vp)
 		VN_RELE(vp);
@@ -469,13 +469,12 @@ zfsslash2_listxattr(fuse_req_t req, fuse_ino_t ino, size_t size,
 }
 
 int
-zfsfuse_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
-    const char *value, size_t size, __unusedx int flags,
-    const struct slash_creds *slcrp)
+zfsslash2_setxattr(int vfsid, const struct slash_creds *slcrp, const char *name,
+    const char *value, size_t size, mdsio_fid_t ino)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	MY_LOOKUP_XATTR();
+	MY_LOOKUP_XATTR(vfsid);
 	// Now the idea is to create a file inside the xattr directory with the
 	// wanted attribute.
 
@@ -524,12 +523,12 @@ zfsfuse_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 }
 
 int
-zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
-    size_t size, const struct slash_creds *slcrp)
+zfsslash2_getxattr(int vfsid, const struct slash_creds *slcrp, const char *name,
+    char *outbuf, size_t size, size_t *outbuf_len, mdsio_fid_t ino)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	MY_LOOKUP_XATTR();
+	MY_LOOKUP_XATTR(vfsid);
 	vnode_t *new_vp = NULL;
 	error = VOP_LOOKUP(vp, (char *) name, &new_vp, NULL, 0, NULL,
 	    &cred, NULL, NULL, NULL);
@@ -549,21 +548,16 @@ zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 	if (error)
 		goto out;
 	if (size == 0) {
-		fuse_reply_xattr(req,vattr.va_size);
+		*outbuf_len = vattr.va_size;
 		goto out;
 	} else if (size < vattr.va_size) {
-		fuse_reply_xattr(req, ERANGE);
+		error = ERANGE;
 		goto out;
 	}
-	char *buf = malloc(vattr.va_size);
-	if (!buf)
-		goto out;
 
 	error = VOP_OPEN(&vp, FREAD, &cred, NULL);
-	if (error) {
-		free(buf);
+	if (error)
 		goto out;
-	}
 
 	iovec_t iovec;
 	uio_t uio;
@@ -573,18 +567,15 @@ zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 	uio.uio_fmode = 0;
 	uio.uio_llimit = RLIM64_INFINITY;
 
-	iovec.iov_base = buf;
+	iovec.iov_base = outbuf;
 	iovec.iov_len = vattr.va_size;
 	uio.uio_resid = iovec.iov_len;
 	uio.uio_loffset = 0;
 
 	error = VOP_READ(vp, &uio, FREAD, &cred, NULL);
-	if (error) {
-		free(buf);
+	if (error)
 		goto out;
-	}
-	fuse_reply_buf(req,buf,vattr.va_size);
-	free(buf);
+	*outbuf_len = vattr.va_size;
 	error = VOP_CLOSE(vp, FREAD, 1, (offset_t)0, &cred, NULL);
 
  out:
@@ -596,12 +587,12 @@ zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 }
 
 int
-zfsfuse_removexattr(fuse_req_t req, fuse_ino_t ino, const char *name,
-    const struct slash_creds *slcrp)
+zfsslash2_removexattr(int vfsid, const struct slash_creds *slcrp,
+	const char *name, mdsio_fid_t ino) 
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	MY_LOOKUP_XATTR();
+	MY_LOOKUP_XATTR(vfsid);
 	error = VOP_REMOVE(vp, (char *)name, &cred, NULL, 0, NULL, NULL);
 
  out:
@@ -2682,6 +2673,19 @@ zfsslash2_replay_rename(int vfsid, slfid_t parent, const char *name, slfid_t
 	if (np_vp)
 		VN_RELE(np_vp);
 	return (error);
+}
+
+int
+zfsslash2_replay_setxattr(__unusedx int vfsid, __unusedx slfid_t fid, __unusedx const char *name, 
+	__unusedx const char *value, __unusedx size_t size)
+{
+	return (0);
+}
+
+int
+zfsslash2_replay_removexattr(__unusedx int vfsid, __unusedx slfid_t fid, __unusedx const char *name)
+{
+	return (0);
 }
 
 int
