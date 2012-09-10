@@ -1257,7 +1257,7 @@ zfsslash2_opencreate(int vfsid, mdsio_fid_t ino,
 			vattr_t vattr;
 			memset(&vattr, 0, sizeof(vattr));
 			vattr.va_mask = AT_SIZE;
-			if ((error = VOP_GETATTR(vp, &vattr, 0, &cred, NULL)))
+			if ((error = VOP_GETATTR(vp, &vattr, 0, &cred, NULL))) /* zfs_getattr() */
 				goto out;
 
 			if (vattr.va_size > (u_offset_t)MAXOFF32_T) {
