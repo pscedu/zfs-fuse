@@ -146,7 +146,10 @@ static int zfsfuse_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 	stbuf->st_nlink = vattr.va_nlink;
 	stbuf->st_uid = vattr.va_uid;
 	stbuf->st_gid = vattr.va_gid;
-	stbuf->st_rdev = vattr.va_rdev;
+	if (S_ISCHR(stbuf->st_mode) || S_ISBLK(stbuf->st_mode))
+		stbuf->st_rdev = vattr.va_rdev;
+	else
+		stbuf->st_rdev = vattr.va_s2size;
 	stbuf->st_size = vattr.va_size;
 	stbuf->st_blksize = vattr.va_blksize;
 	stbuf->st_blocks = vattr.va_nblocks;
