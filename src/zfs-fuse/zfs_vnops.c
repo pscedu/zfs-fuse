@@ -1727,6 +1727,7 @@ top:
 		sstb.sst_fid = zp->z_phys->zp_s2fid;
 		sstb.sst_gen = zp->z_phys->zp_s2gen;
 		sstb.sst_nlink = zp->z_phys->zp_links;
+		sstb.sst_size = zp->z_phys->zp_s2size;
 		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2fid, 0,
 		    &sstb, 0, name, NULL, arg);
 	} else {
@@ -2659,6 +2660,7 @@ zfs_setattr(vnode_t *vp, vattr_t *vap, int flags, cred_t *cr,
 	zfs_acl_t	*aclp = NULL;
 	boolean_t skipaclchk = (flags & ATTR_NOACLCHECK) ? B_TRUE : B_FALSE;
 	boolean_t fuid_dirtied = B_FALSE;
+	size_t		oldsiz;
 
 	sl_log_update_t	logfunc = funcp;
 
@@ -3083,9 +3085,10 @@ top:
 		ZFS_TIME_ENCODE(&vap->va_mtime, pzp->zp_mtime);
 
 	if (mask & AT_SLASH2SIZE) {
+		oldsiz = pzp->zp_s2size;
 		pzp->zp_s2size = vap->va_s2size;		
 		/*
-		 * Slash2 Generation needs to be bumped upon truncate to 0.
+		 * SLASH2 Generation needs to be bumped upon truncate to 0.
 		 *  XXX need an upcall to slash2 journal for GC.
 		 */
 		if (!vap->va_s2size) {
@@ -3176,9 +3179,9 @@ top:
 
 	if (mask != 0) {
 		if (logfunc) {
-			int op;
 			struct srt_stat sstb;
 			uint64_t txg;
+			int op;
 
 			txg = dmu_tx_get_txg(tx);
 
@@ -3189,7 +3192,8 @@ top:
 			vap->va_ptruncgen = pzp->zp_s2ptruncgen;
 			zfs_vattr_to_stat(vap, &sstb);
 
-			op = (mask & AT_SLASH2SIZE) ? NS_OP_SETSIZE : NS_OP_SETATTR;
+			op = (mask & AT_SLASH2SIZE) ? NS_OP_SETSIZE :
+			    NS_OP_SETATTR;
 
 			/*
 			 * At this time, SLASH only journals certain
@@ -3201,9 +3205,10 @@ top:
 			     AT_ATIME | AT_MTIME | AT_CTIME |
 			     AT_SLASH2NBLKS | AT_SIZE | AT_SLASH2ATIME |
 			     AT_SLASH2MTIME | AT_SLASH2SIZE |
-			     AT_PTRUNCGEN), NULL, NULL, NULL);
+			     AT_PTRUNCGEN), NULL, NULL, &oldsiz);
 		} else
-			zfs_log_setattr(zilog, tx, TX_SETATTR, zp, vap, mask, fuidp);
+			zfs_log_setattr(zilog, tx, TX_SETATTR, zp, vap,
+			    mask, fuidp);
 	}
 
 	mutex_exit(&zp->z_lock);
