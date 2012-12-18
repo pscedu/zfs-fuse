@@ -69,7 +69,7 @@ void init_mmap() {
 	syslog(LOG_WARNING,"/proc/sys/vm/max_map_count unreadable - no /proc ?");
 	return;
     }
-    fgets(buf,80,f);
+    (void)fgets(buf,80,f);
     fclose(f);
     nb_mmap = atoi(buf);
     syslog(LOG_WARNING,"initial max_map_count %d",nb_mmap);
