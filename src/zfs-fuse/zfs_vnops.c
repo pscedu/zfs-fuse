@@ -1577,6 +1577,7 @@ zfs_remove(vnode_t *dvp, char *name, cred_t *cr, caller_context_t *ct,
 	pathname_t	realnm;
 	int		error;
 	int		zflg = ZEXISTS;
+	off_t 		olds2siz;
 
 	sl_log_update_t	logfunc = funcp;
 
@@ -1636,6 +1637,7 @@ top:
 	tx = dmu_tx_create_wait(zfsvfs->z_os);
 	dmu_tx_hold_zap(tx, dzp->z_id, FALSE, name);
 	dmu_tx_hold_bonus(tx, zp->z_id);
+	olds2siz = zp->z_phys->zp_size;
 	if (may_delete_now) {
 		toobig =
 		    zp->z_phys->zp_size > zp->z_blksz * DMU_MAX_DELETEBLKCNT;
@@ -1727,7 +1729,7 @@ top:
 		sstb.sst_fid = zp->z_phys->zp_s2fid;
 		sstb.sst_gen = zp->z_phys->zp_s2gen;
 		sstb.sst_nlink = zp->z_phys->zp_links;
-		sstb.sst_size = zp->z_phys->zp_s2size;
+		sstb.sst_size = olds2siz;
 		logfunc(NS_OP_UNLINK, txg, dzp->z_phys->zp_s2fid, 0,
 		    &sstb, 0, name, NULL, arg);
 	} else {
@@ -3650,8 +3652,9 @@ top:
 					memset(&sstb, 0, sizeof(sstb));
 					sstb.sst_fid = tzp->z_phys->zp_s2fid;
 					sstb.sst_gen = tzp->z_phys->zp_s2gen;
-					logfunc(NS_OP_RECLAIM, txg, 
-					    tzp->z_phys->zp_s2fid, 0, 
+					sstb.sst_size = tzp->z_phys->zp_s2size;
+					logfunc(NS_OP_RECLAIM, txg,
+					    tzp->z_phys->zp_s2fid, 0,
 					    &sstb, 0, NULL, NULL, NULL);
 				}
 			} else
