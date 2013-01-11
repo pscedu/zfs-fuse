@@ -906,8 +906,7 @@ All I can hope is that we can simply disable this code without risk */
 			    uio->uio_loffset);
 
 		if (logfuncp) {
-			/* Make only one call into slash2 land.
-			 */
+			/* Make only one call into SLASH2 land. */
 			if (!niter)
 				logfuncp(datap, dmu_tx_get_txg(tx), 0);
 		} else 
