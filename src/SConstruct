@@ -58,7 +58,7 @@ else:
 	elif debug == 4:
 		env.Append(CCFLAGS = ['-DNDEBUG'])
 
-if not (('-DDEBUG' in env['CCFLAGS']) or 
+if not (('-DDEBUG' in env['CCFLAGS']) or
 		('-DNDEBUG' in env['CCFLAGS'])):
 	print
 	print "Misconfigured debug level: Neither DEBUG or NDEBUG appears to have been defined: %s" % env['CCFLAGS']
@@ -66,6 +66,7 @@ if not (('-DDEBUG' in env['CCFLAGS']) or
 
 env.Append(CCFLAGS = Split(ARGUMENTS.get('DEFINES', '')))
 
+env.Append(CCFLAGS = ['-I' + rootdir])
 env.Append(CCFLAGS = ['-I' + rootdir + '/pfl/include'])
 env.Append(CCFLAGS = ['-I' + rootdir + '/slash_nara/include'])
 env.Append(CCFLAGS = ['-I' + rootdir + '/slash_nara'])
