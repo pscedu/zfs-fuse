@@ -887,7 +887,7 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 		/* XXX XXX avoid doing a zfs_zget() here XXX XXX */
 		znode_t *znode;
 
-		SL_GETTIMESPEC(&ts_zget_start);
+		PFL_GETPTIMESPEC(&ts_zget_start);
 		error = zfs_zget(zfsvfs, entry.dirent.d_ino, &znode, B_TRUE);
 		if (error) {
 			psclog_error("zget failed in dnode=0x%"PRIx64
@@ -899,7 +899,7 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 			continue;
 		}
 
-		SL_GETTIMESPEC(&ts_end);
+		PFL_GETPTIMESPEC(&ts_end);
 		timespecsub(&ts_end, &ts_zget_start, &ts_end);
 
 		psclog_dbg("*nents=%zu *outbuf_len=%zu "
