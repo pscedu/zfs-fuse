@@ -427,6 +427,7 @@ txg_sync_thread(dsl_pool_t *dp)
 			delta = lbolt - start;
 			timer = (delta > timeout ? 0 : timeout - delta);
 
+#if 0
 			/* 
 			 * We make sure that the transaction that updates the SLASH2
 			 * cursor file is the first to come and the last to go. Wait 
@@ -440,6 +441,7 @@ txg_sync_thread(dsl_pool_t *dp)
 				start = lbolt;
 				timer = timeout;
 			}
+#endif
 		}
 
 		/*
