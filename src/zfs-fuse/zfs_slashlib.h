@@ -42,6 +42,9 @@ extern int		current_vfsid;
 
 extern void (*zfsslash2_hook_func)(int);
 
+extern void (*zfsslash2_suspend_hook_func)(void);
+extern void (*zfsslash2_resume_hook_func)(void);
+
 //XXX shouldn't this be a single bit???
 #define SLASH2_CURSOR_FLAG	0x12345678	/* overload the ioflag of zfs_write() */
 
@@ -92,6 +95,9 @@ void	do_exit(void);
 #define libzfs_exit		do_exit
 
 void	zfsslash2_register_hook(void *);
+void	zfsslash2_register_suspend_hook(void *);
+void	zfsslash2_register_resume_hook(void *);
+
 int	zfsslash2_build_immns_cache(int);
 int	zfsslash2_setattrmask_2_slflags(uint);
 uint	zfsslash2_slflags_2_setattrmask(int);

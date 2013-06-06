@@ -2733,9 +2733,3 @@ zfsslash2_replay_fidlink(int vfsid, slfid_t fid,
 	VN_RELE(vp);
 	return 0;
 }
-
-void
-zfsslash2_register_hook(void *funp)
-{
-	zfsslash2_hook_func = funp;
-}

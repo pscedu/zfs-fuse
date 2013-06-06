@@ -511,3 +511,10 @@ int do_umount(vfs_t *vfs, boolean_t force)
 
 	return 0;
 }
+
+void
+zfsslash2_register_hook(void *funp)
+{
+	zfsslash2_hook_func = funp;
+}
+
