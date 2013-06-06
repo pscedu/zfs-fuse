@@ -750,11 +750,13 @@ zfsslash2_build_immns_cache_helper(int vfsid, vnode_t *root, int curdepth,
     int maxdepth, int *cnt)
 {
 	vnode_t         *vp;
-	int              i, error = 0;
+	int              i, rc, error;
 	char		 id_name[2];
 
 	for (i = 0; i < 16; i++) {
-		snprintf(id_name, 2, "%x", i);
+
+		rc = snprintf(id_name, 2, "%x", i);
+		psc_assert(rc == 1);
 
 		error = VOP_LOOKUP(root, id_name, &vp, NULL, 0, NULL,
 		    &zrootcreds, NULL, NULL, NULL);
