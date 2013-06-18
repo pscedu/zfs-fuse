@@ -815,7 +815,7 @@ zfsslash2_build_immns_cache(int vfsid)
 int
 zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
     off_t off, void *outbuf, size_t *outbuf_len, size_t *nents,
-    void *attrs, int nstbprefetch, void *finfo)
+    void *attrs, int nstbprefetch, int *eof, void *finfo)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	vnode_t *vp = ((file_info_t *)finfo)->vp;

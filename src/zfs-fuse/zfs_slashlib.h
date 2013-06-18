@@ -21,7 +21,7 @@ typedef struct file_info {
 
 #define MAX_FILESYSTEMS		1000
 
-#define	 ZFS_SLASH2_NONE 	0x00
+#define	 ZFS_SLASH2_NONE	0x00
 #define	 ZFS_SLASH2_MKDIR	0x01
 #define	 ZFS_SLASH2_READY	0x02
 
@@ -29,7 +29,7 @@ typedef struct mount_info {
 	uint64_t	 uuid;
 	uint64_t	 siteid;
 	uint64_t	 rootid;
-	int		 flag;			
+	int		 flag;
 	char		 name[MAXPATHLEN];
 	void		*vfs;
 	void		*rootinfo;
@@ -54,28 +54,21 @@ int	zfsslash2_getattr(int, mdsio_fid_t, void *finfo, const struct slash_creds *,
 int	zfsslash2_link(int, mdsio_fid_t, mdsio_fid_t, const char *, const struct slash_creds *, struct srt_stat *, sl_log_update_t);
 int	zfsslash2_lookup(int, mdsio_fid_t, const char *, mdsio_fid_t *, const struct slash_creds *, struct srt_stat *);
 int	zfsslash2_lookup_slfid(int, slfid_t, const struct slash_creds *, struct srt_stat *, mdsio_fid_t *);
-int	zfsslash2_mkdir(int, mdsio_fid_t, const char *, const struct srt_stat *, int, int, struct srt_stat *, \
-			mdsio_fid_t *, sl_log_update_t, sl_getslfid_cb_t, slfid_t);
-int	zfsslash2_mknod(int, mdsio_fid_t, const char *, mode_t, const struct slash_creds *, struct srt_stat *, \
-			mdsio_fid_t *, sl_log_update_t, sl_getslfid_cb_t);
-int	zfsslash2_opencreate(int, mdsio_fid_t, const struct slash_creds *, int, int, mode_t, const char *, mdsio_fid_t *, \
-			     struct srt_stat *, void *, sl_log_update_t, sl_getslfid_cb_t, slfid_t);
+int	zfsslash2_mkdir(int, mdsio_fid_t, const char *, const struct srt_stat *, int, int, struct srt_stat *, mdsio_fid_t *, sl_log_update_t, sl_getslfid_cb_t, slfid_t);
+int	zfsslash2_mknod(int, mdsio_fid_t, const char *, mode_t, const struct slash_creds *, struct srt_stat *, mdsio_fid_t *, sl_log_update_t, sl_getslfid_cb_t);
+int	zfsslash2_opencreate(int, mdsio_fid_t, const struct slash_creds *, int, int, mode_t, const char *, mdsio_fid_t *, struct srt_stat *, void *, sl_log_update_t, sl_getslfid_cb_t, slfid_t);
 int	zfsslash2_opendir(int, mdsio_fid_t, const struct slash_creds *, struct slash_fidgen *, void *);
 int	zfsslash2_preadv(int, const struct slash_creds *, struct iovec *, int, size_t *, off_t, void *);
-int	zfsslash2_pwritev(int, const struct slash_creds *, const struct iovec *, int, size_t *, off_t, int, \
-			  void *, sl_log_write_t, void *);
+int	zfsslash2_pwritev(int, const struct slash_creds *, const struct iovec *, int, size_t *, off_t, int, void *, sl_log_write_t, void *);
 int	zfsslash2_read(int, const struct slash_creds *, void *, size_t, size_t *, off_t, void *);
-int	zfsslash2_readdir(int, const struct slash_creds *, size_t, off_t, void *, size_t *, size_t *, void  *, int, void *);
+int	zfsslash2_readdir(int, const struct slash_creds *, size_t, off_t, void *, size_t *, size_t *, void *, int, int *, void *);
 int	zfsslash2_readlink(int, mdsio_fid_t, char *, const struct slash_creds *);
 int	zfsslash2_release(int, const struct slash_creds *, void *);
-int	zfsslash2_rename(int, mdsio_fid_t, const char *, mdsio_fid_t, const char *, const struct slash_creds *, \
-			 sl_log_update_t, void *);
+int	zfsslash2_rename(int, mdsio_fid_t, const char *, mdsio_fid_t, const char *, const struct slash_creds *, sl_log_update_t, void *);
 int	zfsslash2_rmdir(int, mdsio_fid_t, slfid_t *, const char *, const struct slash_creds *, sl_log_update_t);
-int	zfsslash2_setattr(int, mdsio_fid_t, const struct srt_stat *, int, const struct slash_creds *, \
-			  struct srt_stat *, void *, sl_log_update_t);
+int	zfsslash2_setattr(int, mdsio_fid_t, const struct srt_stat *, int, const struct slash_creds *, struct srt_stat *, void *, sl_log_update_t);
 int	zfsslash2_statfs(int, struct statvfs *);
-int	zfsslash2_symlink(int, const char *, mdsio_fid_t, const char *, const struct slash_creds *, struct srt_stat *, \
-			  mdsio_fid_t *, sl_log_update_t, sl_getslfid_cb_t, slfid_t);
+int	zfsslash2_symlink(int, const char *, mdsio_fid_t, const char *, const struct slash_creds *, struct srt_stat *, mdsio_fid_t *, sl_log_update_t, sl_getslfid_cb_t, slfid_t);
 int	zfsslash2_unlink(int, mdsio_fid_t, slfid_t *, const char *, const struct slash_creds *, sl_log_update_t, void *);
 int	zfsslash2_write(int, const struct slash_creds *, const void *, size_t, size_t *, off_t, int, void *, sl_log_write_t, void *);
 
