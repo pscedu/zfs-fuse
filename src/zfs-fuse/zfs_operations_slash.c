@@ -853,8 +853,6 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 	uio.uio_fmode = 0;
 	uio.uio_llimit = RLIM64_INFINITY;
 
-	int eofp = 0;
-
 	int outbuf_off = 0;
 	int outbuf_resid = size;
 
@@ -871,7 +869,7 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 		uio.uio_resid = iovec.iov_len;
 		uio.uio_loffset = next;
 
-		error = VOP_READDIR(vp, &uio, &cred, &eofp, NULL,
+		error = VOP_READDIR(vp, &uio, &cred, eof, NULL,
 		    V_RDDIR_ONEENTRY);	/* zfs_readdir() */
 		if (error)
 			goto out;
