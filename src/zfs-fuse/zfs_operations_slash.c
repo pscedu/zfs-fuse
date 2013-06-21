@@ -258,6 +258,12 @@ fill_sstb(int vfsid, vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 	if (error)
 		return (error);
 
+	struct slash_fidgen tfg;
+
+	tfg = sstb->sst_fg;
+	memset(sstb, 0, sizeof(*sstb));
+	sstb->sst_fg = tfg;
+
 	/* don't confuse a client when getting attributes for root */
 	if (sstb->sst_fid != SLFID_ROOT && sstb->sst_fid != fg.fg_fid)
 		sstb->sst_fid = fg.fg_fid;
