@@ -112,6 +112,4 @@ uint64_t	zfsslash2_last_synced_txg(void);
 uint64_t	zfsslash2_return_synced(void);
 void		zfsslash2_wait_synced(uint64_t);
 
-int		mdsio_fid_to_vfsid(slfid_t, int *);
-
 #endif /* _ZFS_SLASHLIB_H_ */
