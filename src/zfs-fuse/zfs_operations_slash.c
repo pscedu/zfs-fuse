@@ -814,9 +814,20 @@ zfsslash2_build_immns_cache(int vfsid)
 	return (error);
 }
 
-/*
- * At most two buffers are passed in by our callers: outbuf points to the
- * readdir result, attrs points to prefetched attributes.
+/**
+ * zfsslash2_readdir - Perform readdir(3) guts.
+ * @vfsid: file system ID.
+ * @slcrp: calling credentials.
+ * @size: length of request.
+ * @off: offset into directory for next batch of entries.
+ * @outbuf: buffer to place entries.
+ * @outbuf_len: value-result length of entries we fill.
+ * @nents: value-result number of entries returned.
+ * @attrs: buffer to fill stat(2) attributes for returned entries
+ *	(READDIR+).
+ * @nstbprefetch: maximum number of stat bufs to attempt to fill.
+ * @eof: value-result indicator of end-of-file status.
+ * @finfo: directory handle.
  */
 int
 zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
@@ -847,7 +858,7 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 	struct stat fstat;
 	memset(&fstat, 0, sizeof(fstat));
 
-	struct srt_stat *attr = attrs;
+	struct srt_readdir_ent *attr = attrs;
 
 	ASSERT((!nstbprefetch && !attrs) || (nstbprefetch && attrs));
 
@@ -925,9 +936,19 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 			goto next_entry;
 
 		if (nstbprefetch) {
+			mdsio_fid_t mf;
+
 			/* XXX look at fidcache first */
-			if (fill_sstb(vfsid, tvp, NULL, attr, &cred))
-				attr->sst_fid = FID_ANY;
+			if (fill_sstb(vfsid, tvp, &mf, &attr->sstb,
+			    &cred))
+				attr->sstb.sst_fid = FID_ANY;
+			else {
+				size_t xlen;
+
+				zfsslash2_listxattr(vfsid, slcrp, NULL,
+				    0, &xlen, mf);
+				attr->xattrsize = xlen;
+			}
 			nstbprefetch--;
 			attr++;
 		}
@@ -998,8 +1019,8 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
  * file system.
  */
 int
-_zfsslash2_fidlink(const struct pfl_callerinfo *pci, int vfsid, slfid_t fid,
-    int flags, vnode_t *svp, vnode_t **vpp)
+_zfsslash2_fidlink(const struct pfl_callerinfo *pci, int vfsid,
+    slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 {
 	struct vfs *vfs = zfsMount[vfsid].vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
