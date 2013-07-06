@@ -151,7 +151,7 @@ kstat_install(kstat_t *ksp)
 	exit(1);
     }
     if (dir->inode != ksp->ks_kid) {
-	printf("search crazyness\n");
+	//printf("search crazyness\n");
 	exit(1);
     }
     int n;
