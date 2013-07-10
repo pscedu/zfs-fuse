@@ -1120,6 +1120,10 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *pci, int vfsid,
 	return (error);
 }
 
+/**
+ * zfsslash2_lookup_slfid - Given a SLASH2 FID, lookup the inum for that
+ *	corresponding file relevant to the backing metadata file system.
+ */
 int
 zfsslash2_lookup_slfid(int vfsid, slfid_t fid,
     const struct slash_creds *slcrp, struct srt_stat *sstb,
