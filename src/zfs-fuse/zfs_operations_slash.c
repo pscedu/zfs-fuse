@@ -1919,7 +1919,6 @@ zfsslash2_write_cursor(int vfsid, void *buf, size_t size, void *finfo,
 	ZFS_EXIT(zfsvfs);
 
 	return (error);
-
 }
 
 int
