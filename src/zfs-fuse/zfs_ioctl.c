@@ -148,7 +148,7 @@ __dprintf(const char *file, const char *func, int line, const char *fmt, ...)
 	va_end(adx);
 #else
 	va_start(adx, fmt);
-	(void) vsnprintf(buf, sizeof (buf), fmt, adx);
+	(void) fprintf(stderr, fmt, adx);
 	va_end(adx);
 
 	/*
