@@ -2,6 +2,9 @@
 
 ROOTDIR=..
 include ${ROOTDIR}/Makefile.path
+
+MODULES+=	pthread
+
 include ${MAINMK}
 
 clean-hook:
