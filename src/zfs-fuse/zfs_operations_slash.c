@@ -907,7 +907,7 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 		PFL_GETPTIMESPEC(&ts_zget_start);
 		error = zfs_zget(zfsvfs, entry.dirent.d_ino, &znode, B_TRUE);
 		if (error) {
-			psclog_error("zget failed in dnode=0x%"PRIx64
+			psclog_errorx("zget failed in dnode=0x%"PRIx64
 			    " name=%s ino=0x%"PRIx64" (rc=%d)",
 			    VTOZ(vp)->z_phys->zp_s2fid, entry.dirent.d_name,
 			    entry.dirent.d_ino, error);
