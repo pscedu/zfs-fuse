@@ -919,7 +919,7 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 		PFL_GETPTIMESPEC(&ts_end);
 		timespecsub(&ts_end, &ts_zget_start, &ts_end);
 
-		psclog_dbg("*nents=%zu *outbuf_len=%zu "
+		psclog_debug("*nents=%zu *outbuf_len=%zu "
 		    "zget_ino=%#"PRIx64" zget_time="PSCPRI_TIMESPEC,
 		    nents ? *nents : 0, outbuf_len ? *outbuf_len : 0,
 		    entry.dirent.d_ino, PSCPRI_TIMESPEC_ARGS(&ts_end));
