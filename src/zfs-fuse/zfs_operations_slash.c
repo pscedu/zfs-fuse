@@ -1267,10 +1267,9 @@ zfsslash2_opencreate(int vfsid, mdsio_fid_t ino,
 		VN_RELE(vp);
 		vp = new_vp;
 		if ((opflags & MDSIO_OPENCRF_NOLINK) == 0) {
-			error = zfsslash2_fidlink(
-			    vfsid,
-			    VTOZ(vp)->z_phys->zp_s2fid,
-			    FIDLINK_CREATE, vp, NULL);
+			error = zfsslash2_fidlink(vfsid,
+			    VTOZ(vp)->z_phys->zp_s2fid, FIDLINK_CREATE,
+			    vp, NULL);
 #if 0
 			fprintf(stderr, "create: name = %s, fid = 0x%lx, txg = %lx, errno = %d\n",
 				name, vattr.va_fid, zfsslash2_return_synced(), errno);
