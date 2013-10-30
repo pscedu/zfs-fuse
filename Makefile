@@ -7,7 +7,7 @@ MODULES+=	pthread
 
 include ${MAINMK}
 
-DBGLVL=0
+DBGLVL=2
 
 clean-hook:
 	@(cd src && ${SCONS} ROOTDIR=${ROOTDIR}/.. -c)
