@@ -89,7 +89,8 @@ get_vnode_fids(int vfsid, const vnode_t *vp, struct slash_fidgen *fgp,
 	if (fgp) {
 		if (VTOZ(vp)->z_id == MDSIO_FID_ROOT) {
 			fgp->fg_fid = SLFID_ROOT;
-			FID_SET_SITEID(fgp->fg_fid, zfsMount[vfsid].siteid);
+			FID_SET_SITEID(fgp->fg_fid,
+			    zfsMount[vfsid].siteid);
 		} else
 			fgp->fg_fid = VTOZ(vp)->z_phys->zp_s2fid;
 		fgp->fg_gen = VTOZ(vp)->z_phys->zp_s2gen;
@@ -730,8 +731,8 @@ zfsslash2_opendir(int vfsid, mdsio_fid_t ino, const struct slash_creds *slcrp,
  * XXX convert to the slash d_ino cache .. same as above
  */
 int
-zfsslash2_release(int vfsid, __unusedx const struct slash_creds *slcrp, void
-    *finfo)
+zfsslash2_release(int vfsid, __unusedx const struct slash_creds *slcrp,
+    void *finfo)
 {
 	struct vfs *vfs = zfsMount[vfsid].vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -752,12 +753,12 @@ zfsslash2_release(int vfsid, __unusedx const struct slash_creds *slcrp, void
 }
 
 int
-zfsslash2_build_immns_cache_helper(int vfsid, vnode_t *root, int curdepth,
-    int maxdepth, int *cnt)
+zfsslash2_build_immns_cache_helper(int vfsid, vnode_t *root,
+    int curdepth, int maxdepth, int *cnt)
 {
-	vnode_t         *vp;
-	int              i, rc, error;
-	char		 id_name[2];
+	int i, rc, error;
+	char id_name[2];
+	vnode_t *vp;
 
 	for (i = 0; i < 16; i++) {
 
@@ -770,8 +771,8 @@ zfsslash2_build_immns_cache_helper(int vfsid, vnode_t *root, int curdepth,
 			break;
 
 		if (curdepth < maxdepth) {
-			error = zfsslash2_build_immns_cache_helper(vfsid, vp,
-			    curdepth + 1, maxdepth, cnt);
+			error = zfsslash2_build_immns_cache_helper(
+			    vfsid, vp, curdepth + 1, maxdepth, cnt);
 			if (error)
 				break;
 		} else {
@@ -800,7 +801,8 @@ zfsslash2_build_immns_cache(int vfsid)
 	immnsIdCache[vfsid] = malloc(sizeof(uint64_t) * ndirs);
 	immnsIdMask = (ndirs - 1) << (BPHXC * FID_PATH_START);
 
-	error = zfs_zget(zfsvfs, mds_fidnsdir_inum[vfsid], &znode, B_TRUE);
+	error = zfs_zget(zfsvfs, mds_fidnsdir_inum[vfsid], &znode,
+	    B_TRUE);
 	if (error)
 		return (error);
 
@@ -809,9 +811,16 @@ zfsslash2_build_immns_cache(int vfsid)
 	ASSERT(dvp);
 
 	error = zfsslash2_build_immns_cache_helper(vfsid, dvp, 1,
-			FID_PATH_DEPTH, &cnt);
+	    FID_PATH_DEPTH, &cnt);
 	VN_RELE(dvp);
 	return (error);
+}
+
+mdsio_fid_t
+zfsslash2_getfidlinkdir_mfid(slfid_t fid)
+{
+	return (immnsIdCache[current_vfsid][(fid & immnsIdMask) >>
+	    (BPHXC * FID_PATH_START)]);
 }
 
 /**
@@ -1014,13 +1023,16 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
  *	Normally, a user accesses a file or a directory by its name and
  *	that is done in the by-name namespace.
  *
+ * @svp:
+ * @vpp: value-result vnode pointer of requested FID.
+ *
  * Note that this function assumes that the upper layers of the by-id
  * namespace have already been created.  We do this when we format the
  * file system.
  */
 int
-_zfsslash2_fidlink(const struct pfl_callerinfo *pci, int vfsid,
-    slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
+_zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
+    int vfsid, slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 {
 	struct vfs *vfs = zfsMount[vfsid].vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -1057,8 +1069,7 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *pci, int vfsid,
 		return 0;
 	}
 
-	error = zfs_zget(zfsvfs,
-	    immnsIdCache[vfsid][(fid & immnsIdMask) >> (BPHXC * FID_PATH_START)],
+	error = zfs_zget(zfsvfs, zfsslash2_getfidlinkdir_mfid(fid),
 	    &znode, B_TRUE);
 	if (error)
 		return error == EEXIST ? ENOENT : error;
@@ -2416,6 +2427,7 @@ zfsslash2_replay_link(int vfsid, slfid_t pfid, slfid_t fid, char *name,
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
+	// xxx this should not have a CREATE
 	error = zfsslash2_fidlink(vfsid, pfid, FIDLINK_LOOKUP |
 	    FIDLINK_CREATE, NULL, &pvp);
 	if (error) {
@@ -2423,6 +2435,7 @@ zfsslash2_replay_link(int vfsid, slfid_t pfid, slfid_t fid, char *name,
 		    fid, slstrerror(error));
 		goto out;
 	}
+	// xxx dir
 	error = zfsslash2_fidlink(vfsid, fid, FIDLINK_LOOKUP |
 	    FIDLINK_CREATE, NULL, &svp);
 	if (error) {
@@ -2459,8 +2472,8 @@ zfsslash2_replay_mkdir(int vfsid, slfid_t pfid, char *name,
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
-	error = zfsslash2_fidlink(vfsid, pfid, FIDLINK_LOOKUP,
-	    NULL, &pvp);
+	error = zfsslash2_fidlink(vfsid, pfid, FIDLINK_LOOKUP, NULL,
+	    &pvp);
 	if (error) {
 		psclog_errorx("failed to look up parent fid "SLPRI_FID": %s",
 		    pfid, slstrerror(error));
@@ -2485,6 +2498,7 @@ zfsslash2_replay_mkdir(int vfsid, slfid_t pfid, char *name,
 		goto out;
 	}
 
+	// XXX DIR
 	error = zfsslash2_fidlink(vfsid, sstb->sst_fid, FIDLINK_CREATE,
 	    tvp, NULL);
 	if (error)
@@ -2513,8 +2527,8 @@ zfsslash2_replay_create(int vfsid, slfid_t pfid, char *name,
 	/*
 	 * Make sure the parent exists, at least in the by-id namespace.
 	 */
-	error = zfsslash2_fidlink(vfsid, pfid, FIDLINK_LOOKUP,
-	    NULL, &pvp);
+	error = zfsslash2_fidlink(vfsid, pfid, FIDLINK_LOOKUP, NULL,
+	    &pvp);
 	if (error) {
 		psclog_errorx("failed to look up parent fid "SLPRI_FID": %s",
 		    pfid, slstrerror(error));
@@ -2536,6 +2550,7 @@ zfsslash2_replay_create(int vfsid, slfid_t pfid, char *name,
 	if (error)
 		goto out;
 
+	// XXX dir
 	error = zfsslash2_fidlink(vfsid, sstb->sst_fid, FIDLINK_CREATE,
 	    tvp, NULL);
 	if (error)
@@ -2752,6 +2767,7 @@ zfsslash2_replay_fidlink(int vfsid, slfid_t fid,
 	 * and create the fidlink if it is missing.
 	 */
 	vp = NULL;
+	// XXX DIR
 	error = zfsslash2_fidlink(vfsid, fid, FIDLINK_LOOKUP |
 	    FIDLINK_CREATE, NULL, &vp);
 	if (error)
