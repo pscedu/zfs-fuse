@@ -817,7 +817,7 @@ zfsslash2_build_immns_cache(int vfsid)
 }
 
 mdsio_fid_t
-zfsslash2_getfidlinkdir_mfid(slfid_t fid)
+zfsslash2_getfidlinkdir(slfid_t fid)
 {
 	return (immnsIdCache[current_vfsid][(fid & immnsIdMask) >>
 	    (BPHXC * FID_PATH_START)]);
@@ -1069,7 +1069,7 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
 		return 0;
 	}
 
-	error = zfs_zget(zfsvfs, zfsslash2_getfidlinkdir_mfid(fid),
+	error = zfs_zget(zfsvfs, zfsslash2_getfidlinkdir(fid),
 	    &znode, B_TRUE);
 	if (error)
 		return error == EEXIST ? ENOENT : error;
