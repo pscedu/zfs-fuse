@@ -46,7 +46,7 @@ extern void (*zfsslash2_suspend_hook_func)(void);
 extern void (*zfsslash2_resume_hook_func)(void);
 
 //XXX shouldn't this be a single bit???
-#define SLASH2_CURSOR_FLAG	0x12345678	/* overload the ioflag of zfs_write() */
+#define SLASH2_CURSOR_UPDATE	0x12345678	/* overload the ioflag of zfs_write() */
 
 int	zfsslash2_access(int, mdsio_fid_t, int, const struct slash_creds *);
 int	zfsslash2_fsync(int, const struct slash_creds *, int, void *);

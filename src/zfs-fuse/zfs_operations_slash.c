@@ -1923,7 +1923,7 @@ zfsslash2_write_cursor(int vfsid, void *buf, size_t size, void *finfo,
 	uio.uio_resid = iovec.iov_len;
 	uio.uio_loffset = 0;
 
-	int error = VOP_WRITE(vp, &uio, SLASH2_CURSOR_FLAG, &zrootcreds,
+	int error = VOP_WRITE(vp, &uio, SLASH2_CURSOR_UPDATE, &zrootcreds,
 	    NULL, funcp, buf);	/* zfs_write() */
 
 	ZFS_EXIT(zfsvfs);
