@@ -395,19 +395,32 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 	}
     MY_LOOKUP_XATTR();
 
-	if (strcmp(name, SLXAT_FSIZE) == 0) {
-		char buf[64];
-		int n;
+	if (strncmp(name, ".sl2-", 5) == 0) {
+		vattr_t vattr;
 
-		n = snprintf(buf, sizeof(buf), "%lu", vattr.va_s2size);
-		fuse_reply_buf(req,buf,n);
-		goto out;
-	} else if (strcmp(name, SLXAT_FID) == 0) {
-		char buf[64];
-		int n;
+		memset(&vattr, 0, sizeof(vattr));
+		error = VOP_GETATTR(vp, &vattr, 0, &cred, NULL);
+		if (error)
+			goto out;
 
-		n = snprintf(buf, sizeof(buf), "%lx", vattr.va_fid);
-		fuse_reply_buf(req,buf,n);
+		if (strcmp(name, ".sl2-fsize") == 0) {
+			char buf[32];
+			int n;
+
+			n = snprintf(buf, sizeof(buf), "%llu",
+			    vattr.va_s2size);
+			fuse_reply_buf(req, buf, n);
+			goto out;
+		} else if (strcmp(name, ".sl2-fid") == 0) {
+			char buf[32];
+			int n;
+
+			n = snprintf(buf, sizeof(buf), "%lx",
+			    vattr.va_fid);
+			fuse_reply_buf(req, buf, n);
+			goto out;
+		}
+		error = ENOATTR;
 		goto out;
 	}
 

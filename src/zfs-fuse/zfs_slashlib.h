@@ -14,16 +14,12 @@ struct statvfs;
 
 #ifdef ZFS_SLASHLIB
 typedef struct file_info {
-	vnode_t *vp;
-	int flags;
+	vnode_t		*vp;
+	int		 flags;
 } file_info_t;
 #endif
 
 #define MAX_FILESYSTEMS		1000
-
-#define	 ZFS_SLASH2_NONE	0x00
-#define	 ZFS_SLASH2_MKDIR	0x01
-#define	 ZFS_SLASH2_READY	0x02
 
 typedef struct mount_info {
 	uint64_t	 uuid;
@@ -34,6 +30,11 @@ typedef struct mount_info {
 	void		*vfs;
 	void		*rootinfo;
 } mount_info_t;
+
+/* mount_info_t flags */
+#define ZFS_SLASH2_NONE		0x00
+#define ZFS_SLASH2_MKDIR	0x01
+#define ZFS_SLASH2_READY	0x02
 
 extern int		mount_index;
 extern mount_info_t	zfsMount[MAX_FILESYSTEMS];
