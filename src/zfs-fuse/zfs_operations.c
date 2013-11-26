@@ -395,16 +395,21 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 	}
     MY_LOOKUP_XATTR();
 
-#if 0
-	if (strcmp(name, ".sl2-fsize") == 0) {
+	if (strcmp(name, SLXAT_FSIZE) == 0) {
 		char buf[64];
 		int n;
 
 		n = snprintf(buf, sizeof(buf), "%lu", vattr.va_s2size);
 		fuse_reply_buf(req,buf,n);
 		goto out;
+	} else if (strcmp(name, SLXAT_FID) == 0) {
+		char buf[64];
+		int n;
+
+		n = snprintf(buf, sizeof(buf), "%lx", vattr.va_fid);
+		fuse_reply_buf(req,buf,n);
+		goto out;
 	}
-#endif
 
     vnode_t *new_vp = NULL;
     error = VOP_LOOKUP(vp, (char *) name, &new_vp, NULL, 0, NULL, &cred, NULL, NULL, NULL);  
