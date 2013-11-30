@@ -824,7 +824,7 @@ zfsslash2_getfidlinkdir(slfid_t fid)
 }
 
 /**
- * zfsslash2_readdir - Perform readdir(3) guts.
+ * zfsslash2_readdir - Perform readdir(2) guts.
  * @vfsid: file system ID.
  * @slcrp: calling credentials.
  * @size: length of request.
@@ -832,16 +832,15 @@ zfsslash2_getfidlinkdir(slfid_t fid)
  * @outbuf: buffer to place entries.
  * @outbuf_len: value-result length of entries we fill.
  * @nents: value-result number of entries returned.
- * @attrs: buffer to fill stat(2) attributes for returned entries
- *	(READDIR+).
- * @nstbprefetch: maximum number of stat bufs to attempt to fill.
+ * @attrv: value-result iovec to fill with stat(2) prefetching.
  * @eof: value-result indicator of end-of-file status.
+ * @nextoff: next readdir(2) offset for contiguous readahead.
  * @finfo: directory handle.
  */
 int
 zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
-    off_t off, void *outbuf, size_t *outbuf_len, size_t *nents,
-    void *attrs, int nstbprefetch, int *eof, void *finfo)
+    off_t off, void *outbuf, size_t *outbuf_len, int *nents,
+    struct iovec *attrv, int *eof, off_t *nextoff, void *finfo)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	vnode_t *vp = ((file_info_t *)finfo)->vp;
@@ -867,9 +866,7 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 	struct stat fstat;
 	memset(&fstat, 0, sizeof(fstat));
 
-	struct srt_readdir_ent *attr = attrs;
-
-	ASSERT((!nstbprefetch && !attrs) || (nstbprefetch && attrs));
+	struct srt_readdir_ent *attr;
 
 	iovec_t iovec;
 	uio_t uio;
@@ -910,14 +907,18 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 		if (dsize > outbuf_resid)
 			break;
 
+		if (outbuf_off + attrv->iov_len + sizeof(*attr) >
+		    1024 * 1024) // LNET_MTU
+			break;
+
 		/* XXX XXX avoid doing a zfs_zget() here XXX XXX */
 		znode_t *znode;
 
 		PFL_GETPTIMESPEC(&ts_zget_start);
 		error = zfs_zget(zfsvfs, entry.dirent.d_ino, &znode, B_TRUE);
 		if (error) {
-			psclog_errorx("zget failed in dnode=0x%"PRIx64
-			    " name=%s ino=0x%"PRIx64" (rc=%d)",
+			psclog_errorx("zget failed in dnode=%#"PRIx64
+			    " name=%s ino=%#"PRIx64" (rc=%d)",
 			    VTOZ(vp)->z_phys->zp_s2fid, entry.dirent.d_name,
 			    entry.dirent.d_ino, error);
 
@@ -928,7 +929,7 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 		PFL_GETPTIMESPEC(&ts_end);
 		timespecsub(&ts_end, &ts_zget_start, &ts_end);
 
-		psclog_debug("*nents=%zu *outbuf_len=%zu "
+		psclog_debug("*nents=%d *outbuf_len=%zu "
 		    "zget_ino=%#"PRIx64" zget_time="PSCPRI_TIMESPEC,
 		    nents ? *nents : 0, outbuf_len ? *outbuf_len : 0,
 		    entry.dirent.d_ino, PSCPRI_TIMESPEC_ARGS(&ts_end));
@@ -937,30 +938,31 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 		vnode_t *tvp = ZTOV(znode);
 
 		/*
-		 * Skip internal SLASH meta-structure.
+		 * Skip internal SLASH2 meta-structure.
 		 * This check should be pushed out to mount_slash once
 		 * we move the pscfs_dirent packing there.
 		 */
 		if (hide_vnode(vp, tvp, entry.dirent.d_name))
 			goto next_entry;
 
-		if (nstbprefetch) {
-			mdsio_fid_t mf;
+		mdsio_fid_t mf;
 
-			/* XXX look at fidcache first */
-			if (fill_sstb(vfsid, tvp, &mf, &attr->sstb,
-			    &cred))
-				attr->sstb.sst_fid = FID_ANY;
-			else {
-				size_t xlen;
+		attrv->iov_base = PSC_REALLOC(attrv->iov_base,
+		    attrv->iov_len + sizeof(*attr));
+		attr = PSC_AGP(attrv->iov_base, attrv->iov_len);
+		attrv->iov_len += sizeof(*attr);
 
-				zfsslash2_listxattr(vfsid, slcrp, NULL,
-				    0, &xlen, mf);
-				attr->xattrsize = xlen;
-			}
-			nstbprefetch--;
-			attr++;
+		/* XXX look at fidcache first */
+		if (fill_sstb(vfsid, tvp, &mf, &attr->sstb, &cred))
+			attr->sstb.sst_fid = FID_ANY;
+		else {
+			size_t xlen;
+
+			zfsslash2_listxattr(vfsid, slcrp, NULL, 0,
+			    &xlen, mf);
+			attr->xattrsize = xlen;
 		}
+
 		if (VTOZ(tvp)->z_id == MDSIO_FID_ROOT)
 			fstat.st_ino = SLFID_ROOT;
 		else
@@ -1001,7 +1003,7 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 		outbuf_off += dsize;
 
 		if (nents)
-			(*nents)++;
+			++*nents;
  next_entry:
 		VN_RELE(tvp);
 		next = entry.dirent.d_off;
