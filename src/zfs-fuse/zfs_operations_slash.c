@@ -1004,10 +1004,14 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 
 		if (nents)
 			++*nents;
+
  next_entry:
 		VN_RELE(tvp);
 		next = entry.dirent.d_off;
 	}
+
+	if (nextoff)
+		*nextoff = entry.dirent.d_off;
 
  out:
 	ZFS_EXIT(zfsvfs);
