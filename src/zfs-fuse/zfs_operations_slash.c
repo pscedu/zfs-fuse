@@ -2759,27 +2759,3 @@ zfsslash2_replay_removexattr(__unusedx int vfsid, __unusedx slfid_t fid,
 {
 	return (0);
 }
-
-int
-zfsslash2_replay_fidlink(int vfsid, slfid_t fid,
-    const struct slash_creds *slcrp)
-{
-	cred_t cred = ZFS_INIT_CREDS(slcrp);
-	vnode_t *vp;
-	int error;
-
-	/*
-	 * ZFS can put the creation of a file and its fidlink into two
-	 * different transaction groups.  We must allow this to happen
-	 * and create the fidlink if it is missing.
-	 */
-	vp = NULL;
-	// XXX DIR
-	error = zfsslash2_fidlink(vfsid, fid, FIDLINK_LOOKUP |
-	    FIDLINK_CREATE, NULL, &vp);
-	if (error)
-		return (error);
-
-	VN_RELE(vp);
-	return 0;
-}
