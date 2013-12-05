@@ -950,6 +950,7 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 		attrv->iov_base = PSC_REALLOC(attrv->iov_base,
 		    attrv->iov_len + sizeof(*attr));
 		attr = PSC_AGP(attrv->iov_base, attrv->iov_len);
+		memset(attr, 0, sizeof(*attr));
 		attrv->iov_len += sizeof(*attr);
 
 		/* XXX look at fidcache first */
