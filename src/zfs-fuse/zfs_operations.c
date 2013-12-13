@@ -215,9 +215,7 @@ static int int_zfs_enter(zfsvfs_t *zfsvfs) {
 #define ZFS_VOID_ENTER(a) \
     if (int_zfs_enter(zfsvfs) != 0) return;
 
-/* This macro makes the lookup for the xattr directory, necessary for listxattr
- * getxattr and setxattr */
-#define MY_LOOKUP_XATTR() \
+#define XATTR_COMMON() \
     vfs_t *vfs = (vfs_t *) fuse_req_userdata(req);		\
     zfsvfs_t *zfsvfs = vfs->vfs_data;				\
     if (ino == 1) ino = 3;					\
@@ -240,12 +238,17 @@ static int int_zfs_enter(zfsvfs_t *zfsvfs) {
     vnode_t *vp = NULL;						\
 								\
     cred_t cred;						\
-    zfsfuse_getcred(req, &cred);				\
-								\
+    zfsfuse_getcred(req, &cred);
+
+/* This macro makes the lookup for the xattr directory, necessary for listxattr
+ * getxattr and setxattr */
+#define MY_LOOKUP_XATTR(flg) \
     error = VOP_LOOKUP(dvp, "", &vp, NULL, LOOKUP_XATTR |	\
-	    CREATE_XATTR_DIR, NULL, &cred, NULL, NULL, NULL);	\
+	    (flg), NULL, &cred, NULL, NULL, NULL);		\
     if(error || vp == NULL) {					\
-	if (error != EACCES) error = ENOSYS; 			\
+    	if (error == ENOENT) error = ENOATTR;			\
+	else							\
+	if (error != EACCES) error = ENOSYS;			\
 	goto out;						\
     }
 
@@ -261,8 +264,9 @@ static void zfsfuse_listxattr(fuse_req_t req, fuse_ino_t ino, size_t size)
 		struct dirent64 dirent;
 	} entry;
 
+    XATTR_COMMON();
     /* It's like a lookup, but passing LOOKUP_XATTR as a flag to VOP_LOOKUP */
-    MY_LOOKUP_XATTR();
+    MY_LOOKUP_XATTR(0);
 
     error = VOP_OPEN(&vp, FREAD, &cred, NULL);
     if (error) {
@@ -339,7 +343,8 @@ static void zfsfuse_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name, c
 		fuse_reply_err(req, ENOSYS);
 		return;
 	}
-    MY_LOOKUP_XATTR();
+    XATTR_COMMON();
+    MY_LOOKUP_XATTR(CREATE_XATTR_DIR);
     // Now the idea is to create a file inside the xattr directory with the
     // wanted attribute.
 
@@ -393,7 +398,7 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 		fuse_reply_err(req, ENOSYS);
 		return;
 	}
-    MY_LOOKUP_XATTR();
+    XATTR_COMMON();
 
 	if (strncmp(name, ".sl2-", 5) == 0) {
 		vattr_t vattr;
@@ -432,6 +437,7 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 		error = ENOATTR;
 		goto out;
 	}
+    MY_LOOKUP_XATTR(0);
 
     vnode_t *new_vp = NULL;
     error = VOP_LOOKUP(vp, (char *) name, &new_vp, NULL, 0, NULL, &cred, NULL, NULL, NULL);  
@@ -503,7 +509,8 @@ static void zfsfuse_removexattr(fuse_req_t req, fuse_ino_t ino, const char *name
 		fuse_reply_err(req, ENOSYS);
 		return;
 	}
-    MY_LOOKUP_XATTR();
+    XATTR_COMMON();
+    MY_LOOKUP_XATTR(0);
     error = VOP_REMOVE(vp, (char *) name, &cred, NULL, 0, NULL, NULL);
 
 out:
