@@ -399,7 +399,8 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 		vattr_t vattr;
 
 		memset(&vattr, 0, sizeof(vattr));
-		error = VOP_GETATTR(vp, &vattr, 0, &cred, NULL);
+    		vattr.va_mask = AT_SLASH2SIZE;
+		error = VOP_GETATTR(dvp, &vattr, 0, &cred, NULL);
 		if (error)
 			goto out;
 
@@ -409,15 +410,23 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 
 			n = snprintf(buf, sizeof(buf), "%llu",
 			    vattr.va_s2size);
-			fuse_reply_buf(req, buf, n);
+			if (size < n)
+				fuse_reply_xattr(req,
+				    size ? -ERANGE : n);
+			else
+				fuse_reply_buf(req, buf, n);
 			goto out;
 		} else if (strcmp(name, ".sl2-fid") == 0) {
 			char buf[32];
 			int n;
 
 			n = snprintf(buf, sizeof(buf), "%lx",
-			    vattr.va_fid);
-			fuse_reply_buf(req, buf, n);
+			    VTOZ(dvp)->z_phys->zp_s2fid);
+			if (size < n)
+				fuse_reply_xattr(req,
+				    size ? -ERANGE : n);
+			else
+				fuse_reply_buf(req, buf, n);
 			goto out;
 		}
 		error = ENOATTR;
