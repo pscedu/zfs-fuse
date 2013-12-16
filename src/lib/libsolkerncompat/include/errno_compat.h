@@ -1,8 +1,13 @@
 /* $Id$ */
 
 #include <errno.h>
-#include <attr/xattr.h>
 
-#ifndef ENOATTR
-#define ENOATTR 5001
+#ifdef HAVE_ATTR_XATTR_H
+# include <attr/xattr.h>
+#elif !defined(ENOATTR)
+# ifdef ENODATA
+#  define ENOATTR ENODATA	/* whatever getxattr(2) on nonexistent name */
+# else
+#  define ENOATTR 5001
+# endif
 #endif
