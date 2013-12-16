@@ -4,6 +4,7 @@ ROOTDIR=..
 include ${ROOTDIR}/Makefile.path
 
 MODULES+=	pthread
+FORCE_TAGS=	1
 
 include ${MAINMK}
 
