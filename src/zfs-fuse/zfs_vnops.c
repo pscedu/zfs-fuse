@@ -3633,6 +3633,10 @@ top:
 			ASSERT(error == 0);
 			if (logfunc) {
 				struct srt_stat sstb;
+				struct {
+					struct slash_fidgen clfg;
+					void *a;
+				} aa;
 				uint64_t txg;
 
 				txg = dmu_tx_get_txg(tx);
@@ -3642,10 +3646,17 @@ top:
 				sstb.sst_size = szp->z_phys->zp_s2size;
 				sstb.sst_nlink = szp->z_phys->zp_links;
 
+				memset(&aa, 0, sizeof(aa));
+				if (tzp) {
+					aa.clfg.fg_fid = tzp->z_phys->zp_s2fid;
+					aa.clfg.fg_gen = tzp->z_phys->zp_s2gen;
+				} else
+					aa.clfg.fg_fid = FID_ANY;
+				aa.a = arg;
 				logfunc(NS_OP_RENAME, txg,
 				    sdzp->z_phys->zp_s2fid,
 				    tdzp->z_phys->zp_s2fid, &sstb, 0,
-				    snm, tnm, arg);
+				    snm, tnm, &aa);
 
 				if (tzp) {
 					memset(&sstb, 0, sizeof(sstb));
