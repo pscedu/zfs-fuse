@@ -413,7 +413,7 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 			char buf[32];
 			int n;
 
-			n = snprintf(buf, sizeof(buf), "%"PRIu64,
+			n = snprintf(buf, sizeof(buf), "%llu",
 			    vattr.va_s2size);
 			if (size < n)
 				fuse_reply_xattr(req,
