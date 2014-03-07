@@ -2173,7 +2173,7 @@ zfsslash2_fsync(int vfsid, const struct slash_creds *slcrp,
 int
 zfsslash2_link(int vfsid, mdsio_fid_t ino, mdsio_fid_t newparent,
     const char *newname, const struct slash_creds *slcrp,
-    struct srt_stat *sstb, sl_log_update_t logfunc)
+    sl_log_update_t logfunc)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
@@ -2224,9 +2224,6 @@ zfsslash2_link(int vfsid, mdsio_fid_t ino, mdsio_fid_t newparent,
 		goto out;
 
 	ASSERT(vp);
-
-	if (sstb)
-		error = fill_sstb(vfsid, vp, NULL, sstb, &cred);
 
  out:
 	if (vp)

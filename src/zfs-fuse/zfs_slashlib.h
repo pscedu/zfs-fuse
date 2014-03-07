@@ -52,7 +52,7 @@ extern void (*zfsslash2_resume_hook_func)(void);
 int	zfsslash2_access(int, mdsio_fid_t, int, const struct slash_creds *);
 int	zfsslash2_fsync(int, const struct slash_creds *, int, void *);
 int	zfsslash2_getattr(int, mdsio_fid_t, void *finfo, const struct slash_creds *, struct srt_stat *);
-int	zfsslash2_link(int, mdsio_fid_t, mdsio_fid_t, const char *, const struct slash_creds *, struct srt_stat *, sl_log_update_t);
+int	zfsslash2_link(int, mdsio_fid_t, mdsio_fid_t, const char *, const struct slash_creds *, sl_log_update_t);
 int	zfsslash2_lookup(int, mdsio_fid_t, const char *, mdsio_fid_t *, const struct slash_creds *, struct srt_stat *);
 int	zfsslash2_lookup_slfid(int, slfid_t, const struct slash_creds *, struct srt_stat *, mdsio_fid_t *);
 int	zfsslash2_mkdir(int, mdsio_fid_t, const char *, const struct srt_stat *, int, int, struct srt_stat *, mdsio_fid_t *, sl_log_update_t, sl_getslfid_cb_t, slfid_t);
