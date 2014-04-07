@@ -1546,7 +1546,7 @@ zfsslash2_mkdir(int vfsid, mdsio_fid_t parent, const char *name,
 }
 
 int
-zfsslash2_rmdir(int vfsid, mdsio_fid_t parent, slfid_t *fid,
+zfsslash2_rmdir(int vfsid, mdsio_fid_t parent, struct slash_fidgen *fg,
     const char *name, const struct slash_creds *slcrp,
     sl_log_update_t logfunc)
 {
@@ -1597,8 +1597,11 @@ zfsslash2_rmdir(int vfsid, mdsio_fid_t parent, slfid_t *fid,
 	if (error == EEXIST)
 		error = ENOTEMPTY;
 
-	if (fid)
-		*fid = VTOZ(vp)->z_phys->zp_s2fid;
+	if (fg) {
+		fg->fg_fid = VTOZ(vp)->z_phys->zp_s2fid;
+		fg->fg_gen = VTOZ(vp)->z_phys->zp_s2gen;
+	}
+
 	if (!error)
 		error = zfsslash2_fidlink(vfsid,
 		    VTOZ(vp)->z_phys->zp_s2fid,
@@ -1775,7 +1778,7 @@ zfsslash2_setattr(int vfsid, mdsio_fid_t ino,
 }
 
 int
-zfsslash2_unlink(int vfsid, mdsio_fid_t parent, slfid_t *fid,
+zfsslash2_unlink(int vfsid, mdsio_fid_t parent, struct slash_fidgen *fg,
     const char *name, const struct slash_creds *slcrp,
     sl_log_update_t logfunc, void *arg)
 {
@@ -1822,8 +1825,10 @@ zfsslash2_unlink(int vfsid, mdsio_fid_t parent, slfid_t *fid,
 	if (error)
 		goto out;
 
-	if (fid)
-		*fid = VTOZ(vp)->z_phys->zp_s2fid;
+	if (fg) {
+		fg->fg_fid = VTOZ(vp)->z_phys->zp_s2fid;
+		fg->fg_gen = VTOZ(vp)->z_phys->zp_s2gen;
+	}
 
 	/*
 	 * The last remaining link is our FID namespace one, so remove
