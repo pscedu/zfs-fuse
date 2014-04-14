@@ -1255,6 +1255,14 @@ zfsslash2_opencreate(int vfsid, mdsio_fid_t ino,
 		vattr.va_type = VREG;
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
+	
+		if (sstb) {
+			vattr.va_ctime.tv_sec = sstb->sst_ctim.tv_sec;
+			vattr.va_ctime.tv_nsec = sstb->sst_ctim.tv_nsec;
+			vattr.va_s2atime = vattr.va_ctime;
+			vattr.va_s2mtime = vattr.va_ctime;
+			vattr.va_mask |= AT_SLASH2ATIME | AT_SLASH2MTIME | AT_SLASH2CTIME;
+		}
 
 		if (getslfid) {
 			error = getslfid(&vattr.va_fid);
