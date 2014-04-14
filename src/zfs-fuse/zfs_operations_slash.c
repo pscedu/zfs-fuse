@@ -1862,7 +1862,7 @@ zfsslash2_unlink(int vfsid, mdsio_fid_t parent, struct slash_fidgen *fg,
 int
 zfsslash2_pwritev(int vfsid, const struct slash_creds *slcrp,
     const struct iovec *iovs, int niov, size_t *nb, off_t off,
-    int update_mtime, void *finfo, sl_log_write_t funcp, void *datap)
+    void *finfo, sl_log_write_t funcp, void *datap)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	file_info_t *info = finfo;
@@ -1891,7 +1891,7 @@ zfsslash2_pwritev(int vfsid, const struct slash_creds *slcrp,
 	uio.uio_loffset = off;
 
 	int error = VOP_WRITE(vp, &uio,
-	    (info->flags | (update_mtime ? 0 : SLASH2_IGNORE_MTIME)),
+	    info->flags | SLASH2_IGNORE_MTIME,
 	    &cred, NULL, funcp, datap);	/* zfs_write */
 
 	ZFS_EXIT(zfsvfs);
@@ -1915,7 +1915,7 @@ zfsslash2_write(int vfsid, const struct slash_creds *slcrp,
 	iov.iov_base = (void *)buf;
 	iov.iov_len = size;
 	return (zfsslash2_pwritev(vfsid, slcrp, &iov, 1, nb, off,
-	    update_mtime, finfo, funcp, datap));
+	    finfo, funcp, datap));
 }
 
 int
