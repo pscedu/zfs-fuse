@@ -1908,7 +1908,7 @@ zfsslash2_pwritev(int vfsid, const struct slash_creds *slcrp,
 __inline int
 zfsslash2_write(int vfsid, const struct slash_creds *slcrp,
     const void *buf, size_t size, size_t *nb, off_t off,
-    int update_mtime, void *finfo, sl_log_write_t funcp, void *datap)
+    void *finfo, sl_log_write_t funcp, void *datap)
 {
 	struct iovec iov;
 

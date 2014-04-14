@@ -71,7 +71,7 @@ int	zfsslash2_setattr(int, mdsio_fid_t, const struct srt_stat *, int, const stru
 int	zfsslash2_statfs(int, struct statvfs *);
 int	zfsslash2_symlink(int, const char *, mdsio_fid_t, const char *, const struct slash_creds *, struct srt_stat *, mdsio_fid_t *, sl_log_update_t, sl_getslfid_cb_t, slfid_t);
 int	zfsslash2_unlink(int, mdsio_fid_t, struct slash_fidgen *, const char *, const struct slash_creds *, sl_log_update_t, void *);
-int	zfsslash2_write(int, const struct slash_creds *, const void *, size_t, size_t *, off_t, int, void *, sl_log_write_t, void *);
+int	zfsslash2_write(int, const struct slash_creds *, const void *, size_t, size_t *, off_t, void *, sl_log_write_t, void *);
 
 int	zfsslash2_listxattr(int, const struct slash_creds *, void *, size_t, size_t *, mdsio_fid_t);
 int	zfsslash2_setxattr(int, const struct slash_creds *, const char *, const char *, size_t, mdsio_fid_t);
