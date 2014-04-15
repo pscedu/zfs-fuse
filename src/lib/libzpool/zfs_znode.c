@@ -819,8 +819,12 @@ zfs_mknode(znode_t *dzp, vattr_t *vap, dmu_tx_t *tx, cred_t *cr,
 	pzp->zp_gen = gen;
 
 	ZFS_TIME_ENCODE(&now, pzp->zp_crtime);
-	ZFS_TIME_ENCODE(&now, pzp->zp_ctime);
 
+	if (vap->va_mask & AT_SLASH2CTIME) {
+		ZFS_TIME_ENCODE(&vap->va_ctime, pzp->zp_ctime);
+	} else {
+		ZFS_TIME_ENCODE(&now, pzp->zp_ctime);
+	}
 	if (vap->va_mask & AT_ATIME) {
 		ZFS_TIME_ENCODE(&vap->va_atime, pzp->zp_atime);
 	} else {

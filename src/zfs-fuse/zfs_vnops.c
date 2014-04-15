@@ -894,9 +894,8 @@ All I can hope is that we can simply disable this code without risk */
 		 * Update time stamp.  NOTE: This marks the bonus buffer as
 		 * dirty, so we don't have to do it again for zp_size.
 		 */
-		zfs_time_stamper(zp, (CONTENT_MODIFIED | 
-				      ((ioflag & SLASH2_IGNORE_MTIME) ?
-				       0 : S2CONTENT_MODIFIED)), tx);
+		zfs_time_stamper(zp, ((ioflag & SLASH2_IGNORE_MTIME) ? 
+		    0 : CONTENT_MODIFIED), tx);
 		/*
 		 * Update the file size (zp_size) if it has changed;
 		 * account for possible concurrent updates.
@@ -3127,6 +3126,8 @@ top:
 		ZFS_TIME_ENCODE(&vap->va_s2mtime, pzp->zp_s2mtime);
 		pzp->zp_s2utimgen++;
 	}
+	if (mask & AT_SLASH2CTIME)
+		ZFS_TIME_ENCODE(&vap->va_ctime, pzp->zp_ctime);
 
 	/*
 	 * Do this after setting timestamps to prevent timestamp
@@ -4039,7 +4040,9 @@ top:
 		return (error);
 	}
 
-	error = zfs_link_create(dl, szp, tx, (flags & FKEEPPARENT) ? 0 : ZPARENT);
+	error = zfs_link_create(dl, szp, tx, 
+			((flags & FKEEPPARENT) ? 0 : ZPARENT) |
+			((flags & SLASH2_IGNORE_CTIME) ? ZNEW : 0));
 
 	if (error == 0) {
 		if (logfunc) {

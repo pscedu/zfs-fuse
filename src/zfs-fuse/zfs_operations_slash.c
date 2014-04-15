@@ -1103,7 +1103,8 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
 			 * pointer intact.
 			 */
 			error = VOP_LINK(dvp, svp, id_name, &zrootcreds,
-			    NULL, FALLOWDIRLINK | FKEEPPARENT, NULL);
+			    NULL, FALLOWDIRLINK | FKEEPPARENT | SLASH2_IGNORE_CTIME, 
+			    NULL);	/* zfs_link() */
 		} else {
 			vattr_t vattr;
 
@@ -1737,7 +1738,7 @@ zfsslash2_setattr(int vfsid, mdsio_fid_t ino,
 		vattr.va_s2mtime.tv_nsec = sstb_in->sst_mtime_ns;
 	}
 	if (to_set & PSCFS_SETATTRF_CTIME) {
-		vattr.va_mask |= AT_CTIME;
+		vattr.va_mask |= AT_SLASH2CTIME;
 		vattr.va_ctime.tv_sec = sstb_in->sst_ctime;
 		vattr.va_ctime.tv_nsec = sstb_in->sst_ctime_ns;
 	}
