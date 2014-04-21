@@ -753,74 +753,63 @@ zfsslash2_release(int vfsid, __unusedx const struct slash_creds *slcrp,
 }
 
 int
-zfsslash2_build_immns_cache_helper(int vfsid, vnode_t *root,
-    int curdepth, int maxdepth, int *cnt)
-{
-	int i, rc, error;
-	char id_name[2];
-	vnode_t *vp;
-
-	for (i = 0; i < 16; i++) {
-
-		rc = snprintf(id_name, 2, "%x", i);
-		psc_assert(rc == 1);
-
-		error = VOP_LOOKUP(root, id_name, &vp, NULL, 0, NULL,
-		    &zrootcreds, NULL, NULL, NULL);
-		if (error)
-			break;
-
-		if (curdepth < maxdepth) {
-			error = zfsslash2_build_immns_cache_helper(
-			    vfsid, vp, curdepth + 1, maxdepth, cnt);
-			if (error)
-				break;
-		} else {
-			immnsIdCache[vfsid][(*cnt)++] = VTOZ(vp)->z_id;
-			psclog_debug("depth=%d cnt=%d zfid=%#"PRIx64,
-			    curdepth, *cnt, VTOZ(vp)->z_id);
-		}
-
-		VN_RELE(vp);
-	}
-	return (error);
-}
-
-int
 zfsslash2_build_immns_cache(int vfsid)
 {
-	znode_t         *znode;
-	vnode_t		*dvp;
-	int		 error, cnt=0;
-	struct vfs	*vfs = zfsMount[vfsid].vfs;
-	zfsvfs_t	*zfsvfs = vfs->vfs_data;
 	uint64_t ndirs;
 
 	/* the number of directories at the lowest level */
 	ndirs = 1 << (BPHXC * FID_PATH_DEPTH);
 	immnsIdCache[vfsid] = malloc(sizeof(uint64_t) * ndirs);
 	immnsIdMask = (ndirs - 1) << (BPHXC * FID_PATH_START);
-
-	error = zfs_zget(zfsvfs, mds_fidnsdir_inum[vfsid], &znode,
-	    B_TRUE);
-	if (error)
-		return (error);
-
-	ASSERT(znode);
-	dvp = ZTOV(znode);
-	ASSERT(dvp);
-
-	error = zfsslash2_build_immns_cache_helper(vfsid, dvp, 1,
-	    FID_PATH_DEPTH, &cnt);
-	VN_RELE(dvp);
-	return (error);
+	return (0);
 }
 
 mdsio_fid_t
 zfsslash2_getfidlinkdir(slfid_t fid)
 {
-	return (immnsIdCache[current_vfsid][(fid & immnsIdMask) >>
-	    (BPHXC * FID_PATH_START)]);
+	int bkt;
+
+	bkt = (fid & immnsIdMask) >> (BPHXC * FID_PATH_START);
+	if (immnsIdCache[current_vfsid][bkt])
+		return (immnsIdCache[current_vfsid][bkt]);
+
+	struct vfs *vfs = zfsMount[current_vfsid].vfs;
+	zfsvfs_t *zfsvfs = vfs->vfs_data;
+	vnode_t *vp[FID_PATH_DEPTH + 1];
+	znode_t *znode;
+	char id_name[2];
+	unsigned int ch;
+	int i, error;
+
+	error = zfs_zget(zfsvfs, mds_fidnsdir_inum[current_vfsid],
+	    &znode, B_TRUE);
+	if (error)
+		return (error);
+
+	ASSERT(znode);
+	vp[0] = ZTOV(znode);
+	ASSERT(vp[0]);
+
+	for (i = 0; i < FID_PATH_DEPTH; i++) {
+		ch = (fid >> (BPHXC * (FID_PATH_START + FID_PATH_DEPTH -
+		    i - 1))) & 0xf;
+		snprintf(id_name, 2, "%x", ch);
+		error = VOP_LOOKUP(vp[i], id_name, &vp[i + 1], NULL, 0,
+		    NULL, &zrootcreds, NULL, NULL, NULL);
+		if (error)
+			break;
+	}
+
+	if (i == FID_PATH_DEPTH) {
+		immnsIdCache[current_vfsid][bkt] = VTOZ(vp[i])->z_id;
+		psclog_debug("caching zfid=%#"PRIx64,
+		    VTOZ(vp[i])->z_id);
+	}
+
+	for (; i >= 0; i--)
+		VN_RELE(vp[i]);
+
+	return (immnsIdCache[current_vfsid][bkt]);
 }
 
 /**
@@ -1103,7 +1092,7 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
 			 * pointer intact.
 			 */
 			error = VOP_LINK(dvp, svp, id_name, &zrootcreds,
-			    NULL, FALLOWDIRLINK | FKEEPPARENT | SLASH2_IGNORE_CTIME, 
+			    NULL, FALLOWDIRLINK | FKEEPPARENT | SLASH2_IGNORE_CTIME,
 			    NULL);	/* zfs_link() */
 		} else {
 			vattr_t vattr;
@@ -1256,7 +1245,7 @@ zfsslash2_opencreate(int vfsid, mdsio_fid_t ino,
 		vattr.va_type = VREG;
 		vattr.va_mode = createmode;
 		vattr.va_mask = AT_TYPE|AT_MODE;
-	
+
 		if (sstb) {
 			vattr.va_ctime.tv_sec = sstb->sst_ctim.tv_sec;
 			vattr.va_ctime.tv_nsec = sstb->sst_ctim.tv_nsec;
