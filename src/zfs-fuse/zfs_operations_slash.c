@@ -1882,7 +1882,7 @@ zfsslash2_pwritev(int vfsid, const struct slash_creds *slcrp,
 
 	int error = VOP_WRITE(vp, &uio,
 	    info->flags | SLASH2_IGNORE_MTIME,
-	    &cred, NULL, funcp, datap);	/* zfs_write */
+	    &cred, NULL, funcp, datap);	/* zfs_write() */
 
 	ZFS_EXIT(zfsvfs);
 
