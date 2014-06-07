@@ -3089,7 +3089,6 @@ top:
 		pzp->zp_s2size = vap->va_s2size;		
 		/*
 		 * SLASH2 generation needs to be bumped upon truncate to 0.
-		 *  XXX need an upcall to SLASH2 journal for GC.
 		 */
 		if (!vap->va_s2size) {
 			full_truncate = 1;
