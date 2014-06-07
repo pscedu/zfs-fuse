@@ -1175,6 +1175,8 @@ zfs_time_stamper_locked(znode_t *zp, uint_t flag, dmu_tx_t *tx)
 		ZFS_TIME_ENCODE(&now, zp->z_phys->zp_mtime);
 		if (zp->z_zfsvfs->z_use_fuids)
 			zp->z_phys->zp_flags |= (ZFS_ARCHIVE | ZFS_AV_MODIFIED);
+		if (ZTOV(zp)->v_type == VDIR)
+			zp->z_phys->zp_s2gen++;		
 	}
 
 	if (flag & AT_CTIME) {
