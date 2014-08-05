@@ -1635,7 +1635,7 @@ top:
 	tx = dmu_tx_create_wait(zfsvfs->z_os);
 	dmu_tx_hold_zap(tx, dzp->z_id, FALSE, name);
 	dmu_tx_hold_bonus(tx, zp->z_id);
-	olds2siz = zp->z_phys->zp_size;
+	olds2siz = zp->z_phys->zp_s2size;
 	if (may_delete_now) {
 		toobig =
 		    zp->z_phys->zp_size > zp->z_blksz * DMU_MAX_DELETEBLKCNT;
