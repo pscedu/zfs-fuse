@@ -59,9 +59,14 @@ extern int zfs_flags;
 #ifdef ZFS_DEBUG
 extern void __dprintf(const char *file, const char *func,
     int line, const char *fmt, ...);
-#define	dprintf(...) \
-	if (zfs_flags & ZFS_DEBUG_DPRINTF) \
-		__dprintf(__FILE__, __func__, __LINE__, __VA_ARGS__)
+
+#define	dprintf(fmt, ...) 					\
+	do {							\
+		if (zfs_flags & ZFS_DEBUG_DPRINTF) 		\
+			psclogs(PSL_DEBUG, SLMSS_ZFS, fmt,	\
+			    ##__VA_ARGS__);			\
+	} while (0)
+
 #else
 #define	dprintf(...) ((void)0)
 #endif /* ZFS_DEBUG */
