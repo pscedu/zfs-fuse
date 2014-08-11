@@ -966,6 +966,9 @@ zfs_zget(zfsvfs_t *zfsvfs, uint64_t obj_num, znode_t **zpp, boolean_t zget_unlin
 
 	zp = dmu_buf_get_user(db);
 	if (zp != NULL) {
+		dprintf("locking %p for obj %"PRIx64"\n", &zp->z_lock,
+		    obj_num)
+
 		mutex_enter(&zp->z_lock);
 
 		/*
@@ -995,7 +998,7 @@ zfs_zget(zfsvfs_t *zfsvfs, uint64_t obj_num, znode_t **zpp, boolean_t zget_unlin
 	 * There is a small window where zfs_vget() could
 	 * find this object while a file create is still in
 	 * progress.  Since a gen number can never be zero
-	 * we will check that to determine if its an allocated
+	 * we will check that to determine if it's an allocated
 	 * file.
 	 */
 
