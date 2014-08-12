@@ -967,7 +967,7 @@ zfs_zget(zfsvfs_t *zfsvfs, uint64_t obj_num, znode_t **zpp, boolean_t zget_unlin
 	zp = dmu_buf_get_user(db);
 	if (zp != NULL) {
 		dprintf("locking %p for obj %"PRIx64"\n", &zp->z_lock,
-		    obj_num)
+		    obj_num);
 
 		mutex_enter(&zp->z_lock);
 

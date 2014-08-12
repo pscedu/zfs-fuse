@@ -60,12 +60,23 @@ extern int zfs_flags;
 extern void __dprintf(const char *file, const char *func,
     int line, const char *fmt, ...);
 
-#define	dprintf(fmt, ...) 					\
+#  if _SLASHLIB
+
+#include "pfl/log.h"
+
+#include "slashd/subsys_mds.h"
+
+#  define dprintf(fmt, ...)					\
 	do {							\
-		if (zfs_flags & ZFS_DEBUG_DPRINTF) 		\
-			psclogs(PSL_DEBUG, SLMSS_ZFS, fmt,	\
+		if (zfs_flags & ZFS_DEBUG_DPRINTF)		\
+			psclogs(PLL_DEBUG, SLMSS_ZFS, fmt,	\
 			    ##__VA_ARGS__);			\
 	} while (0)
+#  else
+#  define dprintf(...) \
+	if (zfs_flags & ZFS_DEBUG_DPRINTF) \
+		__dprintf(__FILE__, __func__, __LINE__, __VA_ARGS__)
+#  endif
 
 #else
 #define	dprintf(...) ((void)0)
