@@ -246,7 +246,7 @@ static int int_zfs_enter(zfsvfs_t *zfsvfs) {
     error = VOP_LOOKUP(dvp, "", &vp, NULL, LOOKUP_XATTR |	\
 	    (flg), NULL, &cred, NULL, NULL, NULL);		\
     if(error || vp == NULL) {					\
-    	if (error == ENOENT) error = ENOATTR;			\
+	if (error == ENOENT) error = ENOATTR;			\
 	else							\
 	if (error != EACCES) error = ENOSYS;			\
 	goto out;						\
@@ -404,7 +404,7 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 		vattr_t vattr;
 
 		memset(&vattr, 0, sizeof(vattr));
-    		vattr.va_mask = AT_SLASH2SIZE;
+		vattr.va_mask = AT_SLASH2SIZE;
 		error = VOP_GETATTR(dvp, &vattr, 0, &cred, NULL);
 		if (error)
 			goto out;
@@ -440,7 +440,7 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
     MY_LOOKUP_XATTR(0);
 
     vnode_t *new_vp = NULL;
-    error = VOP_LOOKUP(vp, (char *) name, &new_vp, NULL, 0, NULL, &cred, NULL, NULL, NULL);  
+    error = VOP_LOOKUP(vp, (char *) name, &new_vp, NULL, 0, NULL, &cred, NULL, NULL, NULL);
     if (error) {
 	error = ENOATTR;
 	goto out;
@@ -697,7 +697,7 @@ static int zfsfuse_release(fuse_req_t req, fuse_ino_t ino, struct fuse_file_info
 
 	int error = VOP_CLOSE(info->vp, info->flags, 1, (offset_t) 0, &cred, NULL);
     if (error)
-        syslog(LOG_WARNING, "zfsfuse_release: stale inode (%s)?", strerror(error));
+	syslog(LOG_WARNING, "zfsfuse_release: stale inode (%s)?", strerror(error));
 	else
 	{
 		VN_RELE(info->vp);
@@ -789,7 +789,7 @@ static int zfsfuse_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t of
 		fstat.st_mode = 0;
 
 		outbuf_resid -= dsize;
-		fuse_add_direntry(req, outbuf + outbuf_off, 
+		fuse_add_direntry(req, outbuf + outbuf_off,
 		    dsize, entry.dirent.d_name, &fstat,
 		    entry.dirent.d_off);
 
