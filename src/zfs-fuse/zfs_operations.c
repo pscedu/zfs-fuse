@@ -48,6 +48,8 @@
 #include "fuse_listener.h"
 #include <syslog.h>
 
+#include "slashd/mdsio.h"
+
 #define ZFS_MAGIC 0x2f52f5
 
 // #define VERBOSE
@@ -409,19 +411,32 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 		if (error)
 			goto out;
 
-		if (strcmp(name, ".sl2-fsize") == 0) {
+		if (strcmp(name, SLXAT_FSIZE) == 0) {
 			char buf[32];
 			int n;
 
-			n = snprintf(buf, sizeof(buf), "%llu",
-			    vattr.va_s2size);
+			n = snprintf(buf, sizeof(buf), "%lu",
+			    vattr.va_s2nblks);
 			if (size < n)
 				fuse_reply_xattr(req,
 				    size ? -ERANGE : n);
 			else
 				fuse_reply_buf(req, buf, n);
-			goto out;
-		} else if (strcmp(name, ".sl2-fid") == 0) {
+
+		} else if (strcmp(name, SLXAT_NBLKS) == 0) {
+
+			char buf[32];
+			int n;
+
+			n = snprintf(buf, sizeof(buf), "%lu",
+			    vattr.va_s2nblks);
+			if (size < n)
+				fuse_reply_xattr(req,
+				    size ? -ERANGE : n);
+			else
+				fuse_reply_buf(req, buf, n);
+
+		} else if (strcmp(name, SLXAT_FID) == 0) {
 			char buf[32];
 			int n;
 
@@ -432,9 +447,8 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 				    size ? -ERANGE : n);
 			else
 				fuse_reply_buf(req, buf, n);
-			goto out;
-		}
-		error = ENOATTR;
+		} else
+			error = ENOATTR;
 		goto out;
 	}
     MY_LOOKUP_XATTR(0);
