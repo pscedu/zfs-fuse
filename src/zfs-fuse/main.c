@@ -23,14 +23,16 @@
  * Use is subject to license terms.
  */
 
-#include <stdio.h>
-#include <string.h>
-#include <signal.h>
-#include <getopt.h>
-#include <syslog.h>
-#include <stdlib.h>
 #include <sys/zfs_debug.h>
+
+#include <err.h>
+#include <getopt.h>
 #include <semaphore.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
 
 #include "util.h"
 #include "fuse_listener.h"
@@ -48,12 +50,14 @@ extern int no_kstat_mount; // kstat.c
 
 static sem_t daemon_shutdown;
 
-static void exit_handler(int sig)
+static void
+exit_handler(int sig)
 {
-    sem_post(&daemon_shutdown);
+	sem_post(&daemon_shutdown);
 }
 
-static int set_signal_handler(int sig, void (*handler)(int))
+static int
+set_signal_handler(int sig, void (*handler)(int))
 {
 	struct sigaction sa;
 
@@ -80,90 +84,28 @@ extern int arg_log_uberblocks, arg_min_uberblock_txg; // uberblock.c
 size_t stack_size = 0;
 
 static struct option longopts[] = {
-	{ "no-daemon",
-	  0, /* has-arg */
-	  &cf_daemonize, /* flag */
-	  0 /* val */
-	},
-	{ "no-kstat-mount",
-	    0,
-	    &no_kstat_mount,
-	    1
-	},
-	{ "log-uberblocks",
-	    0,
-	    &arg_log_uberblocks,
-	    1
-	},
-	{ "min-uberblock-txg",
-	    1,
-	    NULL,
-	    'u'
-	},
-	{ "disable-block-cache",
-	  0,
-	  &cf_disable_block_cache,
-	  1
-	},
-	{ "disable-page-cache", // obsolete
-	  0,
-	  &cf_disable_page_cache,
-	  1
-	},
-	{ "pidfile",
-	  1,
-	  NULL,
-	  'p'
-	},
-	{ "max-arc-size",
-		1,
-		NULL,
-		'm'
-	},
-	{ "zfs-prefetch-disable",
-		0,
-		&zfs_prefetch_disable,
-		1
-	},
-	{ "vdev-cache-size",
-		1,
-		NULL,
-		'v'
-	},
-	{ "fuse-attr-timeout",
-	  1,
-	  NULL,
-	  'a'
-	},
-	{ "fuse-entry-timeout",
-	  1,
-	  NULL,
-	  'e'
-	},
-	{ "fuse-mount-options",
-	  1,
-	  NULL,
-	  'o'
-	},
-	{ "help",
-	  0,
-	  NULL,
-	  'h'
-	},
-	{ "stack-size",
-	    1,
-	    NULL,
-	    's'
-	},
-	{ "enable-xattr",
-	  0,
-	  &cf_enable_xattr,
-	  0
-	},
+	{ "no-daemon", 0, &cf_daemonize, 0 },
+	{ "no-kstat-mount", 0, &no_kstat_mount, 1 },
+	{ "log-uberblocks", 0, &arg_log_uberblocks, 1 },
+	{ "min-uberblock-txg", 1, NULL, 'u' },
+	{ "disable-block-cache", 0, &cf_disable_block_cache, 1 },
+	{ "disable-page-cache", 0, &cf_disable_page_cache, 1 },
+	{ "pidfile", 1, NULL, 'p' },
+	{ "max-arc-size", 1, NULL, 'm' },
+	{ "zfs-prefetch-disable", 0, &zfs_prefetch_disable, 1 },
+	{ "vdev-cache-size", 1, NULL, 'v' },
+	{ "fuse-attr-timeout", 1, NULL, 'a' },
+	{ "fuse-entry-timeout", 1, NULL, 'e' },
+	{ "fuse-mount-options", 1, NULL, 'o' },
+	{ "help", 0, NULL, 'h' },
+	{ "stack-size", 1, NULL, 's' },
+	{ "enable-xattr", 0, &cf_enable_xattr, 0 },
 	{ 0, 0, 0, 0 }
 };
 
-void print_usage(int argc, char *argv[]) {
+void
+print_usage(int argc, char *argv[])
+{
 	const char *progname = "zfs-fuse";
 	if (argc > 0)
 		progname = argv[0];
@@ -213,8 +155,8 @@ void print_usage(int argc, char *argv[]) {
 		"  --stack-size=size\n"
 		"			Limit the stack size of threads (in kb).\n"
 		"			default : no limit (8 Mb for linux)\n"
-  		"  -x, --enable-xattr\n"
-  		"			Enable support for extended attributes. Not generally \n"
+		"  -x, --enable-xattr\n"
+		"			Enable support for extended attributes. Not generally \n"
 		"			recommended because it currently has a significant \n"
 		"			performance penalty for many small IOPS\n"
 		"  -h, --help\n"
@@ -222,7 +164,9 @@ void print_usage(int argc, char *argv[]) {
 		, progname);
 }
 
-static void check_opt(const char *progname,char *opt) {
+static void
+check_opt(const char *progname,char *opt)
+{
 	// checks if optarg is defined for an option requiring an argument
 	if (!optarg) {
 		fprintf(stderr,"%s: you need to specify an argument (%s)\n\n",progname,opt);
@@ -230,7 +174,8 @@ static void check_opt(const char *progname,char *opt) {
 	}
 }
 
-static void parse_args(int argc, char *argv[])
+static void
+parse_args(int argc, char *argv[])
 {
 	int retval;
 	char * detecterror;
@@ -240,119 +185,121 @@ static void parse_args(int argc, char *argv[])
 
 	optind = 0;
 	optarg = NULL;
-	while ((retval = getopt_long(argc, argv, "-hp:a:e:m:nxo:u:v:s:", longopts, NULL)) != -1) {
+	while ((retval = getopt_long(argc, argv, "-hp:a:e:m:nxo:u:v:s:",
+	    longopts, NULL)) != -1) {
 		switch (retval) {
-			case 1: /* non-option argument passed (due to - in optstring) */
-			case 'h':
-			case '?':
+		case 1: /* non-option argument passed (due to - in optstring) */
+		case 'h':
+		case '?':
+			print_usage(argc, argv);
+			exit(64);
+		case 'p':
+			if (cf_pidfile != NULL)
+				syslog(LOG_WARNING, "%s: duplicate "
+				    "pid-file setting, prior setting '%s' ignored", progname, cf_pidfile);
+
+			cf_pidfile = optarg;
+
+			if (cf_pidfile == NULL)
+				errx(64, "no file named specified");
+			break;
+		case 'n':
+			cf_daemonize = 0;
+			break;
+		case 'o':
+			if (fuse_mount_options != NULL)
+				syslog(LOG_WARNING, "%s: multiple fuse-mount-options parameters, appending to prior setting '%s'", progname, fuse_mount_options);
+
+			if (optarg == NULL) {
+				fprintf(stderr, "%s: you need to specify mount options\n\n", progname);
 				print_usage(argc, argv);
 				exit(64);
-			case 'p':
-				if (cf_pidfile != NULL)
-					syslog(LOG_WARNING,"%s: duplicate pid-file setting, prior setting '%s' ignored", progname, cf_pidfile);
-
-				cf_pidfile = optarg;
-
-				if (cf_pidfile == NULL) {
-					fprintf(stderr, "%s: you need to specify a file name\n\n", progname);
-					print_usage(argc, argv);
-					exit(64);
-				}
-				break;
-			case 'n':
-				cf_daemonize = 0;
-				break;
-			case 'o':
-				if (fuse_mount_options != NULL)
-					syslog(LOG_WARNING,"%s: multiple fuse-mount-options parameters, appending to prior setting '%s'", progname, fuse_mount_options);
-
-				if (optarg == NULL) {
-					fprintf(stderr, "%s: you need to specify mount options\n\n", progname);
-					print_usage(argc, argv);
-					exit(64);
-				}
-				if (strcmp(optarg,"") == 0) {
-					fprintf(stderr, "%s: empty mount options are not valid\n\n", progname);
-					print_usage(argc, argv);
-					exit(64);
-				}
-				{
-					char* tmpopts = fuse_mount_options;
-					if (-1 == asprintf(&fuse_mount_options,"%s,%s",tmpopts?tmpopts:"",optarg))
-					{
-						fprintf(stderr, "%s: fatal allocation error\n", progname);
-						abort();
-					}
-					if (tmpopts)
-						free(tmpopts);
-				}
-				break;
-			case 'a':
-				check_opt(progname,"-a");
-				if (fuse_attr_timeout != 0.0f)
-					syslog(LOG_WARNING,"%s: conflicting fuse_attr_timeout, prior setting %f ignored", progname, fuse_attr_timeout);
-
-				fuse_attr_timeout = strtof(optarg,&detecterror);
-				if ((fuse_attr_timeout == 0.0 && detecterror == optarg) || (fuse_attr_timeout < 0.0)) {
-					fprintf(stderr, "%s: you need to specify a valid, non-zero attribute timeout\n\n", progname);
-					print_usage(argc, argv);
-					exit(64);
-				}
-				break;
-			case 'e':
-				check_opt(progname,"-e");
-				if (fuse_entry_timeout != 0.0f)
-					syslog(LOG_WARNING,"%s: conflicting fuse_entry_timeout, prior setting %f ignored", progname, fuse_entry_timeout);
-
-				fuse_entry_timeout = strtof(optarg,&detecterror);
-				if ((fuse_entry_timeout == 0.0 && detecterror == optarg) || (fuse_entry_timeout < 0.0)) {
-					fprintf(stderr, "%s: you need to specify a valid, non-zero entry timeout\n\n", progname);
-					print_usage(argc, argv);
-					exit(64);
-				}
-				break;
-			case 'm':
-				check_opt(progname,"-m");
-				max_arc_size = strtol(optarg,&detecterror,10);
-				if ((max_arc_size == 0 && detecterror == optarg) || (max_arc_size < 16) || (max_arc_size > 16384)) {
-					fprintf(stderr, "%s: you need to specify a valid, in-range integer for the maximum ARC size\n\n", progname);
-					print_usage(argc, argv);
-					exit(64);
-				}
-				max_arc_size = max_arc_size<<20;
-				break;
-			case 'u':
-				check_opt(progname,"-u");
-				arg_min_uberblock_txg = atol(optarg);
-				break;
-			case 'v':
-				check_opt(progname,"-v");
-				zfs_vdev_cache_size = strtol(optarg,&detecterror,10)<<20;
-				break;
-			case 's':
-				check_opt(progname,"-s");
-				if (stack_size != 0ul)
-					syslog(LOG_WARNING,"%s: conflicting stack_size, prior setting %zu ignored", progname, stack_size);
-
-				stack_size=strtoul(optarg,&detecterror,10)<<10;
-				syslog(LOG_WARNING,"stack size for threads %zd",stack_size);
-				break;
-			case 'x':
-				cf_enable_xattr = 1;
-				break;
-			case 0:
-				break; /* flag is not NULL */
-			default:
-				// This should never happen
-				fprintf(stderr, "%s: option not recognized (Unrecognized getopt_long return 0x%02x)\n\n", progname, retval);
+			}
+			if (strcmp(optarg,"") == 0) {
+				fprintf(stderr, "%s: empty mount options are not valid\n\n", progname);
 				print_usage(argc, argv);
-				exit(64); /* 64 is standard UNIX EX_USAGE */
-				break;
+				exit(64);
+			}
+			{
+				char* tmpopts = fuse_mount_options;
+				if (-1 == asprintf(&fuse_mount_options,"%s,%s",tmpopts?tmpopts:"",optarg))
+				{
+					fprintf(stderr, "%s: fatal allocation error\n", progname);
+					abort();
+				}
+				if (tmpopts)
+					free(tmpopts);
+			}
+			break;
+		case 'a':
+			check_opt(progname,"-a");
+			if (fuse_attr_timeout != 0.0f)
+				syslog(LOG_WARNING,"%s: conflicting fuse_attr_timeout, prior setting %f ignored", progname, fuse_attr_timeout);
+
+			fuse_attr_timeout = strtof(optarg,&detecterror);
+			if ((fuse_attr_timeout == 0.0 && detecterror == optarg) || (fuse_attr_timeout < 0.0)) {
+				fprintf(stderr, "%s: you need to specify a valid, non-zero attribute timeout\n\n", progname);
+				print_usage(argc, argv);
+				exit(64);
+			}
+			break;
+		case 'e':
+			check_opt(progname,"-e");
+			if (fuse_entry_timeout != 0.0f)
+				syslog(LOG_WARNING,"%s: conflicting fuse_entry_timeout, prior setting %f ignored", progname, fuse_entry_timeout);
+
+			fuse_entry_timeout = strtof(optarg,&detecterror);
+			if ((fuse_entry_timeout == 0.0 && detecterror == optarg) || (fuse_entry_timeout < 0.0)) {
+				fprintf(stderr, "%s: you need to specify a valid, non-zero entry timeout\n\n", progname);
+				print_usage(argc, argv);
+				exit(64);
+			}
+			break;
+		case 'm':
+			check_opt(progname,"-m");
+			max_arc_size = strtol(optarg,&detecterror,10);
+			if ((max_arc_size == 0 && detecterror == optarg) || (max_arc_size < 16) ||
+			    (max_arc_size > 16384)) {
+				fprintf(stderr, "%s: you need to specify a valid, in-range integer for the maximum ARC size\n\n", progname);
+				print_usage(argc, argv);
+				exit(64);
+			}
+			max_arc_size = max_arc_size<<20;
+			break;
+		case 'u':
+			check_opt(progname,"-u");
+			arg_min_uberblock_txg = atol(optarg);
+			break;
+		case 'v':
+			check_opt(progname,"-v");
+			zfs_vdev_cache_size = strtol(optarg,&detecterror,10)<<20;
+			break;
+		case 's':
+			check_opt(progname,"-s");
+			if (stack_size != 0ul)
+				syslog(LOG_WARNING,"%s: conflicting stack_size, prior setting %zu ignored", progname, stack_size);
+
+			stack_size=strtoul(optarg,&detecterror,10)<<10;
+			syslog(LOG_WARNING,"stack size for threads %zd",stack_size);
+			break;
+		case 'x':
+			cf_enable_xattr = 1;
+			break;
+		case 0:
+			break; /* flag is not NULL */
+		default:
+			// This should never happen
+			fprintf(stderr, "%s: option not recognized (Unrecognized getopt_long return 0x%02x)\n\n", progname, retval);
+			print_usage(argc, argv);
+			exit(64); /* 64 is standard UNIX EX_USAGE */
+			break;
 		}
-	}	
+	}
 }
 
-static void read_cfg() {
+static void
+read_cfg(void)
+{
 	FILE *f = fopen("/etc/zfs/zfsrc","r");
 	if (!f)
 		return;
@@ -380,16 +327,16 @@ static void read_cfg() {
 		sscanf(buf, " %n%*[a-z-]%n = %n%*[^#]%n", &name_s, &name_e, &value_s, &value_e);
 
 		// unfortunately, can't trust the return value according to SCANF(3)
-		if (!((-1 == name_s) || (-1 == name_e) || (-1 == value_s) || (-1 == value_e)))
-		{
+		if (!((-1 == name_s) || (-1 == name_e) || (-1 ==
+		    value_s) || (-1 == value_e))) {
 			// treat righthand side as shell quoted (--name='value')
 			buf[name_e] = buf[value_e] = 0;
 			argv[argc++] = buf+name_s;
 			argv[argc++] = buf+value_s;
-		} else
-		{
-			for (char* token=strtok(buf, " \t\n\r"); token && argc<10; token=strtok(NULL, " \t\n\r"))
-			{
+		} else {
+			for (char *token = strtok(buf, " \t\n\r");
+			    token && argc < 10;
+			    token = strtok(NULL, " \t\n\r")) {
 				if ('#' == *token) // keeping the old behaviour only
 					break;
 				else
@@ -397,8 +344,7 @@ static void read_cfg() {
 			}
 		}
 
-		if (argc>1)
-		{
+		if (argc>1) {
 			// prepend dashes for short or long options
 			const char* original = argv[1];
 			if ('-'!=*original)
@@ -414,10 +360,12 @@ static void read_cfg() {
 	fclose(f);
 }
 
-int main(int argc, char *argv[])
+int
+main(int argc, char *argv[])
 {
-    VERIFY(0 == sem_init(&daemon_shutdown, 0, 0));
-    init_mmap();
+	VERIFY(0 == sem_init(&daemon_shutdown, 0, 0));
+	init_mmap();
+
 	/* one sane default a day keeps GDB away - Rudd-O */
 	fuse_attr_timeout = 0.0;
 	fuse_entry_timeout = 0.0;
@@ -434,33 +382,36 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "%s: Warning: enabling xattr support should only be done when really required; performance will be affected\n", argv[0]);
 
 	/* notice about ARC size */
-	if (max_arc_size)	syslog(LOG_NOTICE,"ARC caching: maximum ARC size: " FU64 " MiB", max_arc_size>>20);
-	else 			syslog(LOG_NOTICE,"ARC caching: maximum ARC size: compiled-in default");
+	if (max_arc_size)
+		syslog(LOG_NOTICE, "ARC caching: maximum ARC size: " FU64 " MiB", max_arc_size>>20);
+	else
+		syslog(LOG_NOTICE, "ARC caching: maximum ARC size: compiled-in default");
 
 	if (!block_cache) /* direct IO enabled */
-		syslog(LOG_WARNING,"block cache disabled -- mmap() cannot be used in ZFS filesystems");
-    if (do_init_fusesocket() != 0)
-        return 1;
-	if (cf_daemonize) {
-		do_daemon(cf_pidfile);
-	}
+		syslog(LOG_WARNING, "block cache disabled -- mmap() cannot be used in ZFS filesystems");
 
-	if(do_init() != 0) {
+	if (do_init_fusesocket() != 0)
+		return 1;
+
+	if (cf_daemonize)
+		do_daemon(cf_pidfile);
+
+	if (do_init() != 0) {
 		do_exit();
 		return 1;
 	}
 
-	if(set_signal_handler(SIGHUP, exit_handler) != 0 ||
-	   set_signal_handler(SIGINT, exit_handler) != 0 ||
-	   set_signal_handler(SIGTERM, exit_handler) != 0 ||
-	   set_signal_handler(SIGPIPE, SIG_IGN) != 0) {
+	if (set_signal_handler(SIGHUP, exit_handler) != 0 ||
+	    set_signal_handler(SIGINT, exit_handler) != 0 ||
+	    set_signal_handler(SIGTERM, exit_handler) != 0 ||
+	    set_signal_handler(SIGPIPE, SIG_IGN) != 0) {
 		do_exit();
 		return 2;
 	}
 
 	VERIFY(0 == zfsfuse_listener_start());
 
-    sem_wait(&daemon_shutdown);
+	sem_wait(&daemon_shutdown);
 
 	do_exit();
 	sleep(1); // avoids a lockup while shutting down libc with a scrub running; FIXME!!
