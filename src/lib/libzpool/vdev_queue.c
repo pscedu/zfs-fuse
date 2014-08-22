@@ -44,7 +44,7 @@ int zfs_vdev_min_pending = 4;
 int zfs_vdev_time_shift = 6;
 
 /* exponential I/O issue ramp-up rate */
-int zfs_vdev_ramp_rate = 2;
+int zfs_vdev_ramp_rate = 4;
 
 /*
  * To reduce IOPs, we aggregate small adjacent I/Os into one large I/O.
