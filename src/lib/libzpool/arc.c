@@ -3429,10 +3429,10 @@ arc_init(void)
 		}
 	} else {
 #ifdef _KERNEL
-	/* set max cache to ZFSFUSE_MAX_ARCSIZE */
-	arc_c_max = ZFSFUSE_MAX_ARCSIZE;
+		/* set max cache to ZFSFUSE_MAX_ARCSIZE */
+		arc_c_max = ZFSFUSE_MAX_ARCSIZE;
 #else
-	arc_c_max = 64<<20;
+		arc_c_max = 64<<20;
 #endif
 	}
 	syslog(LOG_NOTICE,"ARC setup: min ARC size set to " FI64 " bytes",arc_c_min);
