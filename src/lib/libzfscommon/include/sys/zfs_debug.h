@@ -60,7 +60,7 @@ extern int zfs_flags;
 extern void __dprintf(const char *file, const char *func,
     int line, const char *fmt, ...);
 
-#  if _SLASHLIB
+# if _SLASHLIB
 
 #include "pfl/log.h"
 
@@ -72,14 +72,14 @@ extern void __dprintf(const char *file, const char *func,
 			psclogs(PLL_DEBUG, SLMSS_ZFS, fmt,	\
 			    ##__VA_ARGS__);			\
 	} while (0)
-#  else
+# else
 #  define dprintf(...) \
-	if (zfs_flags & ZFS_DEBUG_DPRINTF) \
+	if (zfs_flags & ZFS_DEBUG_DPRINTF)			\
 		__dprintf(__FILE__, __func__, __LINE__, __VA_ARGS__)
-#  endif
+# endif
 
 #else
-#define	dprintf(...) ((void)0)
+# define	dprintf(...) ((void)0)
 #endif /* ZFS_DEBUG */
 
 extern void zfs_panic_recover(const char *fmt, ...);
