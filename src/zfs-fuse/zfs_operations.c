@@ -417,7 +417,7 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 		int n;
 
 		memset(&vattr, 0, sizeof(vattr));
-		vattr.va_mask = AT_SLASH2SIZE;
+		vattr.va_mask = AT_SLASH2SIZE | AT_SLASH2NBLKS;
 		error = VOP_GETATTR(dvp, &vattr, 0, &cred, NULL);
 		if (error)
 			goto out;
