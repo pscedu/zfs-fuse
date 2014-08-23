@@ -134,7 +134,12 @@ static int zfsfuse_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 	ASSERT(stbuf != NULL);
 
 	vattr_t vattr;
+	memset(&vattr, 0, sizeof(vattr));
 	vattr.va_mask = AT_STAT | AT_NBLOCKS | AT_BLKSIZE | AT_SIZE;
+#ifdef STANDALONE_SLASH2_ATTRS
+	vattr.va_mask |= AT_SLASH2SIZE | AT_SLASH2MTIME |
+	    AT_SLASH2CTIME;
+#endif
 
 	int error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);
 	if(error)
@@ -150,14 +155,18 @@ static int zfsfuse_stat(vnode_t *vp, struct stat *stbuf, cred_t *cred)
 	stbuf->st_gid = vattr.va_gid;
 	if (S_ISCHR(stbuf->st_mode) || S_ISBLK(stbuf->st_mode))
 		stbuf->st_rdev = vattr.va_rdev;
-	else
-		stbuf->st_rdev = vattr.va_s2size;
 	stbuf->st_size = vattr.va_size;
 	stbuf->st_blksize = vattr.va_blksize;
 	stbuf->st_blocks = vattr.va_nblocks;
+#ifdef STANDALONE_SLASH2_ATTRS
+	stbuf->st_atime = vattr.va_s2size;
+	TIMESTRUC_TO_TIME(vattr.va_s2mtime, &stbuf->st_mtime);
+	TIMESTRUC_TO_TIME(vattr.va_ctime, &stbuf->st_ctime);
+#else
 	TIMESTRUC_TO_TIME(vattr.va_atime, &stbuf->st_atime);
 	TIMESTRUC_TO_TIME(vattr.va_mtime, &stbuf->st_mtime);
 	TIMESTRUC_TO_TIME(vattr.va_ctime, &stbuf->st_ctime);
+#endif
 
 	return 0;
 }
@@ -404,6 +413,8 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 
 	if (strncmp(name, ".sl2-", 5) == 0) {
 		vattr_t vattr;
+		char buf[32];
+		int n;
 
 		memset(&vattr, 0, sizeof(vattr));
 		vattr.va_mask = AT_SLASH2SIZE;
@@ -412,8 +423,6 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 			goto out;
 
 		if (strcmp(name, SLXAT_FSIZE) == 0) {
-			char buf[32];
-			int n;
 
 			n = snprintf(buf, sizeof(buf), "%lu",
 			    vattr.va_s2nblks);
@@ -425,9 +434,6 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 
 		} else if (strcmp(name, SLXAT_NBLKS) == 0) {
 
-			char buf[32];
-			int n;
-
 			n = snprintf(buf, sizeof(buf), "%lu",
 			    vattr.va_s2nblks);
 			if (size < n)
@@ -437,8 +443,6 @@ static void zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 				fuse_reply_buf(req, buf, n);
 
 		} else if (strcmp(name, SLXAT_FID) == 0) {
-			char buf[32];
-			int n;
 
 			n = snprintf(buf, sizeof(buf), "%"PRIx64,
 			    VTOZ(dvp)->z_phys->zp_s2fid);

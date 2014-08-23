@@ -4,9 +4,13 @@ import os, sys, re
 # Accepted parameters (and defaults):
 #
 #   install_dir=/usr/local/sbin - directory where the install target copies the binaries
-#   debug=1 - compilation style: 0 = optimize and strip, 1 = optimize with debug info, 2 = debug info, 3 = instrument functions
+#   debug=1 - compilation style:
+#	0 = optimize and strip
+#	1 = optimize with debug info
+#	2 = debug info
+#	3 = instrument functions
+#	4 = no optimization
 #   optim="-pipe -O2 -march=native" to override the optimization flags (useful when building debug=1 for packaging)
-#   4 = no optimization
 
 DESTDIR = ARGUMENTS.get('DESTDIR')
 
@@ -40,7 +44,11 @@ if osname == "Linux":
 
 debug = int(ARGUMENTS.get('debug', '0'))
 optim = ARGUMENTS.get('optim', '-O2')
+sl2attr = ARGUMENTS.get('sl2attr', '0')
 rootdir = ARGUMENTS.get('ROOTDIR')
+
+if sl2attr:
+	env.Append(CCFLAGS = ['-DSTANDALONE_SLASH2_ATTRS'])
 
 if not debug:
 	env.Append(LINKFLAGS = ['-s'])
