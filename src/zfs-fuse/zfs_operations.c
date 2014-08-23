@@ -1464,6 +1464,7 @@ zfsfuse_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 	error = VOP_SETATTR(vp, &vattr, flags, &cred, NULL, NULL);
 
  out:
+ 	;
 	struct stat stat_reply;
 
 	if (!error)
