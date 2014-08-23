@@ -23,8 +23,6 @@
  * Use is subject to license terms.
  */
 
-#include <sys/zfs_debug.h>
-
 #include <err.h>
 #include <getopt.h>
 #include <semaphore.h>
@@ -33,6 +31,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+
+#include <sys/zfs_debug.h>
 
 #include "util.h"
 #include "fuse_listener.h"
