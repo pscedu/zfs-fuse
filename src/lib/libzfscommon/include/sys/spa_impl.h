@@ -189,6 +189,9 @@ struct spa {
 	uint64_t	spa_dedup_checksum;	/* default dedup checksum */
 	uint64_t	spa_dspace;		/* dspace in normal class */
 	kmutex_t	spa_vdev_top_lock;	/* dueling offline/remove */
+	kthread_t	*spa_trim_thread;	/* thread sending TRIM I/Os */
+	kmutex_t	spa_trim_lock;		/* protects spa_trim_cv */
+	kcondvar_t	spa_trim_cv;		/* used to notify TRIM thread */
 	boolean_t	spa_autoreplace;	/* autoreplace set in open */
 	int		spa_vdev_locks;		/* locks grabbed */
 

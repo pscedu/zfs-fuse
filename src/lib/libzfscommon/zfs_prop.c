@@ -249,6 +249,9 @@ zfs_prop_init(void)
 	register_index(ZFS_PROP_NBMAND, "nbmand", 0, PROP_INHERIT,
 	    ZFS_TYPE_FILESYSTEM | ZFS_TYPE_SNAPSHOT, "on | off", "NBMAND",
 	    boolean_table);
+	register_index(ZFS_PROP_TRIM, "trim", 0, PROP_INHERIT,
+	    ZFS_TYPE_FILESYSTEM, "on | off", "TRIM",
+	    boolean_table);
 
 	/* default index properties */
 	register_index(ZFS_PROP_VERSION, "version", 0, PROP_DEFAULT,

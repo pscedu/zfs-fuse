@@ -120,6 +120,7 @@ typedef enum {
 	ZFS_PROP_OBJSETID,		/* not exposed to the user */
 	ZFS_PROP_DEDUP,
 	ZFS_PROP_MLSLABEL,
+	ZFS_PROP_TRIM,
 	ZFS_NUM_PROPS
 } zfs_prop_t;
 

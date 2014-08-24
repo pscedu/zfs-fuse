@@ -32,15 +32,15 @@
  *	1. Uniquely identify this device as part of a ZFS pool and confirm its
  *	   identity within the pool.
  *
- * 	2. Verify that all the devices given in a configuration are present
+ *	2. Verify that all the devices given in a configuration are present
  *         within the pool.
  *
- * 	3. Determine the uberblock for the pool.
+ *	3. Determine the uberblock for the pool.
  *
- * 	4. In case of an import operation, determine the configuration of the
+ *	4. In case of an import operation, determine the configuration of the
  *         toplevel vdev of which it is a part.
  *
- * 	5. If an import operation cannot find all the devices in the pool,
+ *	5. If an import operation cannot find all the devices in the pool,
  *         provide enough information to the administrator to determine which
  *         devices are missing.
  *
@@ -76,9 +76,9 @@
  * In order to identify which labels are valid, the labels are written in the
  * following manner:
  *
- * 	1. For each vdev, update 'L1' to the new label
- * 	2. Update the uberblock
- * 	3. For each vdev, update 'L2' to the new label
+ *	1. For each vdev, update 'L1' to the new label
+ *	2. Update the uberblock
+ *	3. For each vdev, update 'L2' to the new label
  *
  * Given arbitrary failure, we can determine the correct label to use based on
  * the transaction group.  If we fail after updating L1 but before updating the
@@ -116,17 +116,17 @@
  *
  * The nvlist describing the pool and vdev contains the following elements:
  *
- * 	version		ZFS on-disk version
- * 	name		Pool name
- * 	state		Pool state
- * 	txg		Transaction group in which this label was written
- * 	pool_guid	Unique identifier for this pool
- * 	vdev_tree	An nvlist describing vdev tree.
+ *	version		ZFS on-disk version
+ *	name		Pool name
+ *	state		Pool state
+ *	txg		Transaction group in which this label was written
+ *	pool_guid	Unique identifier for this pool
+ *	vdev_tree	An nvlist describing vdev tree.
  *
  * Each leaf device label also contains the following:
  *
- * 	top_guid	Unique ID for top-level vdev in which this is contained
- * 	guid		Unique ID for the leaf vdev
+ *	top_guid	Unique ID for top-level vdev in which this is contained
+ *	guid		Unique ID for the leaf vdev
  *
  * The 'vs' configuration follows the format described in 'spa_config.c'.
  */
@@ -141,6 +141,7 @@
 #include <sys/uberblock_impl.h>
 #include <sys/metaslab.h>
 #include <sys/zio.h>
+#include <sys/trim_map.h>
 #include <sys/fs/zfs.h>
 
 /*
@@ -646,6 +647,18 @@ vdev_label_init(vdev_t *vd, uint64_t crtxg, vdev_labeltype_t reason)
 			return (0);
 		ASSERT(reason == VDEV_LABEL_REPLACE);
 	}
+
+	/*
+	 * TRIM the whole thing so that we start with a clean slate.
+	 * It's just an optimization, so we don't care if it fails.
+	 * Don't TRIM if removing so that we don't interfere with zpool
+	 * disaster recovery.
+	 */
+	extern boolean_t zfs_notrim;
+
+	if (!zfs_notrim && (reason == VDEV_LABEL_CREATE ||
+	    reason == VDEV_LABEL_SPARE || reason == VDEV_LABEL_L2CACHE))
+		zio_wait(zio_trim(NULL, spa, vd, 0, vd->vdev_psize));
 
 	/*
 	 * Initialize its label.
@@ -1176,5 +1189,10 @@ vdev_config_sync(vdev_t **svd, int svdcount, uint64_t txg, boolean_t tryhard)
 	 * to disk to ensure that all odd-label updates are committed to
 	 * stable storage before the next transaction group begins.
 	 */
-	return (vdev_label_sync_list(spa, 1, txg, flags));
+	if ((error = vdev_label_sync_list(spa, 1, txg, flags)) != 0)
+		return (error);
+
+	trim_thread_wakeup(spa);
+
+	return (0);
 }
