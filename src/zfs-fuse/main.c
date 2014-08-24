@@ -81,6 +81,7 @@ extern int optind, opterr, optopt;
 extern int zfs_vdev_cache_size; // in lib/libzpool/vdev_cache.c
 extern int zfs_prefetch_disable; // lib/libzpool/dmu_zfetch.c
 extern int arg_log_uberblocks, arg_min_uberblock_txg; // uberblock.c
+extern boolean_t zfs_notrim;
 size_t stack_size = 0;
 
 static struct option longopts[] = {
@@ -155,12 +156,12 @@ print_usage(int argc, char *argv[])
 		"  --stack-size=size\n"
 		"			Limit the stack size of threads (in kb).\n"
 		"			default : no limit (8 Mb for linux)\n"
+		"  -T\n"
+		"			Enable TRIM support on all volumes.\n"
 		"  -x, --enable-xattr\n"
 		"			Enable support for extended attributes. Not generally \n"
 		"			recommended because it currently has a significant \n"
 		"			performance penalty for many small IOPS\n"
-		"  -h, --help\n"
-		"			Show this usage summary.\n"
 		, progname);
 }
 
@@ -177,122 +178,128 @@ check_opt(const char *progname,char *opt)
 static void
 parse_args(int argc, char *argv[])
 {
-	int retval;
-	char * detecterror;
+	int c;
+	char *endp;
 	const char *progname = "zfs-fuse";
+
 	if (argc > 0)
 		progname = argv[0];
 
 	optind = 0;
 	optarg = NULL;
-	while ((retval = getopt_long(argc, argv, "-hp:a:e:m:nxo:u:v:s:",
+	while ((c = getopt_long(argc, argv, "-a:e:hm:no:p:s:Tu:v:x",
 	    longopts, NULL)) != -1) {
-		switch (retval) {
-		case 1: /* non-option argument passed (due to - in optstring) */
-		case 'h':
-		case '?':
-			print_usage(argc, argv);
-			exit(64);
+		switch (c) {
+		case 'a':
+			check_opt(progname, "-a");
+			if (fuse_attr_timeout != 0.0f)
+				syslog(LOG_WARNING, "%s: conflicting "
+				    "fuse_attr_timeout, prior setting "
+				    "%f ignored", progname,
+				    fuse_attr_timeout);
+
+			fuse_attr_timeout = strtof(optarg, &endp);
+			if ((fuse_attr_timeout == 0.0 && endp == optarg) ||
+			    fuse_attr_timeout < 0.0)
+				errx(64, "fuse_attr_timeout: %s: invalid "
+				    "value", optarg);
+			break;
+		case 'e':
+			check_opt(progname, "-e");
+			if (fuse_entry_timeout != 0.0f)
+				syslog(LOG_WARNING, "%s: conflicting "
+				    "fuse_entry_timeout, prior setting "
+				    "%f ignored", progname,
+				    fuse_entry_timeout);
+
+			fuse_entry_timeout = strtof(optarg, &endp);
+			if ((fuse_entry_timeout == 0.0 && endp ==
+			    optarg) || fuse_entry_timeout < 0.0)
+				errx(64, "fuse_entry_timeout: %s: invalid "
+				    "value", optarg);
+			break;
+		case 'm':
+			check_opt(progname, "-m");
+			max_arc_size = strtol(optarg, &endp, 10);
+			if ((max_arc_size == 0 && endp == optarg) ||
+			    (max_arc_size < 16) || (max_arc_size > 16384))
+				errx(64, "max_arc_size: %s: invalid "
+				    "value", optarg);
+			max_arc_size = max_arc_size << 20;
+			break;
+		case 'n':
+			cf_daemonize = 0;
+			break;
+		case 'o':
+			if (fuse_mount_options)
+				syslog(LOG_WARNING, "%s: multiple "
+				    "fuse-mount-options parameters, "
+				    "appending to prior setting '%s'",
+				    progname, fuse_mount_options);
+
+			if (optarg == NULL)
+				errx(64, "no option specified");
+			if (strcmp(optarg, "") == 0)
+				errx(64, "invalid option specified");
+			{
+				char *tmpopts = fuse_mount_options;
+
+				if (asprintf(&fuse_mount_options,
+				    "%s,%s", tmpopts ? tmpopts : "",
+				    optarg) == -1)
+					err(1, "fatal allocation error");
+				if (tmpopts)
+					free(tmpopts);
+			}
+			break;
 		case 'p':
-			if (cf_pidfile != NULL)
+			if (cf_pidfile)
 				syslog(LOG_WARNING, "%s: duplicate "
-				    "pid-file setting, prior setting '%s' ignored", progname, cf_pidfile);
+				    "pid-file setting, prior setting "
+				    "'%s' ignored", progname,
+				    cf_pidfile);
 
 			cf_pidfile = optarg;
 
 			if (cf_pidfile == NULL)
 				errx(64, "no file named specified");
 			break;
-		case 'n':
-			cf_daemonize = 0;
-			break;
-		case 'o':
-			if (fuse_mount_options != NULL)
-				syslog(LOG_WARNING, "%s: multiple fuse-mount-options parameters, appending to prior setting '%s'", progname, fuse_mount_options);
+		case 's':
+			check_opt(progname, "-s");
+			if (stack_size != 0UL)
+				syslog(LOG_WARNING,
+				    "%s: conflicting stack_size, "
+				    "prior setting %zu ignored",
+				    progname, stack_size);
 
-			if (optarg == NULL) {
-				fprintf(stderr, "%s: you need to specify mount options\n\n", progname);
-				print_usage(argc, argv);
-				exit(64);
-			}
-			if (strcmp(optarg,"") == 0) {
-				fprintf(stderr, "%s: empty mount options are not valid\n\n", progname);
-				print_usage(argc, argv);
-				exit(64);
-			}
-			{
-				char* tmpopts = fuse_mount_options;
-				if (-1 == asprintf(&fuse_mount_options,"%s,%s",tmpopts?tmpopts:"",optarg))
-				{
-					fprintf(stderr, "%s: fatal allocation error\n", progname);
-					abort();
-				}
-				if (tmpopts)
-					free(tmpopts);
-			}
+			stack_size = strtoul(optarg, &endp, 10) << 10;
+			syslog(LOG_WARNING, "stack size for threads "
+			    "%zd", stack_size);
 			break;
-		case 'a':
-			check_opt(progname,"-a");
-			if (fuse_attr_timeout != 0.0f)
-				syslog(LOG_WARNING,"%s: conflicting fuse_attr_timeout, prior setting %f ignored", progname, fuse_attr_timeout);
-
-			fuse_attr_timeout = strtof(optarg,&detecterror);
-			if ((fuse_attr_timeout == 0.0 && detecterror == optarg) || (fuse_attr_timeout < 0.0)) {
-				fprintf(stderr, "%s: you need to specify a valid, non-zero attribute timeout\n\n", progname);
-				print_usage(argc, argv);
-				exit(64);
-			}
-			break;
-		case 'e':
-			check_opt(progname,"-e");
-			if (fuse_entry_timeout != 0.0f)
-				syslog(LOG_WARNING,"%s: conflicting fuse_entry_timeout, prior setting %f ignored", progname, fuse_entry_timeout);
-
-			fuse_entry_timeout = strtof(optarg,&detecterror);
-			if ((fuse_entry_timeout == 0.0 && detecterror == optarg) || (fuse_entry_timeout < 0.0)) {
-				fprintf(stderr, "%s: you need to specify a valid, non-zero entry timeout\n\n", progname);
-				print_usage(argc, argv);
-				exit(64);
-			}
-			break;
-		case 'm':
-			check_opt(progname,"-m");
-			max_arc_size = strtol(optarg,&detecterror,10);
-			if ((max_arc_size == 0 && detecterror == optarg) || (max_arc_size < 16) ||
-			    (max_arc_size > 16384)) {
-				fprintf(stderr, "%s: you need to specify a valid, in-range integer for the maximum ARC size\n\n", progname);
-				print_usage(argc, argv);
-				exit(64);
-			}
-			max_arc_size = max_arc_size<<20;
+		case 'T':
+			zfs_notrim = B_FALSE;
 			break;
 		case 'u':
-			check_opt(progname,"-u");
+			check_opt(progname, "-u");
 			arg_min_uberblock_txg = atol(optarg);
 			break;
 		case 'v':
-			check_opt(progname,"-v");
-			zfs_vdev_cache_size = strtol(optarg,&detecterror,10)<<20;
-			break;
-		case 's':
-			check_opt(progname,"-s");
-			if (stack_size != 0ul)
-				syslog(LOG_WARNING,"%s: conflicting stack_size, prior setting %zu ignored", progname, stack_size);
-
-			stack_size=strtoul(optarg,&detecterror,10)<<10;
-			syslog(LOG_WARNING,"stack size for threads %zd",stack_size);
+			check_opt(progname, "-v");
+			zfs_vdev_cache_size = strtol(optarg, &endp,
+			    10) << 20;
 			break;
 		case 'x':
 			cf_enable_xattr = 1;
 			break;
+		case 1: /* non-option argument passed (due to - in optstring) */
+		case 'h':
+		case '?':
+			print_usage(argc, argv);
+			exit(64);
 		case 0:
 			break; /* flag is not NULL */
 		default:
-			// This should never happen
-			fprintf(stderr, "%s: option not recognized (Unrecognized getopt_long return 0x%02x)\n\n", progname, retval);
-			print_usage(argc, argv);
-			exit(64); /* 64 is standard UNIX EX_USAGE */
-			break;
+			errx(64, "unrecognized option: %c", c);
 		}
 	}
 }
