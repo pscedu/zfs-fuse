@@ -128,6 +128,20 @@ extern	in_port_t ntohs(in_port_t);
 #define	BE_64(x)	BSWAP_64(x)
 #endif
 
+/*
+ * Macros to read unaligned values from a specific byte order to
+ * native byte order
+ */
+
+#define BE_IN8(xa) \
+	*((uint8_t *)(xa))
+
+#define BE_IN16(xa) \
+	(((uint16_t)BE_IN8(xa) << 8) | BE_IN8((uint8_t *)(xa)+1))
+
+#define BE_IN32(xa) \
+	(((uint32_t)BE_IN16(xa) << 16) | BE_IN16((uint8_t *)(xa)+2))
+
 #endif	/* !defined(_XPG4_2) || defined(__EXTENSIONS__) */
 
 #ifdef	__cplusplus

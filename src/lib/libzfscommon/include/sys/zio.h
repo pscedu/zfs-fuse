@@ -21,6 +21,7 @@
 
 /*
  * Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
+ * Copyright (c) 2013 by Saso Kiselkov. All rights reserved.
  * Use is subject to license terms.
  */
 
@@ -105,6 +106,7 @@ enum zio_compress {
 	ZIO_COMPRESS_GZIP_8,
 	ZIO_COMPRESS_GZIP_9,
 	ZIO_COMPRESS_ZLE,
+	ZIO_COMPRESS_LZ4,
 	ZIO_COMPRESS_FUNCTIONS
 };
 
@@ -113,6 +115,7 @@ enum zio_compress {
 
 #define	BOOTFS_COMPRESS_VALID(compress)			\
 	((compress) == ZIO_COMPRESS_LZJB ||		\
+	(compress) == ZIO_COMPRESS_LZ4 ||		\
 	((compress) == ZIO_COMPRESS_ON &&		\
 	ZIO_COMPRESS_ON_VALUE == ZIO_COMPRESS_LZJB) ||	\
 	(compress) == ZIO_COMPRESS_OFF)

@@ -160,6 +160,8 @@ zio_init(void)
 	}
 
 	zio_inject_init();
+
+	lz4_init();
 }
 
 void
@@ -187,6 +189,8 @@ zio_fini(void)
 	kmem_cache_destroy(zio_cache);
 
 	zio_inject_fini();
+
+	lz4_fini();
 }
 
 /*

@@ -411,6 +411,9 @@ static uint64_t		arc_meta_used;
 static uint64_t		arc_meta_limit;
 static uint64_t		arc_meta_max = 0;
 
+#define L2ARC_IS_VALID_COMPRESS(_c_) \
+    ((_c_) == ZIO_COMPRESS_LZ4 || (_c_) == ZIO_COMPRESS_EMPTY) 
+
 typedef struct l2arc_buf_hdr l2arc_buf_hdr_t;
 
 typedef struct arc_callback arc_callback_t;
