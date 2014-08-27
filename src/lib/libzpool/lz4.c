@@ -193,9 +193,7 @@ lz4_decompress(void *s_start, void *d_start, size_t s_len, size_t d_len, int n)
  */
 
 /* 32 or 64 bits ? */
-#if (defined(__x86_64__) || defined(__x86_64) || defined(__amd64__) || \
-    defined(__amd64) || defined(__ppc64__) || defined(_WIN64) || \
-    defined(__LP64__) || defined(_LP64))
+#if defined(_LP64)
 #define	LZ4_ARCH64 1
 #else
 #define	LZ4_ARCH64 0
@@ -205,17 +203,14 @@ lz4_decompress(void *s_start, void *d_start, size_t s_len, size_t d_len, int n)
  * Little Endian or Big Endian?
  * Note: overwrite the below #define if you know your architecture endianess.
  */
-#if (defined(__BIG_ENDIAN__) || defined(__BIG_ENDIAN) || \
-	defined(_BIG_ENDIAN) || defined(_ARCH_PPC) || defined(__PPC__) || \
-	defined(__PPC) || defined(PPC) || defined(__powerpc__) || \
-	defined(__powerpc) || defined(powerpc) || \
-	((defined(__BYTE_ORDER__)&&(__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__))))
+#if defined(_BIG_ENDIAN)
 #define	LZ4_BIG_ENDIAN 1
 #else
 /*
  * Little Endian assumed. PDP Endian and other very rare endian format
  * are unsupported.
  */
+#undef LZ4_BIG_ENDIAN
 #endif
 
 /*
