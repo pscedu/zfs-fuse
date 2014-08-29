@@ -277,7 +277,7 @@ parse_args(int argc, char *argv[])
 			    "%zd", stack_size);
 			break;
 		case 'T':
-			zfs_notrim = B_FALSE;
+			zfs_notrim = B_TRUE;
 			break;
 		case 'u':
 			check_opt(progname, "-u");
