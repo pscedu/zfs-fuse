@@ -3587,6 +3587,12 @@ arc_fini(void)
 	ASSERT(arc_loaned_bytes == 0);
 }
 
+void
+arc_set_maxsize(uint64_t newmax)
+{
+	arc_c_max = newmax;
+}
+
 /*
  * Level 2 ARC
  *
