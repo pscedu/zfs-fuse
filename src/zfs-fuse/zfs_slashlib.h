@@ -73,10 +73,11 @@ int	zfsslash2_symlink(int, const char *, mdsio_fid_t, const char *, const struct
 int	zfsslash2_unlink(int, mdsio_fid_t, struct slash_fidgen *, const char *, const struct slash_creds *, sl_log_update_t, void *);
 int	zfsslash2_write(int, const struct slash_creds *, const void *, size_t, size_t *, off_t, void *, sl_log_write_t, void *);
 
-int	zfsslash2_listxattr(int, const struct slash_creds *, void *, size_t, size_t *, mdsio_fid_t);
-int	zfsslash2_setxattr(int, const struct slash_creds *, const char *, const char *, size_t, mdsio_fid_t);
 int	zfsslash2_getxattr(int, const struct slash_creds *, const char *, char *, size_t, size_t *, mdsio_fid_t);
+int	zfsslash2_hasxattrs(int, const struct slash_creds *, mdsio_fid_t);
+int	zfsslash2_listxattr(int, const struct slash_creds *, void *, size_t, size_t *, mdsio_fid_t);
 int	zfsslash2_removexattr(int, const struct slash_creds *, const char *, mdsio_fid_t);
+int	zfsslash2_setxattr(int, const struct slash_creds *, const char *, const char *, size_t, mdsio_fid_t);
 
 int	zfsslash2_write_cursor(int, void *, size_t, void *, sl_log_write_t);
 

@@ -65,12 +65,12 @@
 #include "slashd/inode.h"
 #include "slashd/mdsio.h"
 
-kmem_cache_t	*file_info_cache;
-cred_t		 zrootcreds;
-int		 stack_size;
+static kmem_cache_t	*file_info_cache;
+static cred_t		 zrootcreds;
+static int		 stack_size;
 
-uint64_t        *immnsIdCache[MAX_FILESYSTEMS];
-uint64_t         immnsIdMask;
+static uint64_t        *immnsIdCache[MAX_FILESYSTEMS];
+static uint64_t         slz_immns_id_mask;
 
 /* flags for zfsslash2_fidlink() */
 #define	FIDLINK_CREATE		(1 << 0)
@@ -127,7 +127,8 @@ add_dirent(char *buf, size_t bufsize, const char *name,
 static __inline int
 hide_vnode(vnode_t *dvp, vnode_t *vp, const char *cpn)
 {
-	if (FID_GET_FLAGS(VTOZ(vp)->z_phys->zp_s2fid) & SLFIDF_HIDE_DENTRY)
+	if (FID_GET_FLAGS(VTOZ(vp)->z_phys->zp_s2fid) &
+	    SLFIDF_HIDE_DENTRY)
 		return (1);
 
 	if (VTOZ(dvp)->z_id == MDSIO_FID_ROOT &&
@@ -367,9 +368,10 @@ zfsslash2_getattr(int vfsid, mdsio_fid_t ino, void *finfo,
 /* This macro makes the lookup for the xattr directory, necessary for listxattr
  * getxattr and setxattr */
 #define MY_LOOKUP_XATTR(vfsid)						\
-	vfs_t *vfs = zfsMount[(vfsid)].vfs;				\
+	vfs_t *vfs = zfsMount[vfsid].vfs;				\
 	zfsvfs_t *zfsvfs = vfs->vfs_data;				\
-	if (ino == 1) ino = 3;						\
+	if (ino == SLFID_ROOT)						\
+		ino = MDSIO_FID_ROOT;					\
 									\
 	ZFS_ENTER(zfsvfs);						\
 									\
@@ -390,9 +392,34 @@ zfsslash2_getattr(int vfsid, mdsio_fid_t ino, void *finfo,
 	error = VOP_LOOKUP(dvp, "", &vp, NULL, LOOKUP_XATTR |		\
 	    CREATE_XATTR_DIR, NULL, &cred, NULL, NULL, NULL);		\
 	if (error || vp == NULL) {					\
-		if (error != EACCES) error = ENOSYS;			\
+		if (error != EACCES)					\
+			error = ENOSYS;					\
 		goto out;						\
 	}
+
+int
+zfsslash2_hasxattrs(int vfsid, const struct slash_creds *slcrp,
+    mdsio_fid_t ino)
+{
+	cred_t cred = ZFS_INIT_CREDS(slcrp);
+
+	MY_LOOKUP_XATTR(vfsid);
+
+	vattr_t vattr;
+	memset(&vattr, 0, sizeof(vattr));
+	error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);	/* zfs_getattr() */
+
+ out:
+	if (vp)
+		VN_RELE(vp);
+	VN_RELE(dvp);
+	ZFS_EXIT(zfsvfs);
+	if (error)
+		return (error);
+	if (vattr.va_size > 2);
+		return (0);
+	return (ENODATA);
+}
 
 int
 zfsslash2_listxattr(int vfsid, const struct slash_creds *slcrp,
@@ -406,9 +433,8 @@ zfsslash2_listxattr(int vfsid, const struct slash_creds *slcrp,
 	MY_LOOKUP_XATTR(vfsid);
 
 	error = VOP_OPEN(&vp, FREAD, &cred, NULL);
-	if (error) {
+	if (error)
 		goto out;
-	}
 
 	// Now try a readdir...
 	size_t alloc = 0, used = 0, remaining = 0;
@@ -477,14 +503,17 @@ zfsslash2_listxattr(int vfsid, const struct slash_creds *slcrp,
 }
 
 int
-zfsslash2_setxattr(int vfsid, const struct slash_creds *slcrp, const char *name,
-    const char *value, size_t size, mdsio_fid_t ino)
+zfsslash2_setxattr(int vfsid, const struct slash_creds *slcrp,
+    const char *name, const char *value, size_t size, mdsio_fid_t ino)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
 	MY_LOOKUP_XATTR(vfsid);
-	// Now the idea is to create a file inside the xattr directory with the
-	// wanted attribute.
+
+	/*
+	 * Now create a file inside the xattr directory with the wanted
+	 * attribute.
+	 */
 
 	vattr_t vattr;
 	memset(&vattr, 0, sizeof(vattr));
@@ -502,7 +531,8 @@ zfsslash2_setxattr(int vfsid, const struct slash_creds *slcrp, const char *name,
 	VN_RELE(vp);
 	vp = new_vp;
 	error = VOP_OPEN(&vp, FWRITE, &cred, NULL);
-	if (error) goto out;
+	if (error)
+		goto out;
 
 	iovec_t iovec;
 	uio_t uio;
@@ -517,8 +547,10 @@ zfsslash2_setxattr(int vfsid, const struct slash_creds *slcrp, const char *name,
 	uio.uio_resid = iovec.iov_len;
 	uio.uio_loffset = 0;
 
-	error = VOP_WRITE(vp, &uio, FWRITE, &cred, NULL, NULL, (void *)value);
-	if (error) goto out;
+	error = VOP_WRITE(vp, &uio, FWRITE, &cred, NULL, NULL,
+	    (void *)value);
+	if (error)
+		goto out;
 	error = VOP_CLOSE(vp, FWRITE, 1, (offset_t) 0, &cred, NULL);
 
  out:
@@ -526,7 +558,10 @@ zfsslash2_setxattr(int vfsid, const struct slash_creds *slcrp, const char *name,
 		VN_RELE(vp);
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
-	// The fuse_reply_err at the end seems to be an mandatory even if there is no error
+	/*
+	 * The fuse_reply_err at the end seems to be an mandatory even
+	 * if there is no error.
+	 */
 	return (error);
 }
 
@@ -760,7 +795,7 @@ zfsslash2_build_immns_cache(int vfsid)
 	/* the number of directories at the lowest level */
 	ndirs = 1 << (BPHXC * FID_PATH_DEPTH);
 	immnsIdCache[vfsid] = malloc(sizeof(uint64_t) * ndirs);
-	immnsIdMask = (ndirs - 1) << (BPHXC * FID_PATH_START);
+	slz_immns_id_mask = (ndirs - 1) << (BPHXC * FID_PATH_START);
 	return (0);
 }
 
@@ -769,7 +804,7 @@ zfsslash2_getfidlinkdir(slfid_t fid)
 {
 	int bkt;
 
-	bkt = (fid & immnsIdMask) >> (BPHXC * FID_PATH_START);
+	bkt = (fid & slz_immns_id_mask) >> (BPHXC * FID_PATH_START);
 	if (immnsIdCache[current_vfsid][bkt])
 		return (immnsIdCache[current_vfsid][bkt]);
 
@@ -945,12 +980,12 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 		/* XXX look at fidcache first */
 		if (fill_sstb(vfsid, tvp, &mf, &attr->sstb, &cred))
 			attr->sstb.sst_fid = FID_ANY;
-		else {
-			size_t xlen;
+		else if (1) {
+			int rc;
 
-			zfsslash2_listxattr(vfsid, slcrp, NULL, 0,
-			    &xlen, mf);
-			attr->xattrsize = xlen;
+			rc = zfsslash2_hasxattrs(vfsid, slcrp, mf);
+			if (rc == 0)
+				attr->xattrsize = 1;
 		}
 
 		if (VTOZ(tvp)->z_id == MDSIO_FID_ROOT)
@@ -1043,14 +1078,17 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
 	 */
 	if ((flags & FIDLINK_LOOKUP) && FID_GET_INUM(fid) == SLFID_ROOT) {
 #if 0
-/*
- * I have found a place in zfs_mknode() where I can write SLASH FID 1 into the
- * root node.  This function is called by dsl_pool_create() twice, once by
- * zfs_create_fs(), once by zfs_create_share_dir().  Both time I see the
- * IS_ROOT_NODE flag is used.  I don't know why ZFS seems to create two root
- * nodes.  But the change seems to fix my problem and make the hack here
- * unneeded.  I discovered this with gdb while creating a zpool.
- */
+		/*
+		 * I have found a place in zfs_mknode() where I can
+		 * write SLASH FID 1 into the root node.  This function
+		 * is called by dsl_pool_create() twice, once by
+		 * zfs_create_fs(), once by zfs_create_share_dir().
+		 * Both time I see the IS_ROOT_NODE flag is used.  I
+		 * don't know why ZFS seems to create two root nodes.
+		 * But the change seems to fix my problem and make the
+		 * hack here unneeded.  I discovered this with gdb while
+		 * creating a zpool.
+		 */
 		VTOZ(dvp)->z_phys->zp_s2fid = 1;
 #endif
 		error = zfs_zget(zfsvfs, MDSIO_FID_ROOT, &znode, B_TRUE);
