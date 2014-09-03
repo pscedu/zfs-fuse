@@ -100,7 +100,7 @@ static struct option longopts[] = {
 	{ "fuse-mount-options", 1, NULL, 'o' },
 	{ "help", 0, NULL, 'h' },
 	{ "stack-size", 1, NULL, 's' },
-	{ "enable-xattr", 0, &cf_enable_xattr, 0 },
+	{ "enable-xattr", 0, &cf_enable_xattr, 1 },
 	{ 0, 0, 0, 0 }
 };
 
@@ -108,6 +108,7 @@ void
 print_usage(int argc, char *argv[])
 {
 	const char *progname = "zfs-fuse";
+
 	if (argc > 0)
 		progname = argv[0];
 	fprintf(stderr,
@@ -385,8 +386,6 @@ main(int argc, char *argv[])
 	page_cache  = cf_disable_page_cache  ? 0 : 1;
 	if (cf_disable_page_cache)
 		syslog(LOG_WARNING,"deprecated option used (disable-page-cache)");
-	if (cf_enable_xattr)
-		fprintf(stderr, "%s: Warning: enabling xattr support should only be done when really required; performance will be affected\n", argv[0]);
 
 	/* notice about ARC size */
 	if (max_arc_size)
