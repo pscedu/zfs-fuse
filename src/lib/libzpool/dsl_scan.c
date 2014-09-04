@@ -42,8 +42,6 @@
 #include <sys/zil_impl.h>
 #include <sys/zio_checksum.h>
 #include <sys/ddt.h>
-#include <sys/sa.h>
-#include <sys/sa_impl.h>
 #ifdef _KERNEL
 #include <sys/zfs_vfsops.h>
 #endif
@@ -351,12 +349,14 @@ dsl_free(dsl_pool_t *dp, uint64_t txg, const blkptr_t *bp)
 	zio_free(dp->dp_spa, txg, bp);
 }
 
+#if 0
 void
 dsl_free_sync(zio_t *pio, dsl_pool_t *dp, uint64_t txg, const blkptr_t *bpp)
 {
 	ASSERT(dsl_pool_sync_context(dp));
 	zio_nowait(zio_free_sync(pio, dp->dp_spa, txg, bpp, pio->io_flags));
 }
+#endif
 
 int
 dsl_read(zio_t *pio, spa_t *spa, const blkptr_t *bpp, arc_buf_t *pbuf,
@@ -767,6 +767,7 @@ dsl_scan_visitdnode(dsl_scan_t *scn, dsl_dataset_t *ds,
 		    &czb, dnp, buf, ds, scn, ostype, tx);
 	}
 
+#if 0
 	if (dnp->dn_flags & DNODE_FLAG_SPILL_BLKPTR) {
 		zbookmark_t czb;
 		SET_BOOKMARK(&czb, ds ? ds->ds_object : 0, object,
@@ -774,6 +775,7 @@ dsl_scan_visitdnode(dsl_scan_t *scn, dsl_dataset_t *ds,
 		dsl_scan_visitbp(&dnp->dn_spill,
 		    &czb, dnp, buf, ds, scn, ostype, tx);
 	}
+#endif
 }
 
 /*

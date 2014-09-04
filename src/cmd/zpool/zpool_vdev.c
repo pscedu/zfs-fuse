@@ -20,23 +20,22 @@
  */
 
 /*
- * Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
- * Use is subject to license terms.
+ * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
  */
 
 /*
  * Functions to convert between a list of vdevs and an nvlist representing the
  * configuration.  Each entry in the list can be one of:
  *
- * 	Device vdevs
- * 		disk=(path=..., devid=...)
- * 		file=(path=...)
+ *	Device vdevs
+ *		disk=(path=..., devid=...)
+ *		file=(path=...)
  *
- * 	Group vdevs
- * 		raidz[1|2]=(...)
- * 		mirror=(...)
+ *	Group vdevs
+ *		raidz[1|2]=(...)
+ *		mirror=(...)
  *
- * 	Hot spares
+ *	Hot spares
  *
  * While the underlying implementation supports it, group vdevs cannot contain
  * other group vdevs.  All userland verification of devices is contained within
@@ -49,15 +48,15 @@
  * The only function exported by this file is 'make_root_vdev'.  The
  * function performs several passes:
  *
- * 	1. Construct the vdev specification.  Performs syntax validation and
+ *	1. Construct the vdev specification.  Performs syntax validation and
  *         makes sure each device is valid.
- * 	2. Check for devices in use.  Using libdiskmgt, makes sure that no
+ *	2. Check for devices in use.  Using libdiskmgt, makes sure that no
  *         devices are also in use.  Some can be overridden using the 'force'
  *         flag, others cannot.
- * 	3. Check for replication errors if the 'force' flag is not specified.
+ *	3. Check for replication errors if the 'force' flag is not specified.
  *         validates that the replication level is consistent across the
  *         entire pool.
- * 	4. Call libzfs to label any whole disks with an EFI label.
+ *	4. Call libzfs to label any whole disks with an EFI label.
  */
 
 #include <assert.h>
@@ -392,9 +391,9 @@ is_whole_disk(const char *arg)
  * device, fill in the device id to make a complete nvlist.  Valid forms for a
  * leaf vdev are:
  *
- * 	/dev/xxx	Complete disk path
- * 	/xxx		Full path to file
- * 	xxx		Shorthand for /dev/xxx
+ *	/dev/xxx	Complete disk path
+ *	/xxx		Full path to file
+ *	xxx		Shorthand for /dev/xxx
  */
 static nvlist_t *
 make_leaf_vdev(const char *arg, uint64_t is_log)
@@ -527,14 +526,14 @@ make_leaf_vdev(const char *arg, uint64_t is_log)
  * Go through and verify the replication level of the pool is consistent.
  * Performs the following checks:
  *
- * 	For the new spec, verifies that devices in mirrors and raidz are the
- * 	same size.
+ *	For the new spec, verifies that devices in mirrors and raidz are the
+ *	same size.
  *
- * 	If the current configuration already has inconsistent replication
- * 	levels, ignore any other potential problems in the new spec.
+ *	If the current configuration already has inconsistent replication
+ *	levels, ignore any other potential problems in the new spec.
  *
- * 	Otherwise, make sure that the current spec (if there is one) and the new
- * 	spec have consistent replication levels.
+ *	Otherwise, make sure that the current spec (if there is one) and the new
+ *	spec have consistent replication levels.
  */
 typedef struct replication_level {
 	char *zprl_type;
@@ -1012,8 +1011,8 @@ is_spare(nvlist_t *config, const char *path)
 		return (B_FALSE);
 	}
 	free(name);
-
 	(void) close(fd);
+
 	verify(nvlist_lookup_uint64(label, ZPOOL_CONFIG_GUID, &guid) == 0);
 	nvlist_free(label);
 
@@ -1037,8 +1036,8 @@ is_spare(nvlist_t *config, const char *path)
  * the majority of this task.
  */
 static int
-check_in_use(nvlist_t *config, nvlist_t *nv, int force, int isreplacing,
-    int isspare)
+check_in_use(nvlist_t *config, nvlist_t *nv, boolean_t force,
+    boolean_t replacing, boolean_t isspare)
 {
 	nvlist_t **child;
 	uint_t c, children;
@@ -1059,13 +1058,14 @@ check_in_use(nvlist_t *config, nvlist_t *nv, int force, int isreplacing,
 		 * hot spare within the same pool.  If so, we allow it
 		 * regardless of what libdiskmgt or zpool_in_use() says.
 		 */
-		if (isreplacing) {
+		if (replacing) {
 			if (nvlist_lookup_uint64(nv, ZPOOL_CONFIG_WHOLE_DISK,
 			    &wholedisk) == 0 && wholedisk)
 				(void) snprintf(buf, sizeof (buf), "%ss0",
 				    path);
 			else
 				(void) strlcpy(buf, path, sizeof (buf));
+
 			if (is_spare(config, buf))
 				return (0);
 		}
@@ -1077,21 +1077,21 @@ check_in_use(nvlist_t *config, nvlist_t *nv, int force, int isreplacing,
 
 	for (c = 0; c < children; c++)
 		if ((ret = check_in_use(config, child[c], force,
-		    isreplacing, B_FALSE)) != 0)
+		    replacing, B_FALSE)) != 0)
 			return (ret);
 
 	if (nvlist_lookup_nvlist_array(nv, ZPOOL_CONFIG_SPARES,
 	    &child, &children) == 0)
 		for (c = 0; c < children; c++)
 			if ((ret = check_in_use(config, child[c], force,
-			    isreplacing, B_TRUE)) != 0)
+			    replacing, B_TRUE)) != 0)
 				return (ret);
 
 	if (nvlist_lookup_nvlist_array(nv, ZPOOL_CONFIG_L2CACHE,
 	    &child, &children) == 0)
 		for (c = 0; c < children; c++)
 			if ((ret = check_in_use(config, child[c], force,
-			    isreplacing, B_FALSE)) != 0)
+			    replacing, B_FALSE)) != 0)
 				return (ret);
 
 	return (0);
@@ -1423,7 +1423,7 @@ split_mirror_vdev(zpool_handle_t *zhp, char *newname, nvlist_t *props,
  */
 nvlist_t *
 make_root_vdev(zpool_handle_t *zhp, int force, int check_rep,
-    boolean_t isreplacing, boolean_t dryrun, int argc, char **argv)
+    boolean_t replacing, boolean_t dryrun, int argc, char **argv)
 {
 	nvlist_t *newroot;
 	nvlist_t *poolconfig = NULL;
@@ -1446,8 +1446,7 @@ make_root_vdev(zpool_handle_t *zhp, int force, int check_rep,
 	 * uses (such as a dedicated dump device) that even '-f' cannot
 	 * override.
 	 */
-	if (check_in_use(poolconfig, newroot, force, isreplacing,
-	    B_FALSE) != 0) {
+	if (check_in_use(poolconfig, newroot, force, replacing, B_FALSE) != 0) {
 		nvlist_free(newroot);
 		return (NULL);
 	}

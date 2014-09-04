@@ -24,6 +24,8 @@
 
 #include <sys/zfs_context.h>
 
+#include <stdarg.h>
+
 list_t zfs_dbgmsgs;
 int zfs_dbgmsg_size;
 kmutex_t zfs_dbgmsgs_lock;

@@ -19,8 +19,7 @@
  * CDDL HEADER END
  */
 /*
- * Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
- * Use is subject to license terms.
+ * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
  */
 
 #include <sys/types.h>
@@ -62,6 +61,7 @@
 #include <sys/zfs_ctldir.h>
 #include <sys/zfs_dir.h>
 #include <sys/zvol.h>
+#include <sys/dsl_scan.h>
 #include <sharefs/share.h>
 
 #include "zfs_namecheck.h"
@@ -122,7 +122,7 @@ void
 __dprintf(const char *file, const char *func, int line, const char *fmt, ...)
 {
 	const char *newfile;
-	char buf[256];
+	char buf[512];
 	va_list adx;
 
 	/*
@@ -583,8 +583,8 @@ zfs_secpolicy_share(zfs_cmd_t *zc, cred_t *cr)
 int
 zfs_secpolicy_smb_acl(zfs_cmd_t *zc, cred_t *cr)
 {
-        /* ZFS-FUSE: not supported */
-        return ENOTSUP;
+	/* ZFS-FUSE: not supported */
+	return ENOTSUP;
 #if 0
 
 	if (!INGLOBALZONE(curproc))
@@ -1272,8 +1272,13 @@ zfs_ioc_pool_tryimport(zfs_cmd_t *zc)
 	return (error);
 }
 
+/*
+ * inputs:
+ * zc_name              name of the pool
+ * zc_cookie            scan func (pool_scan_func_t)
+ */
 static int
-zfs_ioc_pool_scrub(zfs_cmd_t *zc)
+zfs_ioc_pool_scan(zfs_cmd_t *zc)
 {
 	spa_t *spa;
 	int error;
@@ -1281,7 +1286,10 @@ zfs_ioc_pool_scrub(zfs_cmd_t *zc)
 	if ((error = spa_open(zc->zc_name, &spa, FTAG)) != 0)
 		return (error);
 
-	error = spa_scrub(spa, zc->zc_cookie);
+	if (zc->zc_cookie == POOL_SCAN_NONE)
+		error = spa_scan_stop(spa);
+	else
+		error = spa_scan(spa, zc->zc_cookie);
 
 	spa_close(spa, FTAG);
 
@@ -1437,6 +1445,12 @@ zfs_ioc_vdev_add(zfs_cmd_t *zc)
 	return (error);
 }
 
+/*
+ * inputs:
+ * zc_name		name of the pool
+ * zc_nvlist_conf	nvlist of devices to remove
+ * zc_cookie		to stop the remove?
+ */
 static int
 zfs_ioc_vdev_remove(zfs_cmd_t *zc)
 {
@@ -2046,9 +2060,9 @@ zfs_set_prop_nvlist(const char *dsname, zprop_source_t source, nvlist_t *nvl,
 	nvpair_t *pair;
 	nvpair_t *propval;
 	int rv = 0;
-  	uint64_t intval;
-  	char *strval;
-  	nvlist_t *genericnvl;
+	uint64_t intval;
+	char *strval;
+	nvlist_t *genericnvl;
 	nvlist_t *errors;
 	nvlist_t *retrynvl;
 
@@ -2060,9 +2074,9 @@ retry:
 	pair = NULL;
 	while ((pair = nvlist_next_nvpair(nvl, pair)) != NULL) {
 		const char *propname = nvpair_name(pair);
-  		zfs_prop_t prop = zfs_name_to_prop(propname);
- 		int err = 0;
-  
+		zfs_prop_t prop = zfs_name_to_prop(propname);
+		int err = 0;
+
 		/* decode the property value */
 		propval = pair;
 		if (nvpair_type(pair) == DATA_TYPE_NVLIST) {
@@ -2088,27 +2102,27 @@ retry:
 				if (zfs_prop_get_type(prop) != PROP_TYPE_STRING)
 					err = EINVAL;
 			} else if (nvpair_type(propval) == DATA_TYPE_UINT64) {
-  				const char *unused;
-  
+				const char *unused;
+
 				VERIFY(nvpair_value_uint64(propval,
 				    &intval) == 0);
-  
-  				switch (zfs_prop_get_type(prop)) {
-  				case PROP_TYPE_NUMBER:
-  					break;
-  				case PROP_TYPE_STRING:
+
+				switch (zfs_prop_get_type(prop)) {
+				case PROP_TYPE_NUMBER:
+					break;
+				case PROP_TYPE_STRING:
 					err = EINVAL;
 					break;
-  				case PROP_TYPE_INDEX:
-  					if (zfs_prop_index_to_string(prop,
+				case PROP_TYPE_INDEX:
+					if (zfs_prop_index_to_string(prop,
 					    intval, &unused) != 0)
 						err = EINVAL;
-  					break;
-  				default:
-  					cmn_err(CE_PANIC,
-  					    "unknown property type");
-  				}
-  			} else {
+					break;
+				default:
+					cmn_err(CE_PANIC,
+					    "unknown property type");
+				}
+			} else {
 				err = EINVAL;
 			}
 		}
@@ -2181,7 +2195,7 @@ retry:
 			}
 		}
 	}
-  	nvlist_free(genericnvl);
+	nvlist_free(genericnvl);
 	nvlist_free(retrynvl);
 
 	if ((pair = nvlist_next_nvpair(errors, NULL)) == NULL) {
@@ -2917,16 +2931,16 @@ zfs_unmount_snap(const char *name, void *arg)
 {
 	/* ZFSFUSE: TODO */
 #if 0
-  	vfs_t *vfsp = NULL;
-  
-  	if (arg) {
-  		char *snapname = arg;
+	vfs_t *vfsp = NULL;
+
+	if (arg) {
+		char *snapname = arg;
 		char *fullname = kmem_asprintf("%s@%s", name, snapname);
 		vfsp = zfs_get_vfs(fullname);
 		strfree(fullname);
-  	} else if (strchr(name, '@')) {
-  		vfsp = zfs_get_vfs(name);
-  	}
+	} else if (strchr(name, '@')) {
+		vfsp = zfs_get_vfs(name);
+	}
 
 	if (vfsp) {
 		/*
@@ -4102,8 +4116,8 @@ zfs_smb_acl_purge(znode_t *dzp)
 static int
 zfs_ioc_smb_acl(zfs_cmd_t *zc)
 {
-        /* ZFS-FUSE: not supported */
-        return ENOTSUP;
+	/* ZFS-FUSE: not supported */
+	return ENOTSUP;
 #if 0
 	vnode_t *vp;
 	znode_t *dzp;
@@ -4314,7 +4328,7 @@ static zfs_ioc_vec_t zfs_ioc_vec[] = {
 	    B_FALSE },
 	{ zfs_ioc_pool_tryimport, zfs_secpolicy_config, NO_NAME, B_FALSE,
 	    B_FALSE },
-	{ zfs_ioc_pool_scrub, zfs_secpolicy_config, POOL_NAME, B_TRUE,
+	{ zfs_ioc_pool_scan, zfs_secpolicy_config, POOL_NAME, B_TRUE,
 	    B_TRUE },
 	{ zfs_ioc_pool_freeze, zfs_secpolicy_config, NO_NAME, B_FALSE,
 	    B_FALSE },

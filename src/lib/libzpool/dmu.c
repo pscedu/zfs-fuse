@@ -84,12 +84,14 @@ const dmu_object_type_info_t dmu_ot[DMU_OT_NUMTYPES] = {
 	{	byteswap_uint8_array,	TRUE,	"FUID table"		},
 	{	byteswap_uint64_array,	TRUE,	"FUID table size"	},
 	{	zap_byteswap,		TRUE,	"DSL dataset next clones"},
-	{	zap_byteswap,		TRUE,	"scrub work queue"	},
+	{	zap_byteswap,		TRUE,	"scan work queue"	},
 	{	zap_byteswap,		TRUE,	"ZFS user/group used"	},
 	{	zap_byteswap,		TRUE,	"ZFS user/group quota"	},
 	{	zap_byteswap,		TRUE,	"snapshot refcount tags"},
 	{	zap_byteswap,		TRUE,	"DDT ZAP algorithm"	},
 	{	zap_byteswap,		TRUE,	"DDT statistics"	},
+     	{       zap_byteswap,           TRUE,   "scan translations"     },
+     	{       byteswap_uint8_array,   FALSE,  "deduplicated block"    }, 
 };
 
 int
@@ -1366,6 +1368,7 @@ byteswap_uint8_array(void *vbuf, size_t size)
 void
 dmu_init(void)
 {
+	zfs_dbgmsg_init();
 	dbuf_init();
 	dnode_init();
 	zfetch_init();
@@ -1381,4 +1384,5 @@ dmu_fini(void)
 	dnode_fini();
 	dbuf_fini();
 	l2arc_fini();
+	zfs_dbgmsg_fini();
 }

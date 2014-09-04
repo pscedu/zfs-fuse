@@ -20,8 +20,7 @@
  */
 
 /*
- * Copyright 2010 Sun Microsystems, Inc.  All rights reserved.
- * Use is subject to license terms.
+ * Copyright (c) 2005, 2010, Oracle and/or its affiliates. All rights reserved.
  */
 
 #include <assert.h>
@@ -2576,6 +2575,8 @@ zfs_do_send(int argc, char **argv)
 	zfs_handle_t *zhp;
 	sendflags_t flags = { 0 };
 	int c, err;
+	nvlist_t *dbgnv;
+	boolean_t extraverbose = B_FALSE;
 
 	/* check options */
 	while ((c = getopt(argc, argv, ":i:I:RDpv")) != -1) {
@@ -2598,6 +2599,8 @@ zfs_do_send(int argc, char **argv)
 			flags.props = B_TRUE;
 			break;
 		case 'v':
+			if (flags.verbose)
+				extraverbose = B_TRUE;
 			flags.verbose = B_TRUE;
 			break;
 		case 'D':
@@ -2682,7 +2685,18 @@ zfs_do_send(int argc, char **argv)
 	if (flags.replicate && fromname == NULL)
 		flags.doall = B_TRUE;
 
-	err = zfs_send(zhp, fromname, toname, flags, STDOUT_FILENO, NULL, 0);
+	err = zfs_send(zhp, fromname, toname, flags, STDOUT_FILENO, NULL, 0,
+	    extraverbose ? &dbgnv : NULL);
+	if (extraverbose) {
+		/*
+		 * dump_nvlist prints to stdout, but that's been
+		 * redirected to a file.  Make it print to stderr
+		 * instead.
+		 */
+		(void) dup2(STDERR_FILENO, STDOUT_FILENO);
+		dump_nvlist(dbgnv, 0);
+		nvlist_free(dbgnv);
+	}
 	zfs_close(zhp);
 
 	return (err != 0);

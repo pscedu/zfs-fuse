@@ -588,32 +588,6 @@ unregister:
 	return (error);
 }
 
-static void
-uidacct(objset_t *os, boolean_t isgroup, uint64_t fuid,
-    int64_t delta, dmu_tx_t *tx)
-{
-	uint64_t used = 0;
-	char buf[32];
-	int err;
-	uint64_t obj = isgroup ? DMU_GROUPUSED_OBJECT : DMU_USERUSED_OBJECT;
-
-	if (delta == 0)
-		return;
-
-	(void) snprintf(buf, sizeof (buf), "%llx", (longlong_t)fuid);
-	err = zap_lookup(os, obj, buf, 8, 1, &used);
-	ASSERT(err == 0 || err == ENOENT);
-	/* no underflow/overflow */
-	ASSERT(delta > 0 || used >= -delta);
-	ASSERT(delta < 0 || used + delta > used);
-	used += delta;
-	if (used == 0)
-		err = zap_remove(os, obj, buf, tx);
-	else
-		err = zap_update(os, obj, buf, 8, 1, &used, tx);
-	ASSERT(err == 0);
-}
-
 static int
 zfs_space_delta_cb(dmu_object_type_t bonustype, void *bonus,
     uint64_t *userp, uint64_t *groupp)
@@ -1117,7 +1091,7 @@ zfs_domount(vfs_t *vfsp, char *osname)
 	 * The 8-bit fs type must be put in the low bits of fsid[1]
 	 * because that's where other Solaris filesystems put it.
 	 */
-        /* ZFSFUSE: not needed */
+	/* ZFSFUSE: not needed */
 #if 0
 	fsid_guid = dmu_objset_fsid_guid(zfsvfs->z_os);
 	ASSERT((fsid_guid & ~((1ULL<<56)-1)) == 0);
@@ -1912,7 +1886,7 @@ zfs_vget(vfs_t *vfsp, vnode_t **vpp, fid_t *fidp)
 	uint64_t	fid_gen = 0;
 	uint64_t	gen_mask;
 	uint64_t	zp_gen;
-	int 		i, err;
+	int		i, err;
 
 	*vpp = NULL;
 
@@ -2175,9 +2149,8 @@ zfs_set_version(zfsvfs_t *zfsvfs, uint64_t newvers)
 		return (error);
 	}
 
-	spa_history_internal_log(LOG_DS_UPGRADE,
-	    dmu_objset_spa(os), tx, CRED(),
-	    "oldver=%llu newver=%llu dataset = %llu",
+	spa_history_log_internal(LOG_DS_UPGRADE,
+	    dmu_objset_spa(os), tx, "oldver=%llu newver=%llu dataset = %llu",
 	    zfsvfs->z_version, newvers, dmu_objset_id(os));
 
 	dmu_tx_commit(tx);

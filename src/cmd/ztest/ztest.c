@@ -94,6 +94,7 @@
 #include <sys/metaslab_impl.h>
 #include <sys/dsl_prop.h>
 #include <sys/dsl_dataset.h>
+#include <sys/dsl_scan.h>
 #include <sys/refcount.h>
 #include <stdio.h>
 #include <stdio_ext.h>
@@ -108,7 +109,7 @@
 #include <libnvpair.h>
 #include <sys/debug.h>
 #include "format.h"
- 
+
 static char cmdname[] = "ztest";
 static char *zopt_pool = cmdname;
 
@@ -4645,9 +4646,9 @@ ztest_scrub(ztest_ds_t *zd, uint64_t id)
 	ztest_shared_t *zs = ztest_shared;
 	spa_t *spa = zs->zs_spa;
 
-	(void) spa_scrub(spa, POOL_SCRUB_EVERYTHING);
+	(void) spa_scan(spa, POOL_SCAN_SCRUB);
 	(void) poll(NULL, 0, 100); /* wait a moment, then force a restart */
-	(void) spa_scrub(spa, POOL_SCRUB_EVERYTHING);
+	(void) spa_scan(spa, POOL_SCAN_SCRUB);
 }
 
 /*
@@ -4713,14 +4714,14 @@ ztest_run_zdb(char *pool)
 	int status;
 	char zdb[MAXPATHLEN + MAXNAMELEN + 20];
 	char zbuf[1024];
-	FILE *fp;	
+	FILE *fp;
 
- 	(void) sprintf(zdb,
+	(void) sprintf(zdb,
 	    "../zdb/zdb -bc%s%s -U %s  %s",
-  	    zopt_verbose >= 3 ? "s" : "",
-  	    zopt_verbose >= 4 ? "v" : "",
+	    zopt_verbose >= 3 ? "s" : "",
+	    zopt_verbose >= 4 ? "v" : "",
 	    spa_config_path,
-  	    pool);
+	    pool);
 
 	if (zopt_verbose >= 5)
 		(void) printf("Executing %s\n", strstr(zdb, "zdb "));
@@ -4784,7 +4785,7 @@ ztest_spa_import_export(char *oldname, char *newname)
 	 * Kick off a scrub to tickle scrub/export races.
 	 */
 	if (ztest_random(2) == 0)
-		(void) spa_scrub(spa, POOL_SCRUB_EVERYTHING);
+		(void) spa_scan(spa, POOL_SCAN_SCRUB); 
 
 	pool_guid = spa_guid(spa);
 	spa_close(spa, FTAG);
