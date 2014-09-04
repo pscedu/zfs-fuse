@@ -65,9 +65,9 @@
 #include "slashd/inode.h"
 #include "slashd/mdsio.h"
 
-static kmem_cache_t	*file_info_cache;
+kmem_cache_t		*file_info_cache;
+int		 stack_size;
 static cred_t		 zrootcreds;
-static int		 stack_size;
 
 static uint64_t        *immnsIdCache[MAX_FILESYSTEMS];
 static uint64_t         slz_immns_id_mask;
@@ -367,7 +367,7 @@ zfsslash2_getattr(int vfsid, mdsio_fid_t ino, void *finfo,
 
 /* This macro makes the lookup for the xattr directory, necessary for listxattr
  * getxattr and setxattr */
-#define MY_LOOKUP_XATTR(vfsid)						\
+#define MY_LOOKUP_XATTR(vfsid, flags)					\
 	vfs_t *vfs = zfsMount[vfsid].vfs;				\
 	zfsvfs_t *zfsvfs = vfs->vfs_data;				\
 	if (ino == SLFID_ROOT)						\
@@ -390,9 +390,12 @@ zfsslash2_getattr(int vfsid, mdsio_fid_t ino, void *finfo,
 	vnode_t *vp = NULL;						\
 									\
 	error = VOP_LOOKUP(dvp, "", &vp, NULL, LOOKUP_XATTR |		\
-	    CREATE_XATTR_DIR, NULL, &cred, NULL, NULL, NULL);		\
+	    (flags), NULL, &cred, NULL, NULL, NULL);			\
 	if (error || vp == NULL) {					\
-		if (error != EACCES)					\
+		if (error == ENOENT &&					\
+		    ((flags) & CREATE_XATTR_DIR) == 0)			\
+			error = ENOATTR;				\
+		else if (error != EACCES)				\
 			error = ENOSYS;					\
 		goto out;						\
 	}
@@ -403,22 +406,25 @@ zfsslash2_hasxattrs(int vfsid, const struct slash_creds *slcrp,
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	MY_LOOKUP_XATTR(vfsid);
+	MY_LOOKUP_XATTR(vfsid, 0);
 
 	vattr_t vattr;
 	memset(&vattr, 0, sizeof(vattr));
-	error = VOP_GETATTR(vp, &vattr, 0, cred, NULL);	/* zfs_getattr() */
+	vattr.va_mask = AT_SIZE;
+	error = VOP_GETATTR(vp, &vattr, 0, &cred, NULL);	/* zfs_getattr() */
 
  out:
 	if (vp)
 		VN_RELE(vp);
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
+	if (error == ENOATTR)
+		return (0);
 	if (error)
 		return (error);
-	if (vattr.va_size > 2);
+	if (vattr.va_size == 2);
 		return (0);
-	return (ENODATA);
+	return (-1);
 }
 
 int
@@ -430,7 +436,7 @@ zfsslash2_listxattr(int vfsid, const struct slash_creds *slcrp,
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
 	/* It's like a lookup, but passing LOOKUP_XATTR as a flag to VOP_LOOKUP */
-	MY_LOOKUP_XATTR(vfsid);
+	MY_LOOKUP_XATTR(vfsid, 0);
 
 	error = VOP_OPEN(&vp, FREAD, &cred, NULL);
 	if (error)
@@ -499,6 +505,10 @@ zfsslash2_listxattr(int vfsid, const struct slash_creds *slcrp,
 		VN_RELE(vp);
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
+	if (error == ENOATTR) {
+		*outbuf_len = 0;
+		error = 0;
+	}
 	return (error);
 }
 
@@ -508,7 +518,7 @@ zfsslash2_setxattr(int vfsid, const struct slash_creds *slcrp,
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	MY_LOOKUP_XATTR(vfsid);
+	MY_LOOKUP_XATTR(vfsid, CREATE_XATTR_DIR);
 
 	/*
 	 * Now create a file inside the xattr directory with the wanted
@@ -566,12 +576,13 @@ zfsslash2_setxattr(int vfsid, const struct slash_creds *slcrp,
 }
 
 int
-zfsslash2_getxattr(int vfsid, const struct slash_creds *slcrp, const char *name,
-    char *outbuf, size_t size, size_t *outbuf_len, mdsio_fid_t ino)
+zfsslash2_getxattr(int vfsid, const struct slash_creds *slcrp,
+    const char *name, char *outbuf, size_t size, size_t *outbuf_len,
+    mdsio_fid_t ino)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	MY_LOOKUP_XATTR(vfsid);
+	MY_LOOKUP_XATTR(vfsid, 0);
 	vnode_t *new_vp = NULL;
 	error = VOP_LOOKUP(vp, (char *) name, &new_vp, NULL, 0, NULL,
 	    &cred, NULL, NULL, NULL);
@@ -583,7 +594,7 @@ zfsslash2_getxattr(int vfsid, const struct slash_creds *slcrp, const char *name,
 	vp = new_vp;
 	vattr_t vattr;
 	memset(&vattr, 0, sizeof(vattr));
-	vattr.va_mask = AT_STAT | AT_NBLOCKS | AT_BLKSIZE | AT_SIZE;
+	vattr.va_mask = AT_SIZE;
 
 	// We are obliged to get the size 1st because of the stupid handling of the
 	// size parameter
@@ -593,7 +604,8 @@ zfsslash2_getxattr(int vfsid, const struct slash_creds *slcrp, const char *name,
 	if (size == 0) {
 		*outbuf_len = vattr.va_size;
 		goto out;
-	} else if (size < vattr.va_size) {
+	}
+	if (size < vattr.va_size) {
 		error = ERANGE;
 		goto out;
 	}
@@ -635,7 +647,7 @@ zfsslash2_removexattr(int vfsid, const struct slash_creds *slcrp,
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	MY_LOOKUP_XATTR(vfsid);
+	MY_LOOKUP_XATTR(vfsid, 0);
 	error = VOP_REMOVE(vp, (char *)name, &cred, NULL, 0, NULL, NULL);
 
  out:
@@ -980,13 +992,9 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 		/* XXX look at fidcache first */
 		if (fill_sstb(vfsid, tvp, &mf, &attr->sstb, &cred))
 			attr->sstb.sst_fid = FID_ANY;
-		else if (1) {
-			int rc;
-
-			rc = zfsslash2_hasxattrs(vfsid, slcrp, mf);
-			if (rc == 0)
-				attr->xattrsize = 1;
-		}
+//		else if (flags & XATTR &&
+		else if (zfsslash2_hasxattrs(vfsid, slcrp, mf))
+			attr->xattrsize = 1;
 
 		if (VTOZ(tvp)->z_id == MDSIO_FID_ROOT)
 			fstat.st_ino = SLFID_ROOT;
