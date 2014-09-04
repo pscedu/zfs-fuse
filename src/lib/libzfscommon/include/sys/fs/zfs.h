@@ -332,8 +332,8 @@ typedef enum zfs_cache_type {
  * and do the appropriate changes.  Also bump the version number in
  * usr/src/grub/capability.
  */
-#define	SPA_VERSION			SPA_VERSION_23
-#define	SPA_VERSION_STRING		"23"
+#define	SPA_VERSION			SPA_VERSION_25
+#define	SPA_VERSION_STRING		"25"
 
 /*
  * Symbolic names for the changes that caused a SPA_VERSION switch.
