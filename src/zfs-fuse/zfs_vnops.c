@@ -1724,6 +1724,8 @@ top:
 		txg = dmu_tx_get_txg(tx);
 
 		memset(&sstb, 0, sizeof(sstb));
+		sstb.sst_uid = zp->z_phys->zp_uid;
+		sstb.sst_gid = zp->z_phys->zp_gid;
 		sstb.sst_fid = zp->z_phys->zp_s2fid;
 		sstb.sst_gen = zp->z_phys->zp_s2gen;
 		sstb.sst_nlink = zp->z_phys->zp_links;
@@ -3660,6 +3662,8 @@ top:
 
 				if (tzp) {
 					memset(&sstb, 0, sizeof(sstb));
+					sstb.sst_uid = tzp->z_phys->zp_uid;
+					sstb.sst_gid = tzp->z_phys->zp_gid;
 					sstb.sst_fid = tzp->z_phys->zp_s2fid;
 					sstb.sst_gen = tzp->z_phys->zp_s2gen;
 					sstb.sst_size = tzp->z_phys->zp_s2size;
