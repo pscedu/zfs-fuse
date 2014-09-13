@@ -75,6 +75,8 @@ int zil_disable = 0;	/* disable intent logging */
  */
 boolean_t zfs_nocacheflush = B_FALSE;
 
+boolean_t zfs_trim_enabled = B_TRUE;
+
 static kmem_cache_t *zil_lwb_cache;
 
 static boolean_t zil_empty(zilog_t *zilog);

@@ -43,14 +43,15 @@
 #define AIO_MAXEVENTS 256
 #endif
 
-/*
- * See zio.h for more information about these fields.
- */
 zio_trim_stats_t zio_trim_stats = {
-	{ "zio_trim_bytes",		KSTAT_DATA_UINT64 },
-	{ "zio_trim_success",		KSTAT_DATA_UINT64 },
-	{ "zio_trim_unsupported",	KSTAT_DATA_UINT64 },
-	{ "zio_trim_failed",		KSTAT_DATA_UINT64 },
+	{ "bytes",              KSTAT_DATA_UINT64,
+	  "Number of bytes successfully TRIMmed" },
+	{ "success",            KSTAT_DATA_UINT64,
+	  "Number of successful TRIM requests" },
+	{ "unsupported",        KSTAT_DATA_UINT64,
+	  "Number of TRIM requests that failed because TRIM is not supported" },
+	{ "failed",             KSTAT_DATA_UINT64,
+	  "Number of TRIM requests that failed for reasons other than not supported" },
 };
 
 static kstat_t *zio_trim_ksp;
@@ -2278,7 +2279,7 @@ zio_free_zil(spa_t *spa, uint64_t txg, blkptr_t *bp)
 
 /*
  * ==========================================================================
- * Read and write to physical devices
+ * Read, write and delete to physical devices
  * ==========================================================================
  */
 static int
@@ -2302,7 +2303,7 @@ zio_vdev_io_start(zio_t *zio)
 	}
 
 	if (vd->vdev_ops->vdev_op_leaf && zio->io_type == ZIO_TYPE_FREE) {
-		trim_map_free(zio);
+	       	trim_map_free(vd, zio->io_offset, zio->io_size, zio->io_txg);
 		return (ZIO_PIPELINE_CONTINUE);
 	}
 
@@ -2365,7 +2366,13 @@ zio_vdev_io_start(zio_t *zio)
 		}
 	}
 
-	if (vd->vdev_ops->vdev_op_leaf && zio->io_type == ZIO_TYPE_WRITE) {
+	/*
+	 * Note that we ignore repair writes for TRIM because they can conflict
+	 * with normal writes. This isn't an issue because, by definition, we
+	 * only repair blocks that aren't freed.
+	 */
+	if (vd->vdev_ops->vdev_op_leaf && zio->io_type == ZIO_TYPE_WRITE &&
+	    !(zio->io_flags & ZIO_FLAG_IO_REPAIR)) {
 		if (!trim_map_write_start(zio))
 			return (ZIO_PIPELINE_STOP);
 	}
@@ -2387,12 +2394,11 @@ zio_vdev_io_done(zio_t *zio)
 	    zio->io_type == ZIO_TYPE_WRITE || zio->io_type == ZIO_TYPE_FREE);
 
 	if (vd != NULL && vd->vdev_ops->vdev_op_leaf &&
-	    zio->io_type == ZIO_TYPE_WRITE) {
-		trim_map_write_done(zio);
-	}
-
-	if (vd != NULL && vd->vdev_ops->vdev_op_leaf &&
 	    (zio->io_type == ZIO_TYPE_READ || zio->io_type == ZIO_TYPE_WRITE)) {
+
+		if (zio->io_type == ZIO_TYPE_WRITE &&
+		    !(zio->io_flags & ZIO_FLAG_IO_REPAIR))
+			trim_map_write_done(zio);
 
 		vdev_queue_io_done(zio);
 
@@ -2407,7 +2413,10 @@ zio_vdev_io_done(zio_t *zio)
 			zio->io_error = zio_handle_label_injection(zio, EIO);
 
 		if (zio->io_error) {
-			if (!vdev_accessible(vd, zio)) {
+			if (zio->io_error == ENOTSUP &&
+			    zio->io_type == ZIO_TYPE_FREE) {
+				/* Not all devices support TRIM. */
+			} else if (!vdev_accessible(vd, zio)) {
 				zio->io_error = ENXIO;
 			} else {
 				unexpected_error = B_TRUE;
@@ -2471,14 +2480,14 @@ zio_vdev_io_assess(zio_t *zio)
 	if (zio->io_type == ZIO_TYPE_IOCTL && zio->io_cmd == DKIOCTRIM)
 		switch (zio->io_error) {
 		case 0:
-			ZIO_TRIM_STAT_INCR(zio_trim_bytes, zio->io_size);
-			ZIO_TRIM_STAT_BUMP(zio_trim_success);
+			ZIO_TRIM_STAT_INCR(bytes, zio->io_size);
+			ZIO_TRIM_STAT_BUMP(success);
 			break;
 		case EOPNOTSUPP:
-			ZIO_TRIM_STAT_BUMP(zio_trim_unsupported);
+			ZIO_TRIM_STAT_BUMP(unsupported);
 			break;
 		default:
-			ZIO_TRIM_STAT_BUMP(zio_trim_failed);
+			ZIO_TRIM_STAT_BUMP(failed);
 			break;
 		}
 

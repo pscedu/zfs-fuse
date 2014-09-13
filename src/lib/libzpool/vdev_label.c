@@ -144,6 +144,8 @@
 #include <sys/trim_map.h>
 #include <sys/fs/zfs.h>
 
+static boolean_t vdev_trim_on_init = B_TRUE;
+
 /*
  * Basic routines to read and write from a vdev label.
  * Used throughout the rest of this file.
@@ -681,9 +683,7 @@ vdev_label_init(vdev_t *vd, uint64_t crtxg, vdev_labeltype_t reason)
 	 * Don't TRIM if removing so that we don't interfere with zpool
 	 * disaster recovery.
 	 */
-	extern boolean_t zfs_notrim;
-
-	if (!zfs_notrim && (reason == VDEV_LABEL_CREATE ||
+       	if (zfs_trim_enabled && vdev_trim_on_init && (reason == VDEV_LABEL_CREATE ||
 	    reason == VDEV_LABEL_SPARE || reason == VDEV_LABEL_L2CACHE))
 		zio_wait(zio_trim(NULL, spa, vd, 0, vd->vdev_psize));
 

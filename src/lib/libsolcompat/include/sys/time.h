@@ -40,7 +40,8 @@ typedef struct timespec timestruc_t;
 
 #define	MILLISEC    1000
 #define	MICROSEC    1000000
-#define NANOSEC 1000000000
+#define NANOSEC	1000000000
+#define TIME_MAX    LLONG_MAX
 
 #define TIME32_MAX INT32_MAX
 #define TIME32_MIN INT32_MIN

@@ -443,6 +443,8 @@ typedef struct kstat32 {
 typedef struct kstat_named {
 	char	name[KSTAT_STRLEN];	/* name of counter */
 	uchar_t	data_type;		/* data type */
+#define	KSTAT_DESCLEN           128
+       	char    desc[KSTAT_DESCLEN]; 
 	union {
 		char		c[16];	/* enough for 128-bit ints */
 		int32_t		i32;

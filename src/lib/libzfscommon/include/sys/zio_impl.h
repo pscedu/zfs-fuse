@@ -23,6 +23,11 @@
  * Use is subject to license terms.
  */
 
+/*
+ * Copyright (c) 2012 by Delphix. All rights reserved.
+ * Copyright (c) 2013 by Delphix. All rights reserved.
+ */
+
 #ifndef _ZIO_IMPL_H
 #define	_ZIO_IMPL_H
 
@@ -158,6 +163,10 @@ enum zio_stage {
 	ZIO_STAGE_DVA_FREE |			\
 	ZIO_STAGE_VDEV_IO_START |		\
 	ZIO_STAGE_VDEV_IO_ASSESS)
+
+#define	ZIO_FREE_PHYS_PIPELINE                  \
+	(ZIO_INTERLOCK_STAGES |                 \
+	ZIO_VDEV_IO_STAGES)
 
 #define	ZIO_DDT_FREE_PIPELINE			\
 	(ZIO_INTERLOCK_STAGES |			\

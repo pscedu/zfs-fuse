@@ -81,7 +81,6 @@ extern int optind, opterr, optopt;
 extern int zfs_vdev_cache_size; // in lib/libzpool/vdev_cache.c
 extern int zfs_prefetch_disable; // lib/libzpool/dmu_zfetch.c
 extern int arg_log_uberblocks, arg_min_uberblock_txg; // uberblock.c
-extern boolean_t zfs_notrim;
 size_t stack_size = 0;
 
 static struct option longopts[] = {
@@ -278,7 +277,7 @@ parse_args(int argc, char *argv[])
 			    "%zd", stack_size);
 			break;
 		case 'T':
-			zfs_notrim = B_TRUE;
+			zfs_trim_enabled = B_TRUE;
 			break;
 		case 'u':
 			check_opt(progname, "-u");

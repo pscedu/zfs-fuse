@@ -173,13 +173,13 @@ kstat_install(kstat_t *ksp)
 		mount_kstat();
 }
 
-static void umount_kstat();
+static void umount_kstat(void);
 
 /*ARGSUSED*/
 void
 kstat_delete(kstat_t *ksp)
 {
-	dir_t *dir = find_dir(root,ksp->ks_kid);
+	dir_t *dir = find_dir(root, ksp->ks_kid);
 	if (!dir) {
 		printf("kstat_delete: didn't find dir\n");
 		return;
