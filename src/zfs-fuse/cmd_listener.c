@@ -95,7 +95,8 @@ typedef struct {
 
 extern size_t stack_size;
 
-static voidrhandle_connection(int sock)
+static void
+handle_connection(int sock)
 {
 	/* Handle request */
 	zfsfuse_cmd_t cmd;
