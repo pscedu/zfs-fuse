@@ -24,11 +24,6 @@
  * Use is subject to license terms.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <unistd.h>	
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
@@ -36,8 +31,14 @@
 #include <sys/file.h>
 #include <sys/avl.h>
 #include <sys/uio.h>
+
+#include <errno.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 #include <sys/fs/zfs.h>
 
@@ -71,7 +72,8 @@ zfsfuse_fd_compare(const void *arg1, const void *arg2)
 	return 0;
 }
 
-int zfsfuse_socket_create()
+int
+zfsfuse_socket_create(void)
 {
 	struct sockaddr_un name;
 
@@ -82,7 +84,8 @@ int zfsfuse_socket_create()
 	sock = socket(PF_LOCAL, SOCK_STREAM, 0);
 	if(sock == -1) {
 		int err = errno;
-		cmn_err(CE_WARN, "Error creating UNIX socket: %s.", strerror(err));
+		cmn_err(CE_WARN, "Error creating UNIX socket: %s.",
+		    strerror(err));
 		return -1;
 	}
 
@@ -116,12 +119,14 @@ int zfsfuse_socket_create()
 		return -1;
 	}
 
-	avl_create(&fd_avl, zfsfuse_fd_compare, sizeof(file_t), offsetof(file_t, f_node));
+	avl_create(&fd_avl, zfsfuse_fd_compare, sizeof(file_t),
+	    offsetof(file_t, f_node));
 
 	return sock;
 }
 
-void zfsfuse_socket_close(int fd)
+void
+zfsfuse_socket_close(int fd)
 {
 	close(fd);
 
@@ -134,13 +139,15 @@ void zfsfuse_socket_close(int fd)
  * This function is repeated in lib/libzfs/libzfs_zfsfuse.c
  * and in zfs-fuse/fuse_listener.c
  */
-int zfsfuse_socket_read_loop(int fd, void *buf, int bytes)
+int
+zfsfuse_socket_read_loop(int fd, void *buf, int bytes)
 {
 	int read_bytes = 0;
 	int left_bytes = bytes;
 
 	while(left_bytes > 0) {
-		int ret = recvfrom(fd, ((char *) buf) + read_bytes, left_bytes, 0, NULL, NULL);
+		int ret = recvfrom(fd, ((char *) buf) + read_bytes,
+		    left_bytes, 0, NULL, NULL);
 		if(ret == 0)
 			return -1;
 
@@ -155,7 +162,8 @@ int zfsfuse_socket_read_loop(int fd, void *buf, int bytes)
 	return 0;
 }
 
-int zfsfuse_socket_ioctl_write(int fd, int ret)
+int
+zfsfuse_socket_ioctl_write(int fd, int ret)
 {
 #ifdef DEBUG
 	/* Clear valgrind's uninitialized byte(s) warning */
@@ -167,13 +175,15 @@ int zfsfuse_socket_ioctl_write(int fd, int ret)
 	cmd.cmd_type = IOCTL_ANS;
 	cmd.cmd_u.ioctl_ans_ret = ret;
 
-	if(write(fd, &cmd, sizeof(zfsfuse_cmd_t)) != sizeof(zfsfuse_cmd_t))
+	if(write(fd, &cmd, sizeof(zfsfuse_cmd_t)) !=
+	    sizeof(zfsfuse_cmd_t))
 		return -1;
 
 	return 0;
 }
 
-int xcopyin(const void *src, void *dest, size_t size)
+int
+xcopyin(const void *src, void *dest, size_t size)
 {
 #ifdef DEBUG
 	/* Clear valgrind's uninitialized byte(s) warning */
@@ -189,7 +199,8 @@ int xcopyin(const void *src, void *dest, size_t size)
 	cmd.cmd_u.copy_req.ptr = (uint64_t)(uintptr_t) src;
 	cmd.cmd_u.copy_req.size = size;
 
-	if(write(cur_fd, &cmd, sizeof(zfsfuse_cmd_t)) != sizeof(zfsfuse_cmd_t))
+	if(write(cur_fd, &cmd, sizeof(zfsfuse_cmd_t)) !=
+	    sizeof(zfsfuse_cmd_t))
 		return EFAULT;
 
 	if(zfsfuse_socket_read_loop(cur_fd, dest, size) != 0)
@@ -198,7 +209,8 @@ int xcopyin(const void *src, void *dest, size_t size)
 	return 0;
 }
 
-int copyinstr(const char *from, char *to, size_t max, size_t *len)
+int
+copyinstr(const char *from, char *to, size_t max, size_t *len)
 {
 	if(max == 0)
 		return ENAMETOOLONG;
@@ -219,10 +231,12 @@ int copyinstr(const char *from, char *to, size_t max, size_t *len)
 	cmd.cmd_u.copy_req.ptr = (uint64_t)(uintptr_t) from;
 	cmd.cmd_u.copy_req.size = max;
 
-	if(write(cur_fd, &cmd, sizeof(zfsfuse_cmd_t)) != sizeof(zfsfuse_cmd_t))
+	if(write(cur_fd, &cmd, sizeof(zfsfuse_cmd_t)) !=
+	    sizeof(zfsfuse_cmd_t))
 		return EFAULT;
 
-	if(zfsfuse_socket_read_loop(cur_fd, &cmd, sizeof(zfsfuse_cmd_t)) != 0)
+	if(zfsfuse_socket_read_loop(cur_fd, &cmd, sizeof(zfsfuse_cmd_t))
+	    != 0)
 		return EFAULT;
 
 	VERIFY(cmd.cmd_type = COPYINSTR_ANS);
@@ -241,7 +255,8 @@ int copyinstr(const char *from, char *to, size_t max, size_t *len)
 	return cmd.cmd_u.copy_ans.ret;
 }
 
-int xcopyout(const void *src, void *dest, size_t size)
+int
+xcopyout(const void *src, void *dest, size_t size)
 {
 #ifdef DEBUG
 	/* Clear valgrind's uninitialized byte(s) warning */
@@ -257,7 +272,8 @@ int xcopyout(const void *src, void *dest, size_t size)
 	cmd.cmd_u.copy_req.ptr = (uint64_t)(uintptr_t) dest;
 	cmd.cmd_u.copy_req.size = size;
 
-	if(write(cur_fd, &cmd, sizeof(zfsfuse_cmd_t)) != sizeof(zfsfuse_cmd_t))
+	if(write(cur_fd, &cmd, sizeof(zfsfuse_cmd_t)) !=
+	    sizeof(zfsfuse_cmd_t))
 		return EFAULT;
 
 	if(write(cur_fd, src, size) != size)
@@ -287,7 +303,8 @@ file_t *getf(int fd)
 	cmd.cmd_type = GETF_REQ;
 	cmd.cmd_u.getf_req_fd = fd;
 
-	if(write(cur_fd, &cmd, sizeof(zfsfuse_cmd_t)) != sizeof(zfsfuse_cmd_t))
+	if(write(cur_fd, &cmd, sizeof(zfsfuse_cmd_t)) !=
+	    sizeof(zfsfuse_cmd_t))
 		return NULL;
 
 retry: ;
@@ -322,7 +339,8 @@ retry: ;
 		return NULL;
 	}
 
-	if(cmsg->cmsg_len != CMSG_LEN(sizeof(int)) || cmsg->cmsg_level != SOL_SOCKET || cmsg->cmsg_type != SCM_RIGHTS)
+	if(cmsg->cmsg_len != CMSG_LEN(sizeof(int)) || cmsg->cmsg_level
+	    != SOL_SOCKET || cmsg->cmsg_type != SCM_RIGHTS)
 		return NULL;
 
 	fdptr = (int *) CMSG_DATA(cmsg);
@@ -330,7 +348,8 @@ retry: ;
 
 	file_t *ret = kmem_alloc(sizeof(file_t), KM_SLEEP);
 
-	if(vn_fromfd(new_fd, "file descriptor", FREAD | FWRITE, &ret->f_vnode, B_TRUE) != 0) {
+	if(vn_fromfd(new_fd, "file descriptor", FREAD | FWRITE,
+	    &ret->f_vnode, B_TRUE) != 0) {
 		kmem_free(ret, sizeof(file_t));
 		return NULL;
 	}
@@ -353,7 +372,8 @@ retry: ;
  *
  * This function is declared in libsolkerncompat/include/sys/file.h
  */
-void releasef(int fd)
+void
+releasef(int fd)
 {
 	file_t f;
 	f.f_client = cur_fd;

@@ -333,7 +333,8 @@ read_cfg(void)
 		if ('#' == first)
 			continue;
 
-		sscanf(buf, " %n%*[a-z-]%n = %n%*[^#]%n", &name_s, &name_e, &value_s, &value_e);
+		sscanf(buf, " %n%*[a-z-]%n = %n%*[^#]%n", &name_s,
+		    &name_e, &value_s, &value_e);
 
 		// unfortunately, can't trust the return value according to SCANF(3)
 		if (!((-1 == name_s) || (-1 == name_e) || (-1 ==
@@ -357,7 +358,9 @@ read_cfg(void)
 			// prepend dashes for short or long options
 			const char* original = argv[1];
 			if ('-'!=*original)
-				VERIFY(-1 != asprintf(&argv[1], strlen(original)>1? "--%s" : "-%s", original));
+				VERIFY(-1 != asprintf(&argv[1],
+				    strlen(original)>1? "--%s" : "-%s",
+				    original));
 
 			// parse
 			parse_args(argc,argv);

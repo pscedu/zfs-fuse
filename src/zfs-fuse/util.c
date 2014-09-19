@@ -77,7 +77,8 @@ char * zfs_lock_file;
 extern vfsops_t *zfs_vfsops;
 extern int zfs_vfsinit(int fstype, char *name);
 
-static int zfsfuse_do_locking(int in_child)
+static int
+zfsfuse_do_locking(int in_child)
 {
 	/* Ignores errors since the directory might already exist */
 	mkdir(LOCKDIR, 0700);
@@ -86,55 +87,55 @@ static int zfsfuse_do_locking(int in_child)
 	if (zfs_lock_file == NULL)
 		zfs_lock_file = LOCKFILE;
 
-    if (!in_child)
-    {
-        ASSERT(lock_fd == -1);
-        /*
-         * before the fork, we create the file, truncating it, and locking the
-         * first byte
-         */
-        lock_fd = creat(zfs_lock_file, S_IRUSR | S_IWUSR);
-        if(lock_fd == -1)
-            return -1;
+	if (!in_child)
+	{
+		ASSERT(lock_fd == -1);
+		/*
+		 * before the fork, we create the file, truncating it, and locking the
+		 * first byte
+		 */
+		lock_fd = creat(zfs_lock_file, S_IRUSR | S_IWUSR);
+		if(lock_fd == -1)
+			return -1;
 
-        /*
-         * only if we /could/ lock all of the file,
-         * we shall lock just the first byte; this way
-         * we can let the daemon child process lock the
-         * remainder of the file after forking
-         */
-        if (0==lockf(lock_fd, F_TEST, 0))
-            return lockf(lock_fd, F_TLOCK, 1);
-        else
-            return -1;
-    } else
-    {
-        ASSERT(lock_fd != -1);
-        /*
-         * after the fork, we instead try to lock only the region /after/ the
-         * first byte; the file /must/ already exist. Only in this way can we
-         * prevent races with locking before or after the daemonization
-         */
-        lock_fd = open(zfs_lock_file, O_WRONLY);
-        if(lock_fd == -1)
-            return -1;
+		/*
+		 * only if we /could/ lock all of the file,
+		 * we shall lock just the first byte; this way
+		 * we can let the daemon child process lock the
+		 * remainder of the file after forking
+		 */
+		if (0==lockf(lock_fd, F_TEST, 0))
+			return lockf(lock_fd, F_TLOCK, 1);
+		else
+			return -1;
+	} else {
+		ASSERT(lock_fd != -1);
+		/*
+		 * after the fork, we instead try to lock only the region /after/ the
+		 * first byte; the file /must/ already exist. Only in this way can we
+		 * prevent races with locking before or after the daemonization
+		 */
+		lock_fd = open(zfs_lock_file, O_WRONLY);
+		if(lock_fd == -1)
+			return -1;
 
-        ASSERT(-1 == lockf(lock_fd, F_TEST, 0)); /* assert that parent still has the lock on the first byte */
-        if (-1 == lseek(lock_fd, 1, SEEK_SET))
-        {
-            perror("lseek");
-            return -1;
-        }
+		ASSERT(-1 == lockf(lock_fd, F_TEST, 0)); /* assert that parent still has the lock on the first byte */
+		if (-1 == lseek(lock_fd, 1, SEEK_SET)) {
+			perror("lseek");
+			return -1;
+		}
 
-        return lockf(lock_fd, F_TLOCK, 0);
-    }
+		return lockf(lock_fd, F_TLOCK, 0);
+	}
 }
 
-void do_daemon(const char *pidfile)
+void
+do_daemon(const char *pidfile)
 {
 	chdir("/");
 	if (pidfile) {
 		struct stat dummy;
+
 		if (0 == stat(pidfile, &dummy)) {
 			cmn_err(CE_WARN, "%s already exists; aborting.", pidfile);
 			exit(1);
@@ -150,64 +151,64 @@ void do_daemon(const char *pidfile)
      * http://sourceware.org/git/?p=glibc.git;a=blob;f=misc/daemon.c;h=7597ce9996d5fde1c4ba622e7881cf6e821a12b4;hb=HEAD
      */
     {
-        int forkres, devnull;
+	int forkres, devnull;
 
-        if(getppid()==1)
-            return; /* already a daemon */
+	if(getppid()==1)
+	    return; /* already a daemon */
 
-        forkres=fork();
-        if (forkres<0)
-        { /* fork error */
-            cmn_err(CE_WARN, "Cannot fork (%s)", strerror(errno));
-            exit(1);
-        }
-        if (forkres>0)
-        {
-            int i;
-            /* parent */
-            for (i=getdtablesize();i>=0;--i)
-                if ((lock_fd!=i) && (ioctl_fd!=i))       /* except for the lockfile and the comm socket */
-                    close(i);                            /* close all descriptors */
+	forkres=fork();
+	if (forkres<0)
+	{ /* fork error */
+	    cmn_err(CE_WARN, "Cannot fork (%s)", strerror(errno));
+	    exit(1);
+	}
+	if (forkres>0)
+	{
+	    int i;
+	    /* parent */
+	    for (i=getdtablesize();i>=0;--i)
+		if ((lock_fd!=i) && (ioctl_fd!=i))       /* except for the lockfile and the comm socket */
+		    close(i);                            /* close all descriptors */
 
-            /* allow for airtight lockfile semantics... */
-            struct timeval tv;
-            tv.tv_sec = 0;
-            tv.tv_usec = 200000;  /* 0.2 seconds */
-            select(0, NULL, NULL, NULL, &tv);
+	    /* allow for airtight lockfile semantics... */
+	    struct timeval tv;
+	    tv.tv_sec = 0;
+	    tv.tv_usec = 200000;  /* 0.2 seconds */
+	    select(0, NULL, NULL, NULL, &tv);
 
-            VERIFY(0 == close(lock_fd));
-            lock_fd == -1;
-            exit(0);
-        }
+	    VERIFY(0 == close(lock_fd));
+	    lock_fd == -1;
+	    exit(0);
+	}
 
-        /* child (daemon) continues */
-        setsid();                         /* obtain a new process group */
-        VERIFY(0 == chdir("/"));          /* change working directory */
-        umask(027);                       /* set newly created file permissions */
-        devnull=open("/dev/null",O_RDWR); /* handle standard I/O */
-        ASSERT(-1 != devnull);
-        dup2(devnull, 0); /* stdin  */
-        dup2(devnull, 1); /* stdout */
-        dup2(devnull, 2); /* stderr */
-        if (devnull>2)
-            close(devnull);
+	/* child (daemon) continues */
+	setsid();                         /* obtain a new process group */
+	VERIFY(0 == chdir("/"));          /* change working directory */
+	umask(027);                       /* set newly created file permissions */
+	devnull=open("/dev/null",O_RDWR); /* handle standard I/O */
+	ASSERT(-1 != devnull);
+	dup2(devnull, 0); /* stdin  */
+	dup2(devnull, 1); /* stdout */
+	dup2(devnull, 2); /* stderr */
+	if (devnull>2)
+	    close(devnull);
 
-        /*
-         * contrary to recommendation, do _not_ ignore SIGCHLD:
-         * it will break exec-ing subprocesses, e.g. for kstat mount and
-         * (presumably) nfs sharing!
-         *
-         * this will lead to really bad performance too
-         */
-        signal(SIGTSTP,SIG_IGN);     /* ignore tty signals */
-        signal(SIGTTOU,SIG_IGN);
-        signal(SIGTTIN,SIG_IGN);
+	/*
+	 * contrary to recommendation, do _not_ ignore SIGCHLD:
+	 * it will break exec-ing subprocesses, e.g. for kstat mount and
+	 * (presumably) nfs sharing!
+	 *
+	 * this will lead to really bad performance too
+	 */
+	signal(SIGTSTP,SIG_IGN);     /* ignore tty signals */
+	signal(SIGTTOU,SIG_IGN);
+	signal(SIGTTIN,SIG_IGN);
     }
 
     if (0 != zfsfuse_do_locking(1))
     {
-        cmn_err(CE_WARN, "Unexpected locking conflict (%s: %s)", strerror(errno), zfs_lock_file);
-        exit(1);
+	cmn_err(CE_WARN, "Unexpected locking conflict (%s: %s)", strerror(errno), zfs_lock_file);
+	exit(1);
     }
 
 	if (pidfile) {
@@ -274,7 +275,7 @@ int do_init()
 	file_info_cache = kmem_cache_create("file_info_t", sizeof(file_info_t),
 	    0, NULL, NULL, NULL, NULL, NULL, 0);
 	VERIFY(file_info_cache != NULL);
-	return 0; 
+	return 0;
 #else
 	return zfsfuse_listener_init();
 #endif
@@ -382,8 +383,8 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 		mounted = 1;
 	/* Actually, optptr is totally ignored by VFS_MOUNT.
 	 * So we are going to pass this with fuse_mount_options if possible */
-    if (fuse_mount_options == NULL)
-        fuse_mount_options = "";
+	if (fuse_mount_options == NULL)
+		fuse_mount_options = "";
 	char real_opts[1024];
 	*real_opts = 0;
 	if (*fuse_mount_options)
@@ -401,17 +402,18 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	char *fuse_opts = NULL;
 	int has_default_perm = 0;
 	if (fuse_version() <= 27) {
-	if(asprintf(&fuse_opts, FUSE_OPTIONS, spec, real_opts) == -1) {
-		VERIFY(do_umount(vfs, B_FALSE) == 0);
-		return ENOMEM;
-	}
+		if(asprintf(&fuse_opts, FUSE_OPTIONS, spec, real_opts) == -1) {
+			VERIFY(do_umount(vfs, B_FALSE) == 0);
+			return ENOMEM;
+		}
 	} else {
-	  if(asprintf(&fuse_opts, FUSE_OPTIONS ",big_writes", spec, real_opts) == -1) {
-	    VERIFY(do_umount(vfs, B_FALSE) == 0);
-	    return ENOMEM;
-	  }
+		if(asprintf(&fuse_opts, FUSE_OPTIONS ",big_writes",
+		    spec, real_opts) == -1) {
+			VERIFY(do_umount(vfs, B_FALSE) == 0);
+			return ENOMEM;
+		}
 	}
-	
+
 	struct fuse_args args = FUSE_ARGS_INIT(0, NULL);
 
 	if(fuse_opt_add_arg(&args, "") == -1 ||
@@ -435,7 +437,8 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	if (has_default_perm)
 	    vfs->fuse_attribute = FUSE_VFS_HAS_DEFAULT_PERM;
 
-	struct fuse_session *se = fuse_lowlevel_new(&args, &zfs_operations, sizeof(zfs_operations), vfs);
+	struct fuse_session *se = fuse_lowlevel_new(&args,
+	    &zfs_operations, sizeof(zfs_operations), vfs);
 	fuse_opt_free_args(&args);
 
 	if(se == NULL) {
@@ -459,7 +462,7 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 
 	zfsvfs = vfs->vfs_data;
 	ASSERT(zfsvfs->z_root == 3);
-	zfsMount[mount_index].rootid = zfsvfs->z_root; 
+	zfsMount[mount_index].rootid = zfsvfs->z_root;
 
 	error = zfs_zget(zfsvfs, zfsvfs->z_root, &rootzp, B_FALSE);
 	ASSERT(!error);
@@ -474,16 +477,16 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 
 	zfsMount[mount_index].flag = 0;
 	zfsMount[mount_index].vfs = vfs;
-	zfsMount[mount_index].uuid = -1; 
+	zfsMount[mount_index].uuid = -1;
 	zfsMount[mount_index].siteid = -1;
 	strcpy(zfsMount[mount_index].name, dir);
 
 #if 0
-	/* 
-	 * A better idea is to scan for new file systems when we do 
- 	 * a readdir under the root file system. Yeah, that is on-demand
- 	 * registration.
- 	 */
+	/*
+	 * A better idea is to scan for new file systems when we do
+	 * a readdir under the root file system. Yeah, that is on-demand
+	 * registration.
+	 */
 	if (zfsslash2_hook_func)
 		zfsslash2_hook_func(mount_index);
 #endif
@@ -494,7 +497,8 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	return 0;
 }
 
-int do_umount(vfs_t *vfs, boolean_t force)
+int
+do_umount(vfs_t *vfs, boolean_t force)
 {
 	VFS_SYNC(vfs, 0, kcred);
 
@@ -517,4 +521,3 @@ zfsslash2_register_hook(void *funp)
 {
 	zfsslash2_hook_func = funp;
 }
-
