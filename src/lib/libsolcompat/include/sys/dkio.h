@@ -193,6 +193,8 @@ struct dk_callback {
 	void *dkc_cookie;
 };
 
+#define	DKIOCTRIM		(DKIOC|35)
+
 #define	DKIOCGETWCE		(DKIOC|36)	/* Get current write cache */
 						/* enablement status */
 #define	DKIOCSETWCE		(DKIOC|37)	/* Enable/Disable write cache */

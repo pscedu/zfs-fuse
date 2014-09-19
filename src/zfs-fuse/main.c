@@ -48,6 +48,8 @@ extern void fuse_unmount_all(); // in fuse_listener.c
 static int cf_daemonize = 1;
 extern int no_kstat_mount; // kstat.c
 
+extern boolean_t zfs_trim_enabled;
+
 static sem_t daemon_shutdown;
 
 static void

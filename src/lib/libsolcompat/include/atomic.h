@@ -431,6 +431,8 @@ extern uint32_t swapl(uint32_t *, uint32_t);
 
 #endif	/* _KERNEL */
 
+#define atomic_subtract_64(t, delta)	atomic_add_64((t), -(delta))
+
 #ifdef	__cplusplus
 }
 #endif
