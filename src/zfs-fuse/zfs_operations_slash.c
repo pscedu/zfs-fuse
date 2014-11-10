@@ -66,7 +66,7 @@
 #include "slashd/mdsio.h"
 
 kmem_cache_t		*file_info_cache;
-int		 stack_size;
+int			 stack_size;
 static cred_t		 zrootcreds;
 
 static uint64_t        *immnsIdCache[MAX_FILESYSTEMS];
@@ -79,7 +79,7 @@ static uint64_t         slz_immns_id_mask;
 #define	FIDLINK_DIR		(1 << 3)
 
 /**
- * get_vnode_fids - Get SLASH FID + generation (external) and the
+ * get_vnode_fids - Get SLASH2 FID + generation (external) and the
  *	ZFS/MDSIO layer inum "fid" (internal) for a vnode.
  */
 static __inline void
@@ -714,7 +714,7 @@ zfsslash2_lookup(int vfsid, mdsio_fid_t parent, const char *name,
 }
 
 /*
- * XXX replace finfop with something meaningful for slash d_ino cache
+ * XXX replace finfop with something meaningful for SLASH2 d_ino cache
  */
 int
 zfsslash2_opendir(int vfsid, mdsio_fid_t ino, const struct slash_creds *slcrp,
@@ -753,7 +753,7 @@ zfsslash2_opendir(int vfsid, mdsio_fid_t ino, const struct slash_creds *slcrp,
 			goto out;
 	}
 
-	/* XXX convert to the slash d_ino cache */
+	/* XXX convert to the SLASH2 d_ino cache */
 	file_info_t *finfo = kmem_cache_alloc(file_info_cache, KM_NOSLEEP);
 	if (finfo == NULL) {
 		error = ENOMEM;
@@ -775,7 +775,7 @@ zfsslash2_opendir(int vfsid, mdsio_fid_t ino, const struct slash_creds *slcrp,
 }
 
 /*
- * XXX convert to the slash d_ino cache .. same as above
+ * XXX convert to the SLASH2 d_ino cache .. same as above
  */
 int
 zfsslash2_release(int vfsid, __unusedx const struct slash_creds *slcrp,
@@ -1088,7 +1088,7 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
 #if 0
 		/*
 		 * I have found a place in zfs_mknode() where I can
-		 * write SLASH FID 1 into the root node.  This function
+		 * write SLASH2 FID 1 into the root node.  This function
 		 * is called by dsl_pool_create() twice, once by
 		 * zfs_create_fs(), once by zfs_create_share_dir().
 		 * Both time I see the IS_ROOT_NODE flag is used.  I
@@ -1212,7 +1212,7 @@ zfsslash2_lookup_slfid(int vfsid, slfid_t fid,
  * @finfo: value-result handle to ZFS structure; used as a descriptor to
  *	all other mdsio routines.
  * @logfunc: callback for logging create operation.
- * @getslfid: callback for retrieving a unique SLASH FID.
+ * @getslfid: callback for retrieving a unique SLASH2 FID.
  *
  * Note that ino is the target inode if this is an open; otherwise it is
  * the inode of the parent.
