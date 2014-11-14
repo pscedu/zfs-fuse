@@ -53,7 +53,7 @@ int	zfsslash2_access(int, mdsio_fid_t, int, const struct slash_creds *);
 int	zfsslash2_fsync(int, const struct slash_creds *, int, void *);
 int	zfsslash2_getattr(int, mdsio_fid_t, void *finfo, const struct slash_creds *, struct srt_stat *);
 int	zfsslash2_link(int, mdsio_fid_t, mdsio_fid_t, const char *, const struct slash_creds *, sl_log_update_t);
-int	zfsslash2_lookup(int, mdsio_fid_t, const char *, mdsio_fid_t *, const struct slash_creds *, struct srt_stat *);
+int	zfsslash2_lookup(int, mdsio_fid_t, const char *, mdsio_fid_t *, const struct slash_creds *, struct srt_stat *, int64_t *);
 int	zfsslash2_lookup_slfid(int, slfid_t, const struct slash_creds *, struct srt_stat *, mdsio_fid_t *);
 int	zfsslash2_mkdir(int, mdsio_fid_t, const char *, const struct srt_stat *, int, int, struct srt_stat *, mdsio_fid_t *, sl_log_update_t, sl_getslfid_cb_t, slfid_t);
 int	zfsslash2_mknod(int, mdsio_fid_t, const char *, mode_t, const struct slash_creds *, struct srt_stat *, mdsio_fid_t *, sl_log_update_t, sl_getslfid_cb_t);
@@ -63,7 +63,7 @@ int	zfsslash2_preadv(int, const struct slash_creds *, struct iovec *, int, size_
 int	zfsslash2_pwritev(int, const struct slash_creds *, const struct iovec *, int, size_t *, off_t, void *, sl_log_write_t, void *);
 int	zfsslash2_read(int, const struct slash_creds *, void *, size_t, size_t *, off_t, void *);
 int	zfsslash2_readdir(int, const struct slash_creds *, size_t, off_t, void *, size_t *, int *, struct iovec *, int *, off_t *, void *);
-int	zfsslash2_readlink(int, mdsio_fid_t, char *, const struct slash_creds *);
+int	zfsslash2_readlink(int, mdsio_fid_t, char *, size_t *, const struct slash_creds *);
 int	zfsslash2_release(int, const struct slash_creds *, void *);
 int	zfsslash2_rename(int, mdsio_fid_t, const char *, mdsio_fid_t, const char *, const struct slash_creds *, sl_log_update_t, void *);
 int	zfsslash2_rmdir(int, mdsio_fid_t, struct slash_fidgen *, const char *, const struct slash_creds *, sl_log_update_t);

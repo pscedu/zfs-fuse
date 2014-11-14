@@ -422,7 +422,7 @@ zfsslash2_hasxattrs(int vfsid, const struct slash_creds *slcrp,
 		return (0);
 	if (error)
 		return (error);
-	if (vattr.va_size == 2);
+	if (vattr.va_size == 2) // . and ..
 		return (0);
 	return (-1);
 }
@@ -568,10 +568,6 @@ zfsslash2_setxattr(int vfsid, const struct slash_creds *slcrp,
 		VN_RELE(vp);
 	VN_RELE(dvp);
 	ZFS_EXIT(zfsvfs);
-	/*
-	 * The fuse_reply_err at the end seems to be an mandatory even
-	 * if there is no error.
-	 */
 	return (error);
 }
 
@@ -596,7 +592,7 @@ zfsslash2_getxattr(int vfsid, const struct slash_creds *slcrp,
 	memset(&vattr, 0, sizeof(vattr));
 	vattr.va_mask = AT_SIZE;
 
-	// We are obliged to get the size 1st because of the stupid handling of the
+	// We are obliged to get the size first because of the stupid handling of the
 	// size parameter
 	error = VOP_GETATTR(vp, &vattr, 0, &cred, NULL);
 	if (error)
@@ -663,9 +659,10 @@ zfsslash2_removexattr(int vfsid, const struct slash_creds *slcrp,
 int
 zfsslash2_lookup(int vfsid, mdsio_fid_t parent, const char *name,
     mdsio_fid_t *mfp, const struct slash_creds *slcrp,
-    struct srt_stat *sstb)
+    struct srt_stat *sstb, int64_t *xattrsize)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
+	mdsio_fid_t mfid;
 
 	struct vfs *vfs = zfsMount[vfsid].vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
@@ -701,8 +698,14 @@ zfsslash2_lookup(int vfsid, mdsio_fid_t parent, const char *name,
 		goto out;
 	}
 
+	if (xattrsize && mfp == NULL)
+		mfp = &mfid;
+
 	if (sstb || mfp)
 		error = fill_sstb(vfsid, vp, mfp, sstb, &cred);
+
+	if (xattrsize)
+		*xattrsize = zfsslash2_hasxattrs(vfsid, slcrp, *mfp);
 
  out:
 	if (vp)
@@ -1406,7 +1409,7 @@ zfsslash2_opencreate(int vfsid, mdsio_fid_t ino,
 }
 
 int
-zfsslash2_readlink(int vfsid, mdsio_fid_t ino, char *buf,
+zfsslash2_readlink(int vfsid, mdsio_fid_t ino, char *buf, size_t *lenp,
     const struct slash_creds *slcrp)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
@@ -1437,8 +1440,8 @@ zfsslash2_readlink(int vfsid, mdsio_fid_t ino, char *buf,
 	uio.uio_fmode = 0;
 	uio.uio_llimit = RLIM64_INFINITY;
 	iovec.iov_base = buf;
-	iovec.iov_len = PATH_MAX;
-	uio.uio_resid = PATH_MAX;
+	iovec.iov_len = PATH_MAX - 1;
+	uio.uio_resid = PATH_MAX - 1;
 	uio.uio_loffset = 0;
 
 	error = VOP_READLINK(vp, &uio, &cred, NULL);	/* zfs_readlink() */
@@ -1448,11 +1451,7 @@ zfsslash2_readlink(int vfsid, mdsio_fid_t ino, char *buf,
 
 	if (!error) {
 		VERIFY(uio.uio_loffset < PATH_MAX);
-		/*
-		 * We may not need this if we write NULL
-		 * at symlink() time.
-		 */
-		buf[uio.uio_loffset] = '\0';
+		*lenp = uio.uio_loffset;
 	}
 
 	return error;
