@@ -47,7 +47,8 @@ static kmem_cache_t *lz4_cache;
 
 /*ARGSUSED*/
 size_t
-lz4_compress(void *s_start, void *d_start, size_t s_len, size_t d_len, int n)
+lz4_compress_zfs(void *s_start, void *d_start, size_t s_len,
+    size_t d_len, int n)
 {
 	uint32_t bufsiz;
 	char *dest = d_start;
@@ -74,7 +75,8 @@ lz4_compress(void *s_start, void *d_start, size_t s_len, size_t d_len, int n)
 
 /*ARGSUSED*/
 int
-lz4_decompress(void *s_start, void *d_start, size_t s_len, size_t d_len, int n)
+lz4_decompress_zfs(void *s_start, void *d_start, size_t s_len,
+    size_t d_len, int n)
 {
 	const char *src = s_start;
 	uint32_t bufsiz = BE_IN32(src);
@@ -96,63 +98,65 @@ lz4_decompress(void *s_start, void *d_start, size_t s_len, size_t d_len, int n)
  *
  * Simple Functions:
  * real_LZ4_compress() :
- *	isize  : is the input size. Max supported value is ~1.9GB
- *	return : the number of bytes written in buffer dest
+ * 	isize  : is the input size. Max supported value is ~1.9GB
+ * 	return : the number of bytes written in buffer dest
  *		 or 0 if the compression fails (if LZ4_COMPRESSMIN is set).
- *	note : destination buffer must be already allocated.
- *		destination buffer must be sized to handle worst cases
- *		situations (input data not compressible) worst case size
- *		evaluation is provided by function LZ4_compressBound().
+ * 	note : destination buffer must be already allocated.
+ * 		destination buffer must be sized to handle worst cases
+ * 		situations (input data not compressible) worst case size
+ * 		evaluation is provided by function LZ4_compressBound().
  *
  * real_LZ4_uncompress() :
- *	osize  : is the output size, therefore the original size
- *	return : the number of bytes read in the source buffer.
- *		If the source stream is malformed, the function will stop
- *		decoding and return a negative result, indicating the byte
- *		position of the faulty instruction. This function never
- *		writes beyond dest + osize, and is therefore protected
- *		against malicious data packets.
- *	note : destination buffer must be already allocated
+ * 	osize  : is the output size, therefore the original size
+ * 	return : the number of bytes read in the source buffer.
+ * 		If the source stream is malformed, the function will stop
+ * 		decoding and return a negative result, indicating the byte
+ * 		position of the faulty instruction. This function never
+ * 		writes beyond dest + osize, and is therefore protected
+ * 		against malicious data packets.
+ * 	note : destination buffer must be already allocated
+ *	note : real_LZ4_uncompress() is not used in ZFS so its code
+ *	       is not present here.
  *
  * Advanced Functions
  *
  * LZ4_compressBound() :
- *	Provides the maximum size that LZ4 may output in a "worst case"
- *	scenario (input data not compressible) primarily useful for memory
- *	allocation of output buffer.
+ * 	Provides the maximum size that LZ4 may output in a "worst case"
+ * 	scenario (input data not compressible) primarily useful for memory
+ * 	allocation of output buffer.
  *
- *	isize  : is the input size. Max supported value is ~1.9GB
- *	return : maximum output size in a "worst case" scenario
- *	note : this function is limited by "int" range (2^31-1)
+ * 	isize  : is the input size. Max supported value is ~1.9GB
+ * 	return : maximum output size in a "worst case" scenario
+ * 	note : this function is limited by "int" range (2^31-1)
  *
  * LZ4_uncompress_unknownOutputSize() :
- *	isize  : is the input size, therefore the compressed size
- *	maxOutputSize : is the size of the destination buffer (which must be
- *		already allocated)
- *	return : the number of bytes decoded in the destination buffer
- *		(necessarily <= maxOutputSize). If the source stream is
- *		malformed, the function will stop decoding and return a
- *		negative result, indicating the byte position of the faulty
- *		instruction. This function never writes beyond dest +
- *		maxOutputSize, and is therefore protected against malicious
- *		data packets.
- *	note   : Destination buffer must be already allocated.
+ * 	isize  : is the input size, therefore the compressed size
+ * 	maxOutputSize : is the size of the destination buffer (which must be
+ * 		already allocated)
+ * 	return : the number of bytes decoded in the destination buffer
+ * 		(necessarily <= maxOutputSize). If the source stream is
+ * 		malformed, the function will stop decoding and return a
+ * 		negative result, indicating the byte position of the faulty
+ * 		instruction. This function never writes beyond dest +
+ * 		maxOutputSize, and is therefore protected against malicious
+ * 		data packets.
+ * 	note   : Destination buffer must be already allocated.
  *		This version is slightly slower than real_LZ4_uncompress()
  *
  * LZ4_compressCtx() :
- *	This function explicitly handles the CTX memory structure.
+ * 	This function explicitly handles the CTX memory structure.
  *
- *	ILLUMOS CHANGES: the CTX memory structure must be explicitly allocated
- *	by the caller (either on the stack or using kmem_cache_alloc). Passing NULL
- *	isn't valid.
+ * 	ILLUMOS CHANGES: the CTX memory structure must be explicitly allocated
+ * 	by the caller (either on the stack or using kmem_cache_alloc). Passing
+ * 	NULL isn't valid.
  *
  * LZ4_compress64kCtx() :
- *	Same as LZ4_compressCtx(), but specific to small inputs (<64KB).
- *	isize *Must* be <64KB, otherwise the output will be corrupted.
+ * 	Same as LZ4_compressCtx(), but specific to small inputs (<64KB).
+ * 	isize *Must* be <64KB, otherwise the output will be corrupted.
  *
- *	ILLUMOS CHANGES: the CTX memory structure must be explicitly allocated
- *	by the caller (either on the stack or using kmem_cache_alloc). Passing NULL
- *	isn't valid.
+ * 	ILLUMOS CHANGES: the CTX memory structure must be explicitly allocated
+ * 	by the caller (either on the stack or using kmem_cache_alloc). Passing
+ * 	NULL isn't valid.
  */
 
 /*
@@ -231,12 +235,23 @@ lz4_decompress(void *s_start, void *d_start, size_t s_len, size_t d_len, int n)
  * kernel
  */
 #undef	LZ4_FORCE_SW_BITCOUNT
+#if defined(__sparc)
+#define	LZ4_FORCE_SW_BITCOUNT
+#endif
 
 /*
  * Compiler Options
  */
 /* Disable restrict */
 #define	restrict
+
+/*
+ * Linux : GCC_VERSION is defined as of 3.9-rc1, so undefine it.
+ * torvalds/linux@3f3f8d2f48acfd8ed3b8e6b7377935da57b27b16
+ */
+#ifdef GCC_VERSION
+#undef GCC_VERSION
+#endif
 
 #define	GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
 
@@ -254,7 +269,7 @@ lz4_decompress(void *s_start, void *d_start, size_t s_len, size_t d_len, int n)
 #define	unlikely(expr)	expect((expr) != 0, 0)
 #endif
 
-#define lz4_bswap16(x) ((unsigned short int) ((((x) >> 8) & 0xffu) | \
+#define	lz4_bswap16(x) ((unsigned short int) ((((x) >> 8) & 0xffu) | \
 	(((x) & 0xffu) << 8)))
 
 /* Basic types */
@@ -853,6 +868,9 @@ real_LZ4_compress(const char *source, char *dest, int isize, int osize)
  *	it will never read outside of the input buffer. A corrupted input
  *	will produce an error result, a negative int, indicating the position
  *	of the error within input stream.
+ *
+ * Note[2]: real_LZ4_uncompress(), referred to above, is not used in ZFS so
+ *	its code is not present here.
  */
 
 static int
@@ -889,6 +907,9 @@ LZ4_uncompress_unknownOutputSize(const char *source, char *dest, int isize,
 		}
 		/* copy literals */
 		cpy = op + length;
+		/* CORNER-CASE: cpy might overflow. */
+		if (cpy < op)
+			goto _output_error;	/* cpy was overflowed, bail! */
 		if ((cpy > oend - COPYLENGTH) ||
 		    (ip + length > iend - COPYLENGTH)) {
 			if (cpy > oend)
