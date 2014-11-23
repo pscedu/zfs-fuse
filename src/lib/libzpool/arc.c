@@ -168,6 +168,9 @@ static int		arc_shrink_shift = 5;
  */
 static int		arc_min_prefetch_lifespan;
 
+/* average block used to size buf_hash_table */
+int zfs_arc_average_blocksize = 8 * 1024; /* 8KB */
+
 static int arc_dead;
 
 /*
@@ -874,10 +877,11 @@ buf_init(void)
 
 	/*
 	 * The hash table is big enough to fill all of physical memory
-	 * with an average 64K block size.  The table will take up
-	 * totalmem*sizeof(void*)/64K (eg. 128KB/GB with 8-byte pointers).
+	 * with an average block size of zfs_arc_average_blocksize (default 8K).
+	 * By default, the table will take up
+	 * totalmem * sizeof(void*) / 8K (1MB per GB with 8-byte pointers).
 	 */
-	while (hsize * 65536 < physmem * PAGESIZE)
+	while (hsize * zfs_arc_average_blocksize < physmem * PAGESIZE)
 		hsize <<= 1;
 retry:
 	buf_hash_table.ht_mask = hsize - 1;
@@ -3994,7 +3998,7 @@ l2arc_write_done(zio_t *zio)
 			abl2 = ab->b_l2hdr;
 			ab->b_l2hdr = NULL;
 			trim_map_free(abl2->b_dev->l2ad_vdev, abl2->b_daddr,
-                            ab->b_size, 0); 
+			    ab->b_size, 0);
 			kmem_free(abl2, sizeof (l2arc_buf_hdr_t));
 			ARCSTAT_INCR(arcstat_l2_size, -ab->b_size);
 		}
