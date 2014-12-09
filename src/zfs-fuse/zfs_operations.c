@@ -471,6 +471,18 @@ zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 			else
 				fuse_reply_buf(req, buf, n);
 
+		} else if (strcmp(name, SLXAT_FGEN) == 0) {
+
+			n = snprintf(buf, sizeof(buf), "%lu",
+			    vattr.va_s2gen);
+			if (n != -1)
+				n++;
+			if (size < n)
+				fuse_reply_xattr(req,
+				    size ? -ERANGE : n);
+			else
+				fuse_reply_buf(req, buf, n);
+
 		} else if (strcmp(name, SLXAT_FID) == 0) {
 
 			n = snprintf(buf, sizeof(buf), "%"PRIx64,
@@ -1470,7 +1482,7 @@ zfsfuse_setattr(fuse_req_t req, fuse_ino_t ino, struct stat *attr,
 	error = VOP_SETATTR(vp, &vattr, flags, &cred, NULL, NULL);
 
  out:
- 	;
+	;
 	struct stat stat_reply;
 
 	if (!error)
