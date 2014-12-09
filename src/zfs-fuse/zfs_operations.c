@@ -62,7 +62,7 @@
 
  /* the command-line options */
 int block_cache, page_cache;
-int cf_enable_xattr = 0;
+int cf_enable_xattr = 1;
 float fuse_attr_timeout, fuse_entry_timeout;
 
 static void
@@ -449,8 +449,8 @@ zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 
 		if (strcmp(name, SLXAT_FSIZE) == 0) {
 
-			n = snprintf(buf, sizeof(buf), "%lu",
-			    vattr.va_s2nblks);
+			n = snprintf(buf, sizeof(buf), "%llu",
+			    vattr.va_s2size);
 			if (n != -1)
 				n++;
 			if (size < n)
