@@ -451,6 +451,8 @@ zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 
 			n = snprintf(buf, sizeof(buf), "%lu",
 			    vattr.va_s2nblks);
+			if (n != -1)
+				n++;
 			if (size < n)
 				fuse_reply_xattr(req,
 				    size ? -ERANGE : n);
@@ -461,6 +463,8 @@ zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 
 			n = snprintf(buf, sizeof(buf), "%lu",
 			    vattr.va_s2nblks);
+			if (n != -1)
+				n++;
 			if (size < n)
 				fuse_reply_xattr(req,
 				    size ? -ERANGE : n);
@@ -471,6 +475,8 @@ zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 
 			n = snprintf(buf, sizeof(buf), "%"PRIx64,
 			    VTOZ(dvp)->z_phys->zp_s2fid);
+			if (n != -1)
+				n++;
 			if (size < n)
 				fuse_reply_xattr(req,
 				    size ? -ERANGE : n);
