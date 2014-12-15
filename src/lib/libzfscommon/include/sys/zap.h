@@ -340,7 +340,7 @@ typedef struct {
 	 * It is created by zfs_link_create().
 	 *
 	 * Initially, I thought this was a cool idea. It turns out
-	 * that we can store s2id in struct znode_phys.
+	 * that we can store s2fid in struct znode_phys.
 	 *
 	 * This causes an inconsistence with the rest of the ZFS code, which
 	 * could be a problem.
@@ -362,7 +362,7 @@ typedef struct {
 	 * In theory, ZFS should be able to handle multiple integers, but it always uses
 	 * one integer.
 	 */
-	uint64_t za_second_integer;	/* slash2: may be used to store s2id */
+	uint64_t za_second_integer;	/* slash2: may be used to store s2fid */
 					
 	char za_name[MAXNAMELEN];
 } zap_attribute_t;
