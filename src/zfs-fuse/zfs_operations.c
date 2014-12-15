@@ -426,6 +426,154 @@ zfsfuse_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 	fuse_reply_err(req,error);
 }
 
+void
+zfsfuse_fill_sstb(const vnode_t *vp, const vattr_t *vattr,
+    struct srt_stat *sstb)
+{
+	sstb->sst_fid = VTOZ(vp)->z_phys->zp_s2fid;
+	sstb->sst_gen = VTOZ(vp)->z_phys->zp_s2gen;
+	sstb->sst_dev = vattr->va_dev;
+	sstb->sst_ptruncgen = vattr->va_ptruncgen;
+	sstb->sst_utimgen = vattr->va_s2utimgen;
+	sstb->sst_mode = VTTOIF(vattr.va_type) | vattr.va_mode;
+	sstb->sst_nlink = vattr->va_nlink;
+	if (sstb->sst_nlink > 1)
+		sstb->sst_nlink--;
+	sstb->sst_uid = vattr->va_uid;
+	sstb->sst_gid = vattr->va_gid;
+	sstb->sst_rdev = vattr->va_rdev;
+	sstb->sst_blksize = 512 * 1024;
+	sstb->sst_size = vattr->va_s2size;
+	sstb->sst_blocks = vattr->va_s2nblks;
+	sstb->sst_atime = vattr->va_s2atime->tv_sec;
+	sstb->sst_atime_ns = vattr->.va_s2atime->tv_nsec;
+	sstb->sst_mtime = vattr->.va_s2mtime->tv_sec;
+	sstb->sst_mtime_ns = vattr->.va_s2mtime->tv_nsec;
+	sstb->sst_ctime = vattr->.va_ctime->tv_sec;
+	sstb->sst_ctime_ns = vattr->.va_ctime->tv_nsec;
+}
+
+int
+zfsfuse_simple_read(vnode_t *vp, void *buf, off_t off, size_t len)
+{
+	iovec_t iov;
+	uio_t uio;
+
+	iov.iov_base = buf;
+	iov.iov_len = len;
+
+	uio.uio_iov = &iov;
+	uio.uio_iovcnt = 1;
+	uio.uio_segflg = UIO_SYSSPACE;
+	uio.uio_fmode = 0;
+	uio.uio_llimit = RLIM64_INFINITY;
+	uio.uio_resid = iovec.iov_len;
+	uio.uio_loffset = off;
+
+	return (VOP_READ(vp, &uio, FREAD, &cred, NULL));
+}
+
+int
+zfsfuse_getxattr_sl2(vnode_t *vp, cred_t *cr, size_t size)
+{
+	struct {
+		uint64_t	metasize;
+		unsigned char	sstb[136];
+		unsigned char	ino[64];
+		uint64_t	ino_crc;
+		unsigned char	inox[744];
+		uint64_t	inox_crc;
+	} tbuf;
+	int tn, n = 0, error, e2 = 0;
+	void *buf = NULL;
+	vattr_t vattr;
+	ssize_t rc;
+
+	memset(&vattr, 0, sizeof(vattr));
+	error = VOP_GETATTR(vp, &vattr, 0, cr, NULL);
+	if (error)
+		return (error);
+
+	if (strcmp(name, SLXAT_FSIZE) == 0) {
+		n = snprintf(buf, size ? sizeof(buf) : 0,
+		    "%llu", vattr.va_s2size);
+		if (n != -1)
+			n++;
+	} else if (strcmp(name, SLXAT_NBLKS) == 0) {
+		n = snprintf(buf, size ? sizeof(buf) : 0,
+		    "%lu", vattr.va_s2nblks);
+		if (n != -1)
+			n++;
+	} else if (strcmp(name, SLXAT_FGEN) == 0) {
+		n = snprintf(buf, size ? sizeof(buf) : 0,
+		    "%lu", vattr.va_s2gen);
+		if (n != -1)
+			n++;
+	} else if (strcmp(name, SLXAT_FID) == 0) {
+		n = snprintf(buf, size ? sizeof(buf) : 0,
+		    "%"PRIx64, VTOZ(dvp)->z_phys->zp_s2fid);
+		if (n != -1)
+			n++;
+	} else if (strcmp(name, SLXAT_STAT) == 0) {
+		tbuf.metasize = vattr.va_size;
+		zfsfuse_fill_sstb(vp, &vattr, &tbuf.sstb);
+		n = sizeof(tbuf.metasize) + sizeof(tbuf.sstb);
+	} else if (strcmp(name, SLXAT_INOSTAT) == 0) {
+		n = sizeof(tbuf.metasize) + sizeof(tbuf.sstb);
+		tbuf.metasize = vattr.va_size;
+		zfsfuse_fill_sstb(vp, &vattr, &tbuf.sstb);
+
+		error = VOP_OPEN(&vp, FREAD, cr, NULL);
+		if (error)
+			goto out;
+		tn = sizeof(tbuf.ino) + sizeof(tbuf.ino_crc);
+		n += tn;
+		rc = zfsfuse_simple_read(vp, &tbuf.ino, tn);
+		error = VOP_CLOSE(vp, FREAD, 1, (offset_t)0, cr, NULL);
+		if (rc != tn)
+			error = EIO;
+
+	} else if (strcmp(name, SLXAT_INOXSTAT) == 0) {
+		n = sizeof(tbuf.metasize) + sizeof(tbuf.sstb);
+		tbuf.metasize = vattr.va_size;
+		zfsfuse_fill_sstb(vp, &vattr, &tbuf.sstb);
+
+		error = VOP_OPEN(&vp, FREAD, cr, NULL);
+		if (error)
+			goto out;
+
+		tn = sizeof(tbuf.ino) + sizeof(tbuf.ino_crc);
+		n += tn;
+		rc = zfsfuse_simple_read(vp, &tbuf.ino, tn);
+		if (rc != tn)
+			e2 = EIO;
+
+		tn = sizeof(tbuf.inox) + sizeof(tbuf.inox_crc);
+		n += tn;
+		rc = zfsfuse_simple_read(vp, &tbuf.inox, tn);
+		if (rc != tn)
+			e2 = EIO;
+
+		error = VOP_CLOSE(vp, FREAD, 1, (offset_t)0, cr, NULL);
+
+		if (e2)
+			error = e2;
+	}
+
+ out:
+	if (error)
+		return (error);
+	if (n == -1)
+		return (errno);
+	if (size && size < n)
+		return (ERANGE);
+	if (size == 0)
+		fuse_reply_xattr(req, n);
+	else
+		fuse_reply_buf(req, buf, n);
+	return (0);
+}
+
 static void
 zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
     size_t size)
@@ -437,67 +585,10 @@ zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 	XATTR_COMMON();
 
 	if (strncmp(name, ".sl2-", 5) == 0) {
-		vattr_t vattr;
-		char buf[32];
-		int n;
-
-		memset(&vattr, 0, sizeof(vattr));
-		vattr.va_mask = AT_SLASH2SIZE | AT_SLASH2NBLKS;
-		error = VOP_GETATTR(dvp, &vattr, 0, &cred, NULL);
-		if (error)
-			goto out;
-
-		if (strcmp(name, SLXAT_FSIZE) == 0) {
-
-			n = snprintf(buf, sizeof(buf), "%llu",
-			    vattr.va_s2size);
-			if (n != -1)
-				n++;
-			if (size < n)
-				fuse_reply_xattr(req,
-				    size ? -ERANGE : n);
-			else
-				fuse_reply_buf(req, buf, n);
-
-		} else if (strcmp(name, SLXAT_NBLKS) == 0) {
-
-			n = snprintf(buf, sizeof(buf), "%lu",
-			    vattr.va_s2nblks);
-			if (n != -1)
-				n++;
-			if (size < n)
-				fuse_reply_xattr(req,
-				    size ? -ERANGE : n);
-			else
-				fuse_reply_buf(req, buf, n);
-
-		} else if (strcmp(name, SLXAT_FGEN) == 0) {
-
-			n = snprintf(buf, sizeof(buf), "%lu",
-			    vattr.va_s2gen);
-			if (n != -1)
-				n++;
-			if (size < n)
-				fuse_reply_xattr(req,
-				    size ? -ERANGE : n);
-			else
-				fuse_reply_buf(req, buf, n);
-
-		} else if (strcmp(name, SLXAT_FID) == 0) {
-
-			n = snprintf(buf, sizeof(buf), "%"PRIx64,
-			    VTOZ(dvp)->z_phys->zp_s2fid);
-			if (n != -1)
-				n++;
-			if (size < n)
-				fuse_reply_xattr(req,
-				    size ? -ERANGE : n);
-			else
-				fuse_reply_buf(req, buf, n);
-		} else
-			error = ENOATTR;
+		error = zfsfuse_getxattr_sl2(dvp, &cred, size);
 		goto out;
 	}
+
 	MY_LOOKUP_XATTR(0);
 
 	vnode_t *new_vp = NULL;
@@ -523,6 +614,7 @@ zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 		fuse_reply_xattr(req,vattr.va_size);
 		goto out;
 	} else if (size < vattr.va_size) {
+		// fuse_reply_err ?
 		fuse_reply_xattr(req, ERANGE);
 		goto out;
 	}
@@ -554,6 +646,7 @@ zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 		free(buf);
 		goto out;
 	}
+	// XXX size is not checked
 	fuse_reply_buf(req,buf,vattr.va_size);
 	free(buf);
 	error = VOP_CLOSE(vp, FREAD, 1, (offset_t) 0, &cred, NULL);
