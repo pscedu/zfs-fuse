@@ -710,7 +710,7 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	 * zp_parent field to move up the tree.
 	 *
 	 * XXX We might create the first link in the by-id namespace
-	 * when applying updates from a remote MDS.  But we want to 
+	 * when applying updates from a remote MDS.  But we want to
 	 * keep the link in the by-name namespace as soon as it is
 	 * available.
 	 */
@@ -732,8 +732,8 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	value = zfs_dirent(zp);
 
 	/*
-	 * In the new directory format, each entry has a tuple of two values.
-	 * For local files, the SLASH FID will be zero.
+	 * In the new directory format, each entry has a tuple of two
+	 * values.  For local files, the SLASH2 FID will be zero.
 	 */
 	dirent.d_id = value;
 	if (zp->z_phys->zp_s2fid)
@@ -991,7 +991,7 @@ top:
 int
 zfs_sticky_remove_access(znode_t *zdp, znode_t *zp, cred_t *cr)
 {
-	uid_t  		uid;
+	uid_t		uid;
 	uid_t		downer;
 	uid_t		fowner;
 	zfsvfs_t	*zfsvfs = zdp->z_zfsvfs;
