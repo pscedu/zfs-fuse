@@ -48,7 +48,10 @@
 #include "fuse_listener.h"
 #include <syslog.h>
 
+#include "slashrpc.h"
+
 #include "slashd/mdsio.h"
+#include "slashd/inode.h"
 
 #define ZFS_MAGIC 0x2f52f5
 
@@ -432,10 +435,10 @@ zfsfuse_fill_sstb(const vnode_t *vp, const vattr_t *vattr,
 {
 	sstb->sst_fid = VTOZ(vp)->z_phys->zp_s2fid;
 	sstb->sst_gen = VTOZ(vp)->z_phys->zp_s2gen;
-	sstb->sst_dev = vattr->va_dev;
+	sstb->sst_dev = vattr->va_fsid;
 	sstb->sst_ptruncgen = vattr->va_ptruncgen;
 	sstb->sst_utimgen = vattr->va_s2utimgen;
-	sstb->sst_mode = VTTOIF(vattr.va_type) | vattr.va_mode;
+	sstb->sst_mode = VTTOIF(vattr->va_type) | vattr->va_mode;
 	sstb->sst_nlink = vattr->va_nlink;
 	if (sstb->sst_nlink > 1)
 		sstb->sst_nlink--;
@@ -445,17 +448,20 @@ zfsfuse_fill_sstb(const vnode_t *vp, const vattr_t *vattr,
 	sstb->sst_blksize = 512 * 1024;
 	sstb->sst_size = vattr->va_s2size;
 	sstb->sst_blocks = vattr->va_s2nblks;
-	sstb->sst_atime = vattr->va_s2atime->tv_sec;
-	sstb->sst_atime_ns = vattr->.va_s2atime->tv_nsec;
-	sstb->sst_mtime = vattr->.va_s2mtime->tv_sec;
-	sstb->sst_mtime_ns = vattr->.va_s2mtime->tv_nsec;
-	sstb->sst_ctime = vattr->.va_ctime->tv_sec;
-	sstb->sst_ctime_ns = vattr->.va_ctime->tv_nsec;
+	sstb->sst_atime = vattr->va_atime.tv_sec;
+	sstb->sst_atime_ns = vattr->va_atime.tv_nsec;
+	sstb->sst_mtime = vattr->va_s2mtime.tv_sec;
+	sstb->sst_mtime_ns = vattr->va_s2mtime.tv_nsec;
+	sstb->sst_ctime = vattr->va_ctime.tv_sec;
+	sstb->sst_ctime_ns = vattr->va_ctime.tv_nsec;
 }
 
 int
-zfsfuse_simple_read(vnode_t *vp, void *buf, off_t off, size_t len)
+zfsfuse_simple_read(vnode_t *vp, cred_t *cr, void *buf, off_t off,
+    size_t len, size_t *outsz)
 {
+	int error;
+
 	iovec_t iov;
 	uio_t uio;
 
@@ -467,27 +473,38 @@ zfsfuse_simple_read(vnode_t *vp, void *buf, off_t off, size_t len)
 	uio.uio_segflg = UIO_SYSSPACE;
 	uio.uio_fmode = 0;
 	uio.uio_llimit = RLIM64_INFINITY;
-	uio.uio_resid = iovec.iov_len;
+	uio.uio_resid = len;
 	uio.uio_loffset = off;
 
-	return (VOP_READ(vp, &uio, FREAD, &cred, NULL));
+	error = VOP_READ(vp, &uio, FREAD, cr, NULL);
+	*outsz = uio.uio_loffset - off;
+	return (error);
 }
 
+struct fullattrs {
+	uint64_t		metasize;
+	struct srt_stat		sstb;
+	struct slm_ino_od	ino;
+	uint64_t		ino_crc;
+	struct slm_inox_od	inox;
+	uint64_t		inox_crc;
+};
+
 int
-zfsfuse_getxattr_sl2(vnode_t *vp, cred_t *cr, size_t size)
+zfsfuse_getxattr_sl2(fuse_req_t req, vnode_t *vp, cred_t *cr,
+    const char *name, size_t size)
 {
-	struct {
-		uint64_t	metasize;
-		unsigned char	sstb[136];
-		unsigned char	ino[64];
-		uint64_t	ino_crc;
-		unsigned char	inox[744];
-		uint64_t	inox_crc;
-	} tbuf;
+	union {
+		struct fullattrs fullattrs;
+		char field[32];
+	} buf;
+	struct fullattrs *fa = &buf.fullattrs;
+	struct slm_inox_od *inox = &fa->inox;
+	struct slm_ino_od *ino = &fa->ino;
+	struct srt_stat *sstb = &fa->sstb;
 	int tn, n = 0, error, e2 = 0;
-	void *buf = NULL;
 	vattr_t vattr;
-	ssize_t rc;
+	size_t rc;
 
 	memset(&vattr, 0, sizeof(vattr));
 	error = VOP_GETATTR(vp, &vattr, 0, cr, NULL);
@@ -495,69 +512,75 @@ zfsfuse_getxattr_sl2(vnode_t *vp, cred_t *cr, size_t size)
 		return (error);
 
 	if (strcmp(name, SLXAT_FSIZE) == 0) {
-		n = snprintf(buf, size ? sizeof(buf) : 0,
+		n = snprintf(buf.field, size ? sizeof(buf.field) : 0,
 		    "%llu", vattr.va_s2size);
 		if (n != -1)
 			n++;
 	} else if (strcmp(name, SLXAT_NBLKS) == 0) {
-		n = snprintf(buf, size ? sizeof(buf) : 0,
+		n = snprintf(buf.field, size ? sizeof(buf.field) : 0,
 		    "%lu", vattr.va_s2nblks);
 		if (n != -1)
 			n++;
 	} else if (strcmp(name, SLXAT_FGEN) == 0) {
-		n = snprintf(buf, size ? sizeof(buf) : 0,
+		n = snprintf(buf.field, size ? sizeof(buf.field) : 0,
 		    "%lu", vattr.va_s2gen);
 		if (n != -1)
 			n++;
 	} else if (strcmp(name, SLXAT_FID) == 0) {
-		n = snprintf(buf, size ? sizeof(buf) : 0,
-		    "%"PRIx64, VTOZ(dvp)->z_phys->zp_s2fid);
+		n = snprintf(buf.field, size ? sizeof(buf.field) : 0,
+		    "%"PRIx64, VTOZ(vp)->z_phys->zp_s2fid);
 		if (n != -1)
 			n++;
 	} else if (strcmp(name, SLXAT_STAT) == 0) {
-		tbuf.metasize = vattr.va_size;
-		zfsfuse_fill_sstb(vp, &vattr, &tbuf.sstb);
-		n = sizeof(tbuf.metasize) + sizeof(tbuf.sstb);
+		fa->metasize = vattr.va_size;
+		zfsfuse_fill_sstb(vp, &vattr, sstb);
+		n = sizeof(fa->metasize) + sizeof(*sstb);
 	} else if (strcmp(name, SLXAT_INOSTAT) == 0) {
-		n = sizeof(tbuf.metasize) + sizeof(tbuf.sstb);
-		tbuf.metasize = vattr.va_size;
-		zfsfuse_fill_sstb(vp, &vattr, &tbuf.sstb);
+		n = sizeof(fa->metasize) + sizeof(*sstb);
+		fa->metasize = vattr.va_size;
+		zfsfuse_fill_sstb(vp, &vattr, sstb);
 
 		error = VOP_OPEN(&vp, FREAD, cr, NULL);
 		if (error)
 			goto out;
-		tn = sizeof(tbuf.ino) + sizeof(tbuf.ino_crc);
+		tn = sizeof(*ino) + sizeof(fa->ino_crc);
 		n += tn;
-		rc = zfsfuse_simple_read(vp, &tbuf.ino, tn);
-		error = VOP_CLOSE(vp, FREAD, 1, (offset_t)0, cr, NULL);
-		if (rc != tn)
+		error = zfsfuse_simple_read(vp, cr, ino, 0, tn, &rc);
+		if (error == 0 && rc != tn)
 			error = EIO;
-
-	} else if (strcmp(name, SLXAT_INOXSTAT) == 0) {
-		n = sizeof(tbuf.metasize) + sizeof(tbuf.sstb);
-		tbuf.metasize = vattr.va_size;
-		zfsfuse_fill_sstb(vp, &vattr, &tbuf.sstb);
-
-		error = VOP_OPEN(&vp, FREAD, cr, NULL);
-		if (error)
-			goto out;
-
-		tn = sizeof(tbuf.ino) + sizeof(tbuf.ino_crc);
-		n += tn;
-		rc = zfsfuse_simple_read(vp, &tbuf.ino, tn);
-		if (rc != tn)
-			e2 = EIO;
-
-		tn = sizeof(tbuf.inox) + sizeof(tbuf.inox_crc);
-		n += tn;
-		rc = zfsfuse_simple_read(vp, &tbuf.inox, tn);
-		if (rc != tn)
-			e2 = EIO;
-
-		error = VOP_CLOSE(vp, FREAD, 1, (offset_t)0, cr, NULL);
-
+		e2 = VOP_CLOSE(vp, FREAD, 1, (offset_t)0, cr, NULL);
 		if (e2)
 			error = e2;
+
+	} else if (strcmp(name, SLXAT_INOXSTAT) == 0) {
+		n = sizeof(fa->metasize) + sizeof(*sstb);
+		fa->metasize = vattr.va_size;
+		zfsfuse_fill_sstb(vp, &vattr, sstb);
+
+		error = VOP_OPEN(&vp, FREAD, cr, NULL);
+		if (error)
+			goto out;
+
+		tn = sizeof(*ino) + sizeof(fa->ino_crc);
+		n += tn;
+		error = zfsfuse_simple_read(vp, cr, ino, 0, tn, &rc);
+		if (error == 0 && rc != tn)
+			error = EIO;
+
+		tn = sizeof(*inox) + sizeof(fa->inox_crc);
+		n += tn;
+		e2 = zfsfuse_simple_read(vp, cr, inox,
+		    SL_EXTRAS_START_OFF, tn, &rc);
+		if (e2)
+			error = e2;
+		else if (rc != tn)
+			error = EIO;
+
+		e2 = VOP_CLOSE(vp, FREAD, 1, (offset_t)0, cr, NULL);
+		if (e2)
+			error = e2;
+	} else {
+		error = ENOATTR;
 	}
 
  out:
@@ -570,7 +593,7 @@ zfsfuse_getxattr_sl2(vnode_t *vp, cred_t *cr, size_t size)
 	if (size == 0)
 		fuse_reply_xattr(req, n);
 	else
-		fuse_reply_buf(req, buf, n);
+		fuse_reply_buf(req, buf.field, n);
 	return (0);
 }
 
@@ -585,7 +608,8 @@ zfsfuse_getxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 	XATTR_COMMON();
 
 	if (strncmp(name, ".sl2-", 5) == 0) {
-		error = zfsfuse_getxattr_sl2(dvp, &cred, size);
+		error = zfsfuse_getxattr_sl2(req, dvp, &cred, name,
+		    size);
 		goto out;
 	}
 
