@@ -3636,7 +3636,7 @@ top:
 			if (logfunc) {
 				struct srt_stat sstb;
 				struct {
-					struct slash_fidgen clfg;
+					struct sl_fidgen clfg;
 					void *a;
 				} aa;
 				uint64_t txg;

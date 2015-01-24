@@ -83,7 +83,7 @@ static uint64_t         slz_immns_id_mask;
  *	ZFS/MDSIO layer inum "fid" (internal) for a vnode.
  */
 static __inline void
-get_vnode_fids(int vfsid, const vnode_t *vp, struct slash_fidgen *fgp,
+get_vnode_fids(int vfsid, const vnode_t *vp, struct sl_fidgen *fgp,
     mdsio_fid_t *mfp)
 {
 	if (fgp) {
@@ -245,7 +245,7 @@ static int
 fill_sstb(int vfsid, vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
     cred_t *cred)
 {
-	struct slash_fidgen fg;
+	struct sl_fidgen fg;
 	vattr_t vattr;
 	int error;
 
@@ -260,7 +260,7 @@ fill_sstb(int vfsid, vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 	if (error)
 		return (error);
 
-	struct slash_fidgen tfg;
+	struct sl_fidgen tfg;
 
 	tfg = sstb->sst_fg;
 	memset(sstb, 0, sizeof(*sstb));
@@ -720,8 +720,9 @@ zfsslash2_lookup(int vfsid, mdsio_fid_t parent, const char *name,
  * XXX replace finfop with something meaningful for SLASH2 d_ino cache
  */
 int
-zfsslash2_opendir(int vfsid, mdsio_fid_t ino, const struct slash_creds *slcrp,
-    struct slash_fidgen *fgp, void *finfop)
+zfsslash2_opendir(int vfsid, mdsio_fid_t ino,
+    const struct slash_creds *slcrp, struct sl_fidgen *fgp,
+    void *finfop)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	struct vfs *vfs = zfsMount[vfsid].vfs;
@@ -1589,7 +1590,7 @@ zfsslash2_mkdir(int vfsid, mdsio_fid_t parent, const char *name,
 }
 
 int
-zfsslash2_rmdir(int vfsid, mdsio_fid_t parent, struct slash_fidgen *fg,
+zfsslash2_rmdir(int vfsid, mdsio_fid_t parent, struct sl_fidgen *fg,
     const char *name, const struct slash_creds *slcrp,
     sl_log_update_t logfunc)
 {
@@ -1821,7 +1822,7 @@ zfsslash2_setattr(int vfsid, mdsio_fid_t ino,
 }
 
 int
-zfsslash2_unlink(int vfsid, mdsio_fid_t parent, struct slash_fidgen *fg,
+zfsslash2_unlink(int vfsid, mdsio_fid_t parent, struct sl_fidgen *fg,
     const char *name, const struct slash_creds *slcrp,
     sl_log_update_t logfunc, void *arg)
 {
