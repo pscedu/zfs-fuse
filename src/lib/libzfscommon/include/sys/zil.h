@@ -217,7 +217,7 @@ typedef struct {
 	lr_t		lr_common;	/* common portion of log record */
 	uint64_t	lr_doid;	/* object id of directory */
 	uint64_t	lr_foid;	/* object id of created file object */
-	uint64_t	lr_s2fid;	/* SLASH FID of the created file object */
+	uint64_t	lr_s2fid;	/* SLASH2 FID of the created file object */
 	uint64_t	lr_mode;	/* mode of object */
 	uint64_t	lr_uid;		/* uid of object */
 	uint64_t	lr_gid;		/* gid of object */

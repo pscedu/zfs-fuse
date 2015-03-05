@@ -3199,7 +3199,7 @@ top:
 			    NS_OP_SETATTR;
 
 			/*
-			 * At this time, SLASH only journals certain
+			 * At this time, SLASH2 only journals certain
 			 * stat(2) fields, so don't pass changes in fields
 			 * we don't store.
 			 */
