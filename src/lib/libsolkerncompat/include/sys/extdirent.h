@@ -48,6 +48,7 @@ typedef struct edirent {
 	off64_t		ed_off;		/* offset of disk directory entry */
 	uint32_t	ed_eflags;	/* per-entry flags */
 	unsigned short	ed_reclen;	/* length of this record */
+	unsigned char	ed_type;
 	char		ed_name[1];	/* name of file */
 } edirent_t;
 

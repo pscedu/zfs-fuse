@@ -2137,6 +2137,7 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 	int		outcount;
 	int		error;
 	uint8_t		prefetch;
+	uint8_t		type;
 	boolean_t	check_sysattrs;
 
 	ZFS_ENTER(zfsvfs);
@@ -2226,14 +2227,17 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 			(void) strcpy(zap.za_name, ".");
 			zap.za_normalization_conflict = 0;
 			objnum = zp->z_id;
+			type = S_IFDIR >> 12;
 		} else if (offset == 1) {
 			(void) strcpy(zap.za_name, "..");
 			zap.za_normalization_conflict = 0;
 			objnum = zp->z_phys->zp_parent;
+			type = S_IFDIR >> 12;
 		} else if (offset == 2 && zfs_show_ctldir(zp)) {
 			(void) strcpy(zap.za_name, ZFS_CTLDIR_NAME);
 			zap.za_normalization_conflict = 0;
 			objnum = ZFSCTL_INO_ROOT;
+			type = S_IFDIR >> 12;
 		} else {
 			/*
 			 * Grab next entry.
@@ -2256,16 +2260,16 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 			}
 
 			objnum = ZFS_DIRENT_OBJ(zap.za_first_integer);
+
 			/*
-			 * This seems bogus because we have our own format.  See 
-			 * zfs_link_create() for how we fill it.
+			 * This seems bogus because we have our own
+			 * format.  See zfs_link_create() for how we
+			 * fill it.
 			 */
 			s2num = ZFS_DIRENT_OBJ(zap.za_second_integer);
 
-			/*
-			 * MacOS X can extract the object type here such as:
-			 * uint8_t type = ZFS_DIRENT_TYPE(zap.za_first_integer);
-			 */
+			type = ZFS_DIRENT_TYPE(zap.za_first_integer);
+
  			/* ZFSFUSE: don't care */
 #if 0
 			if (check_sysattrs && !zap.za_normalization_conflict) {
@@ -2313,6 +2317,7 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 			 * Add extended flag entry:
 			 */
 			eodp->ed_ino = objnum;
+			eodp->ed_type = type;
 			eodp->ed_reclen = reclen;
 			/* NOTE: ed_off is the offset for the *next* entry */
 			next = &(eodp->ed_off);
@@ -2327,6 +2332,7 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 			 */
 			odp->d_ino = objnum;
 			odp->d_s2fid = s2num;
+			odp->d_type = type;
 			odp->d_reclen = reclen;
 			/* NOTE: d_off is the offset for the *next* entry */
 			next = &(odp->d_off);

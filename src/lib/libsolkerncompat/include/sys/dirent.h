@@ -79,6 +79,7 @@ typedef struct dirent64 {
 	uint64_t	d_s2fid;	/* SLASH2 FID and flags */
 	off64_t		d_off;		/* offset of disk directory entry */
 	unsigned short	d_reclen;	/* length of this record */
+	unsigned char   d_type;
 	char		d_name[1];	/* name of file */
 } dirent64_t;
 

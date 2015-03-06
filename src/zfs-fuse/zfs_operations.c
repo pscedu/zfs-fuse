@@ -979,7 +979,7 @@ zfsfuse_readdir(fuse_req_t req, fuse_ino_t ino, size_t size, off_t off,
 			break;
 
 		fstat.st_ino = entry.dirent.d_ino;
-		//fstat.st_mode = entry.dirent.d_type << 12;
+		fstat.st_mode = entry.dirent.d_type << 12;
 
 		outbuf_resid -= dsize;
 		fuse_add_direntry(req, outbuf + outbuf_off, dsize,
