@@ -90,7 +90,7 @@ get_vnode_fids(int vfsid, const vnode_t *vp, struct sl_fidgen *fgp,
 		if (VTOZ(vp)->z_id == MDSIO_FID_ROOT) {
 			fgp->fg_fid = SLFID_ROOT;
 			FID_SET_SITEID(fgp->fg_fid,
-			    zfsMount[vfsid].siteid);
+			    zfs_mounts[vfsid].zm_siteid);
 		} else
 			fgp->fg_fid = VTOZ(vp)->z_phys->zp_s2fid;
 		fgp->fg_gen = VTOZ(vp)->z_phys->zp_s2gen;
@@ -201,8 +201,8 @@ zfsslash2_destroy(void)
 	 * force unmount since there could still be open files.
 	 */
 	sync();
-	for (i = 0; i < mount_index; i++) {
-		while (do_umount(zfsMount[i].vfs, 0) != 0)
+	for (i = 0; i < zfs_nmounts; i++) {
+		while (do_umount(zfs_mounts[i].zm_vfs, 0) != 0)
 			sync();
 	}
 #ifdef DEBUG
@@ -214,7 +214,7 @@ int
 zfsslash2_statfs(int vfsid, struct statvfs *sfb)
 {
 	struct statvfs64 zsfb;
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 
 	memset(sfb, 0, sizeof(*sfb));
 	memset(&zsfb, 0, sizeof(zsfb));
@@ -326,7 +326,7 @@ zfsslash2_getattr(int vfsid, mdsio_fid_t ino, void *finfo,
     const struct slash_creds *slcrp, struct srt_stat *sstb)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 	file_info_t *info = finfo;
 	boolean_t release;
@@ -368,7 +368,7 @@ zfsslash2_getattr(int vfsid, mdsio_fid_t ino, void *finfo,
 /* This macro makes the lookup for the xattr directory, necessary for listxattr
  * getxattr and setxattr */
 #define MY_LOOKUP_XATTR(vfsid, flags)					\
-	vfs_t *vfs = zfsMount[vfsid].vfs;				\
+	vfs_t *vfs = zfs_mounts[vfsid].zm_vfs;				\
 	zfsvfs_t *zfsvfs = vfs->vfs_data;				\
 	if (ino == SLFID_ROOT)						\
 		ino = MDSIO_FID_ROOT;					\
@@ -664,7 +664,7 @@ zfsslash2_lookup(int vfsid, mdsio_fid_t parent, const char *name,
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	mdsio_fid_t mfid;
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -725,7 +725,7 @@ zfsslash2_opendir(int vfsid, mdsio_fid_t ino,
     void *finfop)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -785,7 +785,7 @@ int
 zfsslash2_release(int vfsid, __unusedx const struct slash_creds *slcrp,
     void *finfo)
 {
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 	file_info_t *info = finfo;
 
@@ -824,7 +824,7 @@ zfsslash2_getfidlinkdir(slfid_t fid)
 	if (immnsIdCache[current_vfsid][bkt])
 		return (immnsIdCache[current_vfsid][bkt]);
 
-	struct vfs *vfs = zfsMount[current_vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[current_vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 	vnode_t *vp[FID_PATH_DEPTH + 1];
 	znode_t *znode;
@@ -893,7 +893,7 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 	if (vp->v_type != VDIR)
 		return ENOTDIR;
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1077,7 +1077,7 @@ int
 _zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
     int vfsid, slfid_t fid, int flags, vnode_t *svp, vnode_t **vpp)
 {
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 	vnode_t *vp, *dvp;
 	znode_t *znode;
@@ -1229,7 +1229,7 @@ zfsslash2_opencreate(int vfsid, mdsio_fid_t ino,
     sl_getslfid_cb_t getslfid, slfid_t fid)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1414,7 +1414,7 @@ zfsslash2_readlink(int vfsid, mdsio_fid_t ino, char *buf, size_t *lenp,
     const struct slash_creds *slcrp)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1472,7 +1472,7 @@ zfsslash2_preadv(int vfsid, const struct slash_creds *slcrp,
 	ASSERT(vp);
 	ASSERT(VTOZ(vp));
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1517,7 +1517,7 @@ zfsslash2_mkdir(int vfsid, mdsio_fid_t parent, const char *name,
     sl_log_update_t logfunc, sl_getslfid_cb_t getslfid, slfid_t fid)
 {
 	cred_t cred = { sstb_in->sst_uid, sstb_in->sst_gid };
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1596,7 +1596,7 @@ zfsslash2_rmdir(int vfsid, mdsio_fid_t parent, struct sl_fidgen *fg,
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1667,7 +1667,7 @@ zfsslash2_setattr(int vfsid, mdsio_fid_t ino,
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 	file_info_t *info = finfo;
 	znode_t *znode;
@@ -1828,7 +1828,7 @@ zfsslash2_unlink(int vfsid, mdsio_fid_t parent, struct sl_fidgen *fg,
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1907,7 +1907,7 @@ zfsslash2_pwritev(int vfsid, const struct slash_creds *slcrp,
 	ASSERT(vp);
 	ASSERT(VTOZ(vp));
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1961,7 +1961,7 @@ zfsslash2_write_cursor(int vfsid, void *buf, size_t size, void *finfo,
 	file_info_t *info = finfo;
 
 	vnode_t *vp = info->vp;
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -1994,7 +1994,7 @@ zfsslash2_mknod(int vfsid, mdsio_fid_t parent, const char *name,
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -2066,7 +2066,7 @@ zfsslash2_symlink(int vfsid, const char *link, mdsio_fid_t parent,
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -2144,7 +2144,7 @@ zfsslash2_rename(int vfsid, mdsio_fid_t oldparent, const char *oldname,
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -2200,7 +2200,7 @@ zfsslash2_fsync(int vfsid, const struct slash_creds *slcrp,
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -2226,7 +2226,7 @@ zfsslash2_link(int vfsid, mdsio_fid_t ino, mdsio_fid_t newparent,
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -2291,7 +2291,7 @@ zfsslash2_access(int vfsid, mdsio_fid_t ino, int mask,
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
-	struct vfs *vfs = zfsMount[vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	ZFS_ENTER(zfsvfs);
@@ -2359,7 +2359,7 @@ void
 zfsslash2_wait_synced(uint64_t txg)
 {
 	dsl_pool_t *dp;
-	struct vfs *vfs = zfsMount[current_vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[current_vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	dp = spa_get_dsl(zfsvfs->z_os->os_spa);
@@ -2371,7 +2371,7 @@ zfsslash2_return_synced(void)
 {
 	dsl_pool_t *dp;
 	uint64_t txg;
-	struct vfs *vfs = zfsMount[current_vfsid].vfs;
+	struct vfs *vfs = zfs_mounts[current_vfsid].zm_vfs;
 	zfsvfs_t *zfsvfs = vfs->vfs_data;
 
 	dp = spa_get_dsl(zfsvfs->z_os->os_spa);
