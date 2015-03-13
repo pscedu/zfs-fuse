@@ -76,8 +76,8 @@ env.Append(CCFLAGS = Split(ARGUMENTS.get('DEFINES', '')))
 
 env.Append(CCFLAGS = ['-I' + rootdir])
 env.Append(CCFLAGS = ['-I' + rootdir + '/pfl/include'])
-env.Append(CCFLAGS = ['-I' + rootdir + '/slash_nara/include'])
-env.Append(CCFLAGS = ['-I' + rootdir + '/slash_nara'])
+env.Append(CCFLAGS = ['-I' + rootdir + '/slash2/include'])
+env.Append(CCFLAGS = ['-I' + rootdir + '/slash2'])
 
 env['CPPPATH'] = []
 
