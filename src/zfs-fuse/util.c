@@ -66,8 +66,8 @@ pthread_t listener_thread;
 
 int num_filesystems;
 
-int		mount_index;
-mount_info_t	zfsMount[MAX_FILESYSTEMS];
+int		zfs_nmounts;
+mount_info_t	zfs_mounts[MAX_FILESYSTEMS];
 
 void (*zfsslash2_hook_func)(int) = NULL;
 
@@ -457,12 +457,12 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 #endif
 
 #ifdef ZFS_SLASHLIB
-	if (mount_index >= MAX_FILESYSTEMS - 1)
+	if (zfs_nmounts >= MAX_FILESYSTEMS - 1)
 		return ENOMEM;
 
 	zfsvfs = vfs->vfs_data;
 	ASSERT(zfsvfs->z_root == 3);
-	zfsMount[mount_index].rootid = zfsvfs->z_root;
+	zfs_mounts[zfs_nmounts].zm_rootid = zfsvfs->z_root;
 
 	error = zfs_zget(zfsvfs, zfsvfs->z_root, &rootzp, B_FALSE);
 	ASSERT(!error);
@@ -473,13 +473,13 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	finfo->vp = ZTOV(rootzp);
 	finfo->flags = 0;
 
-	zfsMount[mount_index].rootinfo = finfo;
+	zfs_mounts[zfs_nmounts].zm_rootinfo = finfo;
 
-	zfsMount[mount_index].flag = 0;
-	zfsMount[mount_index].vfs = vfs;
-	zfsMount[mount_index].uuid = -1;
-	zfsMount[mount_index].siteid = -1;
-	strcpy(zfsMount[mount_index].name, dir);
+	zfs_mounts[zfs_nmounts].zm_flags = 0;
+	zfs_mounts[zfs_nmounts].zm_vfs = vfs;
+	zfs_mounts[zfs_nmounts].zm_uuid = -1;
+	zfs_mounts[zfs_nmounts].zm_siteid = -1;
+	strcpy(zfs_mounts[zfs_nmounts].zm_name, dir);
 
 #if 0
 	/*
@@ -488,10 +488,10 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	 * registration.
 	 */
 	if (zfsslash2_hook_func)
-		zfsslash2_hook_func(mount_index);
+		zfsslash2_hook_func(zfs_nmounts);
 #endif
 
-	mount_index++;
+	zfs_nmounts++;
 #endif
 
 	return 0;

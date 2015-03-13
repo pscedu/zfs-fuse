@@ -701,8 +701,9 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 		}
 		zp->z_phys->zp_links++;
 	}
+
 	/*
-	 * slash2:
+	 * SLASH2:
 	 *
 	 * If we are creating a second link in the by-id namespace
 	 * don't overwrite its original parent. We don't care about

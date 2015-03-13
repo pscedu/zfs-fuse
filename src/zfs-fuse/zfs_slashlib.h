@@ -22,29 +22,19 @@ typedef struct file_info {
 #define MAX_FILESYSTEMS		1000
 
 typedef struct mount_info {
-	uint64_t	 uuid;
-	uint64_t	 siteid;
-	uint64_t	 rootid;
-	int		 flag;
-	char		 name[MAXPATHLEN];
-	void		*vfs;
-	void		*rootinfo;
+	uint64_t	 zm_uuid;
+	uint64_t	 zm_rootid;
+	sl_siteid_t	 zm_siteid;
+	int		 zm_flags;
+	char		 zm_name[MAXPATHLEN];
+	void		*zm_vfs;
+	void		*zm_rootinfo;
 } mount_info_t;
 
 /* mount_info_t flags */
 #define ZFS_SLASH2_NONE		0x00
 #define ZFS_SLASH2_MKDIR	0x01
 #define ZFS_SLASH2_READY	0x02
-
-extern int		mount_index;
-extern mount_info_t	zfsMount[MAX_FILESYSTEMS];
-
-extern int		current_vfsid;
-
-extern void (*zfsslash2_hook_func)(int);
-
-extern void (*zfsslash2_suspend_hook_func)(void);
-extern void (*zfsslash2_resume_hook_func)(void);
 
 //XXX shouldn't this be a single bit???
 #define SLASH2_CURSOR_UPDATE	0x12345678	/* overload the ioflag of zfs_write() */
@@ -115,5 +105,14 @@ int	zfsslash2_replay_removexattr(int, slfid_t, const char *);
 uint64_t	zfsslash2_last_synced_txg(void);
 uint64_t	zfsslash2_return_synced(void);
 void		zfsslash2_wait_synced(uint64_t);
+
+extern int		zfs_nmounts;
+extern mount_info_t	zfs_mounts[];
+
+extern int		current_vfsid;
+
+extern void (*zfsslash2_hook_func)(int);
+extern void (*zfsslash2_suspend_hook_func)(void);
+extern void (*zfsslash2_resume_hook_func)(void);
 
 #endif /* _ZFS_SLASHLIB_H_ */
