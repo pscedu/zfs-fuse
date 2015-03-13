@@ -537,7 +537,7 @@ trim_thread(void *arg)
 		}
 
 		(void) cv_timedwait(&spa->spa_trim_cv, &spa->spa_trim_lock,
-		    hz * trim_max_interval);
+		    lbolt + hz * trim_max_interval);
 		mutex_exit(&spa->spa_trim_lock);
 
 		zio = zio_root(spa, NULL, NULL, ZIO_FLAG_CANFAIL);
