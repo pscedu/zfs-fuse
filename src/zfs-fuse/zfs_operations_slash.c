@@ -659,7 +659,7 @@ zfsslash2_removexattr(int vfsid, const struct slash_creds *slcrp,
 int
 zfsslash2_lookup(int vfsid, mdsio_fid_t parent, const char *name,
     mdsio_fid_t *mfp, const struct slash_creds *slcrp,
-    struct srt_stat *sstb, int64_t *xattrsize)
+    struct srt_stat *sstb, uint32_t *xattrsize)
 {
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 	mdsio_fid_t mfid;
@@ -998,7 +998,7 @@ zfsslash2_readdir(int vfsid, const struct slash_creds *slcrp, size_t size,
 			attr->sstb.sst_fid = FID_ANY;
 //		else if (flags & XATTR &&
 		else if (zfsslash2_hasxattrs(vfsid, slcrp, mf))
-			attr->xattrsize = 1;
+			attr->xattrsize = -1;
 
 		if (VTOZ(tvp)->z_id == MDSIO_FID_ROOT)
 			fstat.st_ino = SLFID_ROOT;
