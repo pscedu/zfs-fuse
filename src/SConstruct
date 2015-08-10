@@ -74,12 +74,10 @@ if not (('-DDEBUG' in env['CCFLAGS']) or
 
 env.Append(CCFLAGS = Split(ARGUMENTS.get('DEFINES', '')))
 
-env.Append(CCFLAGS = ['-I' + rootdir])
-env.Append(CCFLAGS = ['-I' + rootdir + '/pfl/include'])
-env.Append(CCFLAGS = ['-I' + rootdir + '/slash2/include'])
-env.Append(CCFLAGS = ['-I' + rootdir + '/slash2'])
-
-env['CPPPATH'] = []
+env.Append(CPPPATH = [os.path.abspath(rootdir)])
+env.Append(CPPPATH = [os.path.abspath(rootdir + '/pfl/include')])
+env.Append(CPPPATH = [os.path.abspath(rootdir + '/slash2/include')])
+env.Append(CPPPATH = [os.path.abspath(rootdir + '/slash2')])
 
 f = os.popen('uname -m')
 arch = f.readline().strip()
