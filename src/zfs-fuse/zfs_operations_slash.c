@@ -89,8 +89,10 @@ get_vnode_fids(int vfsid, const vnode_t *vp, struct sl_fidgen *fgp,
 	if (fgp) {
 		if (VTOZ(vp)->z_id == MDSIO_FID_ROOT) {
 			fgp->fg_fid = SLFID_ROOT;
+#if 0
 			FID_SET_SITEID(fgp->fg_fid,
 			    zfs_mounts[vfsid].zm_siteid);
+#endif
 		} else
 			fgp->fg_fid = VTOZ(vp)->z_phys->zp_s2fid;
 		fgp->fg_gen = VTOZ(vp)->z_phys->zp_s2gen;
@@ -268,9 +270,6 @@ fill_sstb(int vfsid, vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 
 	/*
 	 * Don't confuse a client when getting attributes for root. 
-	 *
- 	 * If sstb->sst_fid is SLFID_ROOT, it will be overwritten if 
- 	 * the site ID is not zero.
  	 */
 	if (sstb->sst_fid != SLFID_ROOT && sstb->sst_fid != fg.fg_fid)
 		sstb->sst_fid = fg.fg_fid;
