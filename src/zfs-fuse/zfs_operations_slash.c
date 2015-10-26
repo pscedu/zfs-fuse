@@ -1677,6 +1677,7 @@ zfsslash2_setattr(int vfsid, mdsio_fid_t ino,
 	vnode_t *vp;
 	boolean_t release;
 
+	/* XXX if to_set is NULL, error could be un-initialized */
 	int error;
 
 	int mask = SL_SETATTRF_METASIZE | PSCFS_SETATTRF_DATASIZE;
