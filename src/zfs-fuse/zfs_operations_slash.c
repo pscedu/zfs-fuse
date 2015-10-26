@@ -266,7 +266,12 @@ fill_sstb(int vfsid, vnode_t *vp, mdsio_fid_t *mfp, struct srt_stat *sstb,
 	memset(sstb, 0, sizeof(*sstb));
 	sstb->sst_fg = tfg;
 
-	/* don't confuse a client when getting attributes for root */
+	/*
+	 * Don't confuse a client when getting attributes for root. 
+	 *
+ 	 * If sstb->sst_fid is SLFID_ROOT, it will be overwritten if 
+ 	 * the site ID is not zero.
+ 	 */
 	if (sstb->sst_fid != SLFID_ROOT && sstb->sst_fid != fg.fg_fid)
 		sstb->sst_fid = fg.fg_fid;
 	if (sstb->sst_gen != fg.fg_gen)
