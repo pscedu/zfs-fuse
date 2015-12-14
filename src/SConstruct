@@ -79,6 +79,16 @@ env.Append(CPPPATH = [os.path.abspath(rootdir + '/pfl/include')])
 env.Append(CPPPATH = [os.path.abspath(rootdir + '/slash2/include')])
 env.Append(CPPPATH = [os.path.abspath(rootdir + '/slash2')])
 
+f = os.popen('cd ../.. && make printvar-FUSE_INCLUDES')
+env.Append(CPPPATH = [o[2:] for o in Split(f.readline().strip())])
+# + Split('-Wall -W')
+f.close()
+
+f = os.popen('cd ../.. && make printvar-FUSE_LIBS')
+env.Append(LIBPATH = [o[2:] for o in Split(f.readline().strip())])
+# + Split('-Wall -W')
+f.close()
+
 f = os.popen('uname -m')
 arch = f.readline().strip()
 f.close()
