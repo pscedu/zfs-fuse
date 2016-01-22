@@ -41,19 +41,21 @@
 #include <sys/fcntl.h>
 #include <sys/dmu_objset.h>
 
-#include <string.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <time.h>
 #include <math.h>
-
-#include "util.h"
-#include "errno_compat.h"
+#include <string.h>
 #include <syslog.h>
+#include <time.h>
 
-#include "zfs_slashlib.h"
+#include "errno_compat.h"
+#include "util.h"
+
+#include <umem.h>
 
 #include "pfl/fs.h"
+
+#include "zfs_slashlib.h"
 
 #include "creds.h"
 #include "fid.h"
@@ -801,6 +803,8 @@ int
 zfsslash2_build_immns_cache(int vfsid)
 {
 	uint64_t ndirs;
+
+	init_mmap();
 
 	/* the number of directories at the lowest level */
 	ndirs = 1 << (BPHXC * FID_PATH_DEPTH);
