@@ -211,7 +211,10 @@ static uint32_t vmem_populators;
 static vmem_seg_t vmem_seg0[VMEM_SEG_INITIAL];
 static vmem_seg_t *vmem_segfree;
 static mutex_t vmem_list_lock = DEFAULTMUTEX;
+
+static ssize_t vmem_nsegfree;
 static mutex_t vmem_segfree_lock = DEFAULTMUTEX;
+
 static vmem_populate_lock_t vmem_nosleep_lock = {
   DEFAULTMUTEX,
   0
@@ -265,8 +268,10 @@ vmem_getseg_global(void)
 	vmem_seg_t *vsp;
 
 	(void) mutex_lock(&vmem_segfree_lock);
-	if ((vsp = vmem_segfree) != NULL)
+	if ((vsp = vmem_segfree) != NULL) {
+		vmem_nsegfree--;
 		vmem_segfree = vsp->vs_knext;
+	}
 	(void) mutex_unlock(&vmem_segfree_lock);
 
 	return (vsp);
@@ -279,6 +284,7 @@ static void
 vmem_putseg_global(vmem_seg_t *vsp)
 {
 	(void) mutex_lock(&vmem_segfree_lock);
+	vmem_nsegfree++;
 	vsp->vs_knext = vmem_segfree;
 	vmem_segfree = vsp;
 	(void) mutex_unlock(&vmem_segfree_lock);
