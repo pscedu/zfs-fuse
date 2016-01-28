@@ -213,6 +213,7 @@ static vmem_seg_t *vmem_segfree;
 static mutex_t vmem_list_lock = DEFAULTMUTEX;
 
 static ssize_t vmem_nsegfree;
+static ssize_t vmem_nsegfree_reserve;
 static mutex_t vmem_segfree_lock = DEFAULTMUTEX;
 
 static vmem_populate_lock_t vmem_nosleep_lock = {
@@ -263,15 +264,18 @@ extern int _cond_wait(cond_t *cv, mutex_t *mutex);
  * Get a vmem_seg_t from the global segfree list.
  */
 static vmem_seg_t *
-vmem_getseg_global(void)
+vmem_getseg_global(vmem_t *vmp)
 {
-	vmem_seg_t *vsp;
+	vmem_seg_t *vsp = NULL;
 
 	(void) mutex_lock(&vmem_segfree_lock);
-	if ((vsp = vmem_segfree) != NULL) {
-		vmem_nsegfree--;
-		vmem_segfree = vsp->vs_knext;
-	}
+	if (vmp == vmem_seg_arena || vmem_nsegfree > VMEM_MINFREE) {
+		if ((vsp = vmem_segfree) != NULL) {
+			vmem_nsegfree--;
+			vmem_segfree = vsp->vs_knext;
+		}
+	} else
+		vmem_nsegfree_reserve++;
 	(void) mutex_unlock(&vmem_segfree_lock);
 
 	return (vsp);
@@ -593,7 +597,7 @@ vmem_populate(vmem_t *vmp, int vmflag)
 	int i;
 
 	while (vmp->vm_nsegfree < VMEM_MINFREE &&
-	    (vsp = vmem_getseg_global()) != NULL)
+	    (vsp = vmem_getseg_global(vmp)) != NULL)
 		vmem_putseg(vmp, vsp);
 
 	if (vmp->vm_nsegfree >= VMEM_MINFREE)
