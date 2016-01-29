@@ -124,6 +124,11 @@ handle_connection(int sock)
 				goto done;
 			break;
 		default:
+			/*
+ 			 * This could be caused by slashd.sh not cleaning up
+ 			 * the socket properly. Kill the slashd.sh seems to
+ 			 * help. Otherwise, it can't restart slashd automatically.
+ 			 */
 			abort();
 		}
 	}
