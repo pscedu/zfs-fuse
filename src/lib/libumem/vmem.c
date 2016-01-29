@@ -221,6 +221,8 @@ static vmem_populate_lock_t vmem_nosleep_lock = {
   0
 };
 #define	IN_POPULATE()	(vmem_nosleep_lock.vmpl_thr == thr_self())
+static ssize_t vmem_seg_populate_fail;
+
 static vmem_t *vmem_list;
 static vmem_t *vmem_internal_arena;
 static vmem_t *vmem_seg_arena;
@@ -640,6 +642,7 @@ vmem_populate(vmem_t *vmp, int vmflag)
 	p = vmem_alloc(vmem_seg_arena, size, vmflag & VM_UMFLAGS);
 	if (p == NULL) {
 		lp->vmpl_thr = 0;
+		vmem_seg_populate_fail++;
 		(void) mutex_unlock(&lp->vmpl_mutex);
 		vmem_reap();
 
