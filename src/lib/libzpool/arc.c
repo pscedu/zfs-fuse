@@ -3507,6 +3507,9 @@ arc_init(void)
 	/*
 	 * Allow the tunables to override our calculations if they are
 	 * reasonable (ie. over 64MB)
+	 *
+	 * I don't think the following if statements ever executed because
+	 * zfs_arc_min and zfs_arc_max are both 0.
 	 */
 	if (zfs_arc_max > 64<<20 && zfs_arc_max < physmem * PAGESIZE)
 		arc_c_max = zfs_arc_max;

@@ -32,7 +32,7 @@
 #include <umem.h>
 
 /* Maximum zfs-fuse memory usage */
-#define ZFSFUSE_MAX_ARCSIZE (128<<20)
+#define ZFSFUSE_MAX_ARCSIZE (16384ULL<<20)
 
 /*
  * Kernel memory
