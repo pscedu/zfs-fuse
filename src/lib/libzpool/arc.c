@@ -3501,6 +3501,13 @@ arc_init(void)
 		arc_c_max = 64<<20;
 #endif
 	}
+	/* 
+	 * Limit the max arc size (i.e., /zfs-kstat/zfs/arcstats/c_max) to 
+	 * 75% of the system memory.
+ 	 */
+	if (arc_c_max > physmem * PAGESIZE * 75 / 100)
+		arc_c_max = physmem * PAGESIZE * 75 / 100;
+
 	syslog(LOG_NOTICE,"ARC setup: min ARC size set to " FI64 " bytes",arc_c_min);
 	syslog(LOG_NOTICE,"ARC setup: max ARC size set to " FI64 " bytes",arc_c_max);
 
