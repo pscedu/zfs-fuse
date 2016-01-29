@@ -3486,6 +3486,11 @@ arc_init(void)
 
 	/* set min cache to 16 MB */
 	arc_c_min = 16<<20;
+
+	/*
+	 * slashd can set arc_c_max using slconfig file. zfs-fuse can do the same
+	 * with max_arc_size.  They never run at the same time.
+	 */
 	if (arc_c_max)
 		goto skip;
 
