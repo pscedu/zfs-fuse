@@ -3670,6 +3670,12 @@ arc_fini(void)
 	ASSERT(arc_loaned_bytes == 0);
 }
 
+uint64_t
+arc_get_maxsize(void)
+{
+	return (arc_c_max);
+}
+
 void
 arc_set_maxsize(uint64_t newmax)
 {
