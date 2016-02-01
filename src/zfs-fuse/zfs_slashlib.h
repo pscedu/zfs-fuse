@@ -83,11 +83,13 @@ void	zfsslash2_register_hook(void *);
 void	zfsslash2_register_suspend_hook(void *);
 void	zfsslash2_register_resume_hook(void *);
 
-int	zfsslash2_build_immns_cache(int);
-int	zfsslash2_setattrmask_2_slflags(uint);
-uint	zfsslash2_slflags_2_setattrmask(int);
-mdsio_fid_t
-	zfsslash2_getfidlinkdir(slfid_t);
+uint64_t	arc_get_maxsize(void);
+void		arc_set_maxsize(uint64_t);
+
+int		zfsslash2_build_immns_cache(int);
+int		zfsslash2_setattrmask_2_slflags(uint);
+uint		zfsslash2_slflags_2_setattrmask(int);
+mdsio_fid_t	zfsslash2_getfidlinkdir(slfid_t);
 
 int	zfsslash2_replay_create(int, slfid_t, char *, struct srt_stat *stat);
 int	zfsslash2_replay_fidlink(int, slfid_t, const struct slash_creds *);
