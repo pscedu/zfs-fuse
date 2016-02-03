@@ -144,7 +144,7 @@ print_usage(int argc, char *argv[])
 		"			Logs uberblocks of any mounted filesystem to syslog\n"
 		"  -m MB, --max-arc-size MB\n"
 		"			Forces the maximum ARC size (in megabytes).\n"
-		"			Range: 16 to 16384.\n"
+		"			Minimum is 16 and also capped at 75%% of physical memory.\n"
 		"  -o OPT..., --fuse-mount-options OPT,OPT,OPT...\n"
 		"			Sets FUSE mount options for all filesystems.\n"
 		"			Format: comma-separated string of characters.\n"
@@ -224,7 +224,7 @@ parse_args(int argc, char *argv[])
 			check_opt(progname, "-m");
 			max_arc_size = strtol(optarg, &endp, 10);
 			if ((max_arc_size == 0 && endp == optarg) ||
-			    (max_arc_size < 16) || (max_arc_size > 16384))
+			    (max_arc_size < 16))
 				errx(64, "max_arc_size: %s: invalid "
 				    "value", optarg);
 			max_arc_size = max_arc_size << 20;
