@@ -83,6 +83,7 @@ void	zfsslash2_register_hook(void *);
 void	zfsslash2_register_suspend_hook(void *);
 void	zfsslash2_register_resume_hook(void *);
 
+void		arc_set_slashd(void);
 uint64_t	arc_get_maxsize(void);
 void		arc_set_maxsize(uint64_t);
 

@@ -137,6 +137,8 @@
 #include <syslog.h>
 #include "format.h"
 
+static int arc_slashd_running = 0;
+
 static kmutex_t		arc_reclaim_thr_lock;
 static kcondvar_t	arc_reclaim_thr_cv;	/* used to signal reclaim thr */
 static uint8_t		arc_thread_exit;
@@ -3489,14 +3491,13 @@ arc_init(void)
 	/* set min cache to 16 MB */
 	arc_c_min = 16<<20;
 
+	percentage = arc_slashd_running ? 60 : 75;
 	/*
 	 * slashd can set arc_c_max using slconfig file. zfs-fuse can do the same
 	 * with max_arc_size.  They never run at the same time.
 	 */
-	if (arc_c_max) {
-		percentage = 60;
+	if (arc_c_max)
 		goto skip;
-	}
 
 	if (max_arc_size) {
 		if (max_arc_size < arc_c_min) {
@@ -3513,7 +3514,6 @@ arc_init(void)
 		arc_c_max = 64<<20;
 #endif
 	}
-	percentage = 75;
 
   skip:
 	/* 
@@ -3673,6 +3673,12 @@ arc_fini(void)
 	buf_fini();
 
 	ASSERT(arc_loaned_bytes == 0);
+}
+
+void
+arc_set_slashd(void)
+{
+	arc_slashd_running = 1;
 }
 
 uint64_t
