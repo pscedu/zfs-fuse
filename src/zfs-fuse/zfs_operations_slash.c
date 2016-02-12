@@ -530,7 +530,7 @@ zfsslash2_setxattr(int vfsid, const struct slash_creds *slcrp,
 
 	vnode_t *new_vp;
 	error = VOP_CREATE(vp, (char *) name, &vattr, NONEXCL, VWRITE,
-	    &new_vp, &cred, 0, NULL, NULL, NULL);
+	    &new_vp, &zrootcreds, &cred, 0, NULL, NULL, NULL);
 	if (error)
 		goto out;
 
@@ -1151,7 +1151,7 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
 			vattr.va_mask = AT_TYPE | AT_MODE;
 			vattr.va_fid = fid;
 			error = VOP_MKDIR(dvp, id_name, &vattr, vpp,
-			    &zrootcreds, NULL, 0, NULL, NULL);	/* zfs_mkdir() */
+			    &zrootcreds, &zrootcreds, NULL, 0, NULL, NULL);	/* zfs_mkdir() */
 		}
 		goto out;
 	}
@@ -1322,7 +1322,7 @@ zfsslash2_opencreate(int vfsid, mdsio_fid_t ino,
 
 		/* FIXME: check filesystem boundaries */
 		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode,
-		    &new_vp, &cred, opflags & MDSIO_OPENCRF_NOMTIM ?
+		    &new_vp, &zrootcreds, &cred, opflags & MDSIO_OPENCRF_NOMTIM ?
 		    SLASH2_IGNORE_MTIME : 0, NULL, NULL, logfunc); /* zfs_create() */
 
 		if (error)
@@ -1555,7 +1555,7 @@ zfsslash2_mkdir(int vfsid, mdsio_fid_t parent, const char *name,
 	} else
 		vattr.va_fid = fid;
 
-	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, &cred, NULL,
+	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, &zrootcreds, &cred, NULL,
 	    opflags & MDSIO_OPENCRF_NOMTIM ? SLASH2_IGNORE_MTIME : 0,
 	    NULL, logfunc); /* zfs_mkdir() */
 	if (error)
@@ -2032,7 +2032,7 @@ zfsslash2_mknod(int vfsid, mdsio_fid_t parent, const char *name,
 
 	/* FIXME: check filesystem boundaries */
 	error = VOP_CREATE(dvp, (char *)name, &vattr, EXCL, 0, &vp,
-	    &cred, 0, NULL, NULL, logfunc);	/* zfs_create() */
+	    &zrootcreds, &cred, 0, NULL, NULL, logfunc);	/* zfs_create() */
 
 	if (error)
 		goto out;
@@ -2104,7 +2104,7 @@ zfsslash2_symlink(int vfsid, const char *link, mdsio_fid_t parent,
 		vattr.va_fid = fid;
 
 	error = VOP_SYMLINK(dvp, (char *)name, &vattr, (char *)link,
-	    &cred, NULL, 0, logfunc); /* zfs_symlink() */
+	    &zrootcreds, &cred, NULL, 0, logfunc); /* zfs_symlink() */
 
 	vnode_t *vp = NULL;
 
@@ -2445,7 +2445,7 @@ zfsslash2_replay_symlink(int vfsid, slfid_t pfid, slfid_t fid, char *name,
 	cred.cr_uid = sstb->sst_uid;
 	cred.cr_gid = sstb->sst_gid;
 
-	error = VOP_SYMLINK(pvp, name, &vattr, link, &cred, NULL,
+	error = VOP_SYMLINK(pvp, name, &vattr, link, &zrootcreds, &cred, NULL,
 	    0, NULL); /* zfs_symlink() */
 	if (error)
 		goto out;
@@ -2542,7 +2542,7 @@ zfsslash2_replay_mkdir(int vfsid, slfid_t pfid, char *name,
 	cred.cr_gid = sstb->sst_gid;
 
 	/* pass opflags */
-	error = VOP_MKDIR(pvp, name, &vattr, &tvp, &cred, NULL, 0, NULL,
+	error = VOP_MKDIR(pvp, name, &vattr, &tvp, &zrootcreds, &cred, NULL, 0, NULL,
 	    NULL); /* zfs_mkdir() */
 	if (error) {
 		psclog_errorx("failed to mkdir "SLPRI_FID": %s",
@@ -2597,7 +2597,7 @@ zfsslash2_replay_create(int vfsid, slfid_t pfid, char *name,
 	cred.cr_gid = sstb->sst_gid;
 
 	/* pass opflags */
-	error = VOP_CREATE(pvp, name, &vattr, EXCL, 0, &tvp, &cred, 0,
+	error = VOP_CREATE(pvp, name, &vattr, EXCL, 0, &tvp, &zrootcreds, &cred, 0,
 	    NULL, NULL, NULL); /* zfs_create() */
 	if (error)
 		goto out;

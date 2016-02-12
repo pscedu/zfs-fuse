@@ -389,7 +389,7 @@ zfsfuse_setxattr(fuse_req_t req, fuse_ino_t ino, const char *name,
 
 	vnode_t *new_vp;
 	error = VOP_CREATE(vp, (char *) name, &vattr, NONEXCL, VWRITE,
-	    &new_vp, &cred, 0, NULL, NULL, NULL);
+	    &new_vp, &cred, &cred, 0, NULL, NULL, NULL);
 	if (error)
 		goto out;
 
@@ -1098,7 +1098,7 @@ zfsfuse_opencreate(fuse_req_t req, fuse_ino_t ino,
 		vnode_t *new_vp;
 		/* FIXME: check filesystem boundaries */
 		error = VOP_CREATE(vp, (char *) name, &vattr, excl,
-		    mode, &new_vp, &cred, 0, NULL, NULL, NULL);
+		    mode, &new_vp, &cred, &cred, 0, NULL, NULL, NULL);
 
 		if (error)
 			goto out;
@@ -1386,7 +1386,7 @@ zfsfuse_mkdir(fuse_req_t req, fuse_ino_t parent, const char *name,
 	cred_t cred;
 	zfsfuse_getcred(req, &cred);
 
-	error = VOP_MKDIR(dvp, (char *) name, &vattr, &vp, &cred, NULL,
+	error = VOP_MKDIR(dvp, (char *) name, &vattr, &vp, &cred, &cred, NULL,
 	    0, NULL, NULL);  /* zfs_mkdir() */
 	if (error)
 		goto out;
@@ -1779,7 +1779,7 @@ zfsfuse_mknod(fuse_req_t req, fuse_ino_t parent, const char *name,
 
 	/* FIXME: check filesystem boundaries */
 	error = VOP_CREATE(dvp, (char *) name, &vattr, EXCL, 0, &vp,
-	    &cred, 0, NULL, NULL, NULL);
+	    &cred, &cred, 0, NULL, NULL, NULL);
 
 	VN_RELE(dvp);
 
@@ -1859,7 +1859,7 @@ zfsfuse_symlink(fuse_req_t req, const char *link, fuse_ino_t parent,
 	vattr.va_mask = AT_TYPE | AT_MODE;
 
 	error = VOP_SYMLINK(dvp, (char *) name, &vattr, (char *) link,
-	    &cred, NULL, 0, NULL);
+	    &cred, &cred, NULL, 0, NULL);
 
 	vnode_t *vp = NULL;
 

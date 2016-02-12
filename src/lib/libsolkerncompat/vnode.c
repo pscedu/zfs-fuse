@@ -1063,7 +1063,8 @@ fop_create(
 	vcexcl_t excl,
 	int mode,
 	vnode_t **vpp,
-	cred_t *cr,
+	cred_t *accesscr,
+	cred_t *createcr,
 	int flags,
 	caller_context_t *ct,
 	vsecattr_t *vsecp,   /* ACL to set during create */
@@ -1072,7 +1073,8 @@ fop_create(
 	int ret;
 
 	ret = (*(dvp)->v_op->vop_create)
-	    (dvp, name, vap, excl, mode, vpp, cr, flags, ct, vsecp, logfunc);
+	    (dvp, name, vap, excl, mode, vpp, accesscr, createcr, flags,
+	     ct, vsecp, logfunc);
 	if (ret == 0 && *vpp) {
 		VOPSTATS_UPDATE(*vpp, create);
 		if ((*vpp)->v_path == NULL) {
@@ -1089,7 +1091,8 @@ fop_mkdir(
 	char *dirname,
 	vattr_t *vap,
 	vnode_t **vpp,
-	cred_t *cr,
+	cred_t *accesscr,
+	cred_t *createcr,
 	caller_context_t *ct,
 	int flags,
 	vsecattr_t *vsecp,    /* ACL to set during create */
@@ -1098,7 +1101,8 @@ fop_mkdir(
 	int ret;
 
 	ret = (*(dvp)->v_op->vop_mkdir)
-	    (dvp, dirname, vap, vpp, cr, ct, flags, vsecp, logfunc);
+	    (dvp, dirname, vap, vpp, accesscr, createcr, ct, flags,
+	     vsecp, logfunc);
 	if (ret == 0 && *vpp) {
 		VOPSTATS_UPDATE(*vpp, mkdir);
 		if ((*vpp)->v_path == NULL) {
@@ -1116,7 +1120,8 @@ fop_symlink(
 	char *linkname,
 	vattr_t *vap,
 	char *target,
-	cred_t *cr,
+	cred_t *accesscr,
+	cred_t *createcr,
 	caller_context_t *ct,
 	int flags,
 	void *logfunc)
@@ -1124,7 +1129,8 @@ fop_symlink(
 	int	err;
 
 	err = (*(dvp)->v_op->vop_symlink)
-	    (dvp, linkname, vap, target, cr, ct, flags, logfunc);
+	    (dvp, linkname, vap, target, accesscr, createcr, ct, flags,
+	     logfunc);
 	VOPSTATS_UPDATE(dvp, symlink);
 	return (err);
 }

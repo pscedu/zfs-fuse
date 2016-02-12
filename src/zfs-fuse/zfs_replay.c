@@ -349,7 +349,7 @@ zfs_replay_create_acl(zfsvfs_t *zfsvfs,
 		}
 
 		error = VOP_CREATE(ZTOV(dzp), name, &xva.xva_vattr,
-		    0, 0, &vp, kcred, vflg, NULL, &vsec, NULL);
+		    0, 0, &vp, kcred, kcred, vflg, NULL, &vsec, NULL);
 		break;
 	case TX_MKDIR_ACL:
 		aclstart = (caddr_t)(lracl + 1);
@@ -379,7 +379,7 @@ zfs_replay_create_acl(zfsvfs_t *zfsvfs,
 			    lr->lr_uid, lr->lr_gid);
 		}
 		error = VOP_MKDIR(ZTOV(dzp), name, &xva.xva_vattr,
-		    &vp, kcred, NULL, vflg, &vsec, NULL);
+		    &vp, kcred, kcred, NULL, vflg, &vsec, NULL);
 		break;
 	default:
 		error = ENOTSUP;
@@ -478,7 +478,7 @@ zfs_replay_create(zfsvfs_t *zfsvfs, lr_create_t *lr, boolean_t byteswap)
 			name = (char *)start;
 
 		error = VOP_CREATE(ZTOV(dzp), name, &xva.xva_vattr,
-		    0, 0, &vp, kcred, vflg, NULL, NULL, NULL);
+		    0, 0, &vp, kcred, kcred, vflg, NULL, NULL, NULL);
 		break;
 	case TX_MKDIR_ATTR:
 		lrattr = (lr_attr_t *)(caddr_t)(lr + 1);
@@ -496,7 +496,7 @@ zfs_replay_create(zfsvfs_t *zfsvfs, lr_create_t *lr, boolean_t byteswap)
 			name = (char *)(lr + 1);
 
 		error = VOP_MKDIR(ZTOV(dzp), name, &xva.xva_vattr,
-		    &vp, kcred, NULL, vflg, NULL, NULL);
+		    &vp, kcred, kcred, NULL, vflg, NULL, NULL);
 		break;
 	case TX_MKXATTR:
 		error = zfs_make_xattrdir(dzp, &xva.xva_vattr, &vp, kcred);
@@ -505,7 +505,7 @@ zfs_replay_create(zfsvfs_t *zfsvfs, lr_create_t *lr, boolean_t byteswap)
 		name = (char *)(lr + 1);
 		link = name + strlen(name) + 1;
 		error = VOP_SYMLINK(ZTOV(dzp), name, &xva.xva_vattr,
-		    link, kcred, NULL, vflg, NULL);
+		    link, kcred, kcred, NULL, vflg, NULL);
 		break;
 	default:
 		error = ENOTSUP;
