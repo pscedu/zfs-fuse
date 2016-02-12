@@ -729,7 +729,8 @@ zfsctl_snapdir_remove(vnode_t * dvp, char *name, vnode_t * cwd, cred_t * cr,
 /* ARGSUSED */
 static int
 zfsctl_snapdir_mkdir(vnode_t * dvp, char *dirname, vattr_t * vap, vnode_t ** vpp,
-    cred_t * cr, caller_context_t * cc, int flags, vsecattr_t * vsecp)
+    cred_t *accesscr, cred_t *createcr, caller_context_t * cc, int flags,
+    vsecattr_t * vsecp)
 {
 	zfsvfs_t *zfsvfs = dvp->v_vfsp->vfs_data;
 	char name[MAXNAMELEN];
@@ -744,7 +745,7 @@ zfsctl_snapdir_mkdir(vnode_t * dvp, char *dirname, vattr_t * vap, vnode_t ** vpp
 
 	*vpp = NULL;
 
-	err = zfs_secpolicy_snapshot_perms(name, cr);
+	err = zfs_secpolicy_snapshot_perms(name, accesscr);
 	if (err)
 		return (err);
 

@@ -406,7 +406,7 @@ extern void vn_setops(vnode_t *vp, struct vnodeops *vnodeops);
 				caller_context_t *, int *,		\
 				struct pathname *);			\
 	int	(*vop_create)(vnode_t *, char *, vattr_t *, vcexcl_t,	\
-				int, vnode_t **, cred_t *, int,		\
+				int, vnode_t **, cred_t *, cred_t *, int, \
 				caller_context_t *, vsecattr_t *, 	\
 				void *);				\
 	int	(*vop_remove)(vnode_t *, char *, cred_t *,		\
@@ -418,14 +418,14 @@ extern void vn_setops(vnode_t *vp, struct vnodeops *vnodeops);
 				cred_t *, caller_context_t *, int,	\
 				void *, void *);			\
 	int	(*vop_mkdir)(vnode_t *, char *, vattr_t *, vnode_t **,	\
-				cred_t *, caller_context_t *, int,	\
+				cred_t *, cred_t *, caller_context_t *, int,	\
 				vsecattr_t *, void *);			\
 	int	(*vop_rmdir)(vnode_t *, char *, vnode_t *, cred_t *,	\
 				caller_context_t *, int, void *);	\
 	int	(*vop_readdir)(vnode_t *, uio_t *, cred_t *, int *,	\
 				caller_context_t *, int);		\
 	int	(*vop_symlink)(vnode_t *, char *, vattr_t *, char *,	\
-				cred_t *, caller_context_t *, int,	\
+				cred_t *, cred_t *, caller_context_t *, int,	\
 				void *);				\
 	int	(*vop_readlink)(vnode_t *, uio_t *, cred_t *,		\
 				caller_context_t *);			\
@@ -522,7 +522,7 @@ extern int	fop_lookup(vnode_t *, char *, vnode_t **, struct pathname *,
 				int, vnode_t *, cred_t *, caller_context_t *,
 				int *, struct pathname *);
 extern int	fop_create(vnode_t *, char *, vattr_t *, vcexcl_t, int,
-				vnode_t **, cred_t *, int, caller_context_t *,
+				vnode_t **, cred_t *, cred_t *, int, caller_context_t *,
 				vsecattr_t *, void *);
 extern int	fop_remove(vnode_t *vp, char *, cred_t *, caller_context_t *,
 				int, void *, void *);
@@ -530,13 +530,13 @@ extern int	fop_link(vnode_t *, vnode_t *, char *, cred_t *,
 				caller_context_t *, int, void *);
 extern int	fop_rename(vnode_t *, char *, vnode_t *, char *, cred_t *,
 				caller_context_t *, int, void *, void *);
-extern int	fop_mkdir(vnode_t *, char *, vattr_t *, vnode_t **, cred_t *,
+extern int	fop_mkdir(vnode_t *, char *, vattr_t *, vnode_t **, cred_t *, cred_t *,
 				caller_context_t *, int, vsecattr_t *, void *);
 extern int	fop_rmdir(vnode_t *, char *, vnode_t *, cred_t *,
 				caller_context_t *, int, void *);
 extern int	fop_readdir(vnode_t *, uio_t *, cred_t *, int *,
 				caller_context_t *, int);
-extern int	fop_symlink(vnode_t *, char *, vattr_t *, char *, cred_t *,
+extern int	fop_symlink(vnode_t *, char *, vattr_t *, char *, cred_t *, cred_t *,
 				caller_context_t *, int, void *);
 extern int	fop_readlink(vnode_t *, uio_t *, cred_t *, caller_context_t *);
 extern int	fop_fsync(vnode_t *, int, cred_t *, caller_context_t *);
@@ -608,22 +608,22 @@ extern int	fop_vnevent(vnode_t *, vnevent_t, vnode_t *, char *,
 	fop_access(vp, mode, f, cr, ct)
 #define	VOP_LOOKUP(vp, cp, vpp, pnp, f, rdir, cr, ct, defp, rpnp) \
 	fop_lookup(vp, cp, vpp, pnp, f, rdir, cr, ct, defp, rpnp)
-#define	VOP_CREATE(dvp, p, vap, ex, mode, vpp, cr, flag, ct, vsap, funcp) \
-	fop_create(dvp, p, vap, ex, mode, vpp, cr, flag, ct, vsap, funcp)
+#define	VOP_CREATE(dvp, p, vap, ex, mode, vpp, accesscr, createcr, flag, ct, vsap, funcp) \
+	fop_create(dvp, p, vap, ex, mode, vpp, accesscr, createcr, flag, ct, vsap, funcp)
 #define	VOP_REMOVE(dvp, p, cr, ct, f, funcp, arg) \
 	fop_remove(dvp, p, cr, ct, f, funcp, arg)
 #define	VOP_LINK(tdvp, fvp, p, cr, ct, f, funcp) \
 	fop_link(tdvp, fvp, p, cr, ct, f, funcp)
 #define	VOP_RENAME(fvp, fnm, tdvp, tnm, cr, ct, f, funcp, arg) \
 	fop_rename(fvp, fnm, tdvp, tnm, cr, ct, f, funcp, arg)
-#define	VOP_MKDIR(dp, p, vap, vpp, cr, ct, f, vsap, funcp) \
-	fop_mkdir(dp, p, vap, vpp, cr, ct, f, vsap, funcp)
+#define	VOP_MKDIR(dp, p, vap, vpp, accesscr, createcr, ct, f, vsap, funcp) \
+	fop_mkdir(dp, p, vap, vpp, accesscr, createcr, ct, f, vsap, funcp)
 #define	VOP_RMDIR(dp, p, cdir, cr, ct, f, funcp) \
 	fop_rmdir(dp, p, cdir, cr, ct, f, funcp)
 #define	VOP_READDIR(vp, uiop, cr, eofp, ct, f) \
 	fop_readdir(vp, uiop, cr, eofp, ct, f)
-#define	VOP_SYMLINK(dvp, lnm, vap, tnm, cr, ct, f, funcp) \
-	fop_symlink(dvp, lnm, vap, tnm, cr, ct, f, funcp)
+#define	VOP_SYMLINK(dvp, lnm, vap, tnm, accesscr, createcr, ct, f, funcp) \
+	fop_symlink(dvp, lnm, vap, tnm, accesscr, createcr, ct, f, funcp)
 #define	VOP_READLINK(vp, uiop, cr, ct) \
 	fop_readlink(vp, uiop, cr, ct)
 #define	VOP_FSYNC(vp, syncflag, cr, ct) \

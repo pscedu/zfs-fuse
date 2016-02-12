@@ -611,7 +611,7 @@ out:
  */
 /* ARGSUSED */
 static int
-zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr, 
+zfs_write(vnode_t *vp, uio_t *uio, int ioflag, cred_t *cr,
 	  caller_context_t *ct, void *funcp, void *datap)
 {
 	znode_t		*zp = VTOZ(vp);
@@ -894,7 +894,7 @@ All I can hope is that we can simply disable this code without risk */
 		 * Update time stamp.  NOTE: This marks the bonus buffer as
 		 * dirty, so we don't have to do it again for zp_size.
 		 */
-		zfs_time_stamper(zp, ((ioflag & SLASH2_IGNORE_MTIME) ? 
+		zfs_time_stamper(zp, ((ioflag & SLASH2_IGNORE_MTIME) ?
 		    0 : CONTENT_MODIFIED), tx);
 		/*
 		 * Update the file size (zp_size) if it has changed;
@@ -908,7 +908,7 @@ All I can hope is that we can simply disable this code without risk */
 			/* Make only one call into SLASH2 land. */
 			if (!niter)
 				logfuncp(datap, dmu_tx_get_txg(tx), 0);
-		} else 
+		} else
 			zfs_log_write(zilog, tx, TX_WRITE, zp, woff, tx_bytes, ioflag);
 
 		dmu_tx_commit(tx);
@@ -1283,7 +1283,7 @@ zfs_lookup(vnode_t *dvp, char *nm, vnode_t **vpp, struct pathname *pnp,
  *		cr	- credentials of caller.
  *		flag	- large file flag [UNUSED].
  *		ct	- caller context
- *		vsecp 	- ACL to be set
+ *		vsecp	- ACL to be set
  *
  *	OUT:	vpp	- vnode of created or trunc'd entry.
  *
@@ -1298,8 +1298,8 @@ zfs_lookup(vnode_t *dvp, char *nm, vnode_t **vpp, struct pathname *pnp,
 /* ARGSUSED */
 static int
 zfs_create(vnode_t *dvp, char *name, vattr_t *vap, vcexcl_t excl,
-    int mode, vnode_t **vpp, cred_t *cr, int flag, caller_context_t *ct,
-    vsecattr_t *vsecp, void *funcp)
+    int mode, vnode_t **vpp, cred_t *accesscr, cred_t *createcr,
+    int flag, caller_context_t *ct, vsecattr_t *vsecp, void *funcp)
 {
 	int		i;
 	znode_t		*zp, *dzp = VTOZ(dvp);
@@ -1311,7 +1311,7 @@ zfs_create(vnode_t *dvp, char *name, vattr_t *vap, vcexcl_t excl,
 	int		error;
 	ksid_t		*ksid;
 	uid_t		uid;
-	gid_t		gid = crgetgid(cr);
+	gid_t		gid = crgetgid(accesscr);
 	zfs_acl_ids_t	acl_ids;
 	boolean_t	fuid_dirtied;
 	uint64_t	seq, foid;
@@ -1323,11 +1323,11 @@ zfs_create(vnode_t *dvp, char *name, vattr_t *vap, vcexcl_t excl,
 	 * make sure file system is at proper version
 	 */
 
-	ksid = crgetsid(cr, KSID_OWNER);
+	ksid = crgetsid(accesscr, KSID_OWNER);
 	if (ksid)
 		uid = ksid_getid(ksid);
 	else
-		uid = crgetuid(cr);
+		uid = crgetuid(accesscr);
 
 	if (zfsvfs->z_use_fuids == B_FALSE &&
 	    (vsecp || (vap->va_mask & AT_XVATTR) ||
@@ -1347,7 +1347,7 @@ zfs_create(vnode_t *dvp, char *name, vattr_t *vap, vcexcl_t excl,
 
 	if (vap->va_mask & AT_XVATTR) {
 		if ((error = secpolicy_xvattr((xvattr_t *)vap,
-		    crgetuid(cr), cr, vap->va_type)) != 0) {
+		    crgetuid(accesscr), accesscr, vap->va_type)) != 0) {
 			ZFS_EXIT(zfsvfs);
 			return (error);
 		}
@@ -1355,7 +1355,7 @@ zfs_create(vnode_t *dvp, char *name, vattr_t *vap, vcexcl_t excl,
 top:
 	*vpp = NULL;
 
-	if ((vap->va_mode & VSVTX) && secpolicy_vnode_stky_modify(cr))
+	if ((vap->va_mode & VSVTX) && secpolicy_vnode_stky_modify(accesscr))
 		vap->va_mode &= ~VSVTX;
 
 	if (*name == '\0') {
@@ -1389,7 +1389,7 @@ top:
 		 * Create a new file object and update the directory
 		 * to reference it.
 		 */
-		if (error = zfs_zaccess(dzp, ACE_ADD_FILE, 0, B_FALSE, cr)) {
+		if (error = zfs_zaccess(dzp, ACE_ADD_FILE, 0, B_FALSE, accesscr)) {
 			goto out;
 		}
 
@@ -1403,7 +1403,7 @@ top:
 			goto out;
 		}
 
-		if ((error = zfs_acl_ids_create(dzp, 0, vap, cr, vsecp,
+		if ((error = zfs_acl_ids_create(dzp, 0, vap, createcr, vsecp,
 		    &acl_ids)) != 0)
 			goto out;
 		if (zfs_acl_ids_overquota(zfsvfs, &acl_ids)) {
@@ -1436,7 +1436,7 @@ top:
 			ZFS_EXIT(zfsvfs);
 			return (error);
 		}
-		zfs_mknode(dzp, vap, tx, cr, 0, &zp, 0, &acl_ids);
+		zfs_mknode(dzp, vap, tx, createcr, 0, &zp, 0, &acl_ids);
 
 		if (fuid_dirtied)
 			zfs_fuid_sync(zfsvfs, tx);
@@ -1471,7 +1471,7 @@ top:
 			if (flag & FIGNORECASE)
 				txtype |= TX_CI;
 			zfs_log_create(zilog, tx, txtype, dzp, zp, name,
-		    		vsecp, acl_ids.z_fuidp, vap);
+				vsecp, acl_ids.z_fuidp, vap);
 		}
 
 		zfs_acl_ids_free(&acl_ids);
@@ -1500,7 +1500,7 @@ top:
 		/*
 		 * Verify requested access to file.
 		 */
-		if (mode && (error = zfs_zaccess_rwx(zp, mode, aflags, cr))) {
+		if (mode && (error = zfs_zaccess_rwx(zp, mode, aflags, createcr))) {
 			goto out;
 		}
 
@@ -1532,7 +1532,7 @@ out:
 			VN_RELE(ZTOV(zp));
 	} else {
 		*vpp = ZTOV(zp);
-		error = specvp_check(vpp, cr);
+		error = specvp_check(vpp, createcr);
 	}
 
 	ZFS_EXIT(zfsvfs);
@@ -1575,7 +1575,7 @@ zfs_remove(vnode_t *dvp, char *name, cred_t *cr, caller_context_t *ct,
 	pathname_t	realnm;
 	int		error;
 	int		zflg = ZEXISTS;
-	off_t 		olds2siz;
+	off_t		olds2siz;
 
 	sl_log_update_t	logfunc = funcp;
 
@@ -1778,8 +1778,9 @@ out:
  */
 /*ARGSUSED*/
 static int
-zfs_mkdir(vnode_t *dvp, char *dirname, vattr_t *vap, vnode_t **vpp, cred_t *cr,
-    caller_context_t *ct, int flags, vsecattr_t *vsecp, void *funcp)
+zfs_mkdir(vnode_t *dvp, char *dirname, vattr_t *vap, vnode_t **vpp,
+    cred_t *accesscr, cred_t *createcr, caller_context_t *ct, int flags,
+    vsecattr_t *vsecp, void *funcp)
 {
 	int		i;
 	znode_t		*zp, *dzp = VTOZ(dvp);
@@ -1792,7 +1793,7 @@ zfs_mkdir(vnode_t *dvp, char *dirname, vattr_t *vap, vnode_t **vpp, cred_t *cr,
 	int		zf = ZNEW;
 	ksid_t		*ksid;
 	uid_t		uid;
-	gid_t		gid = crgetgid(cr);
+	gid_t		gid = crgetgid(accesscr);
 	zfs_acl_ids_t	acl_ids;
 	boolean_t	fuid_dirtied;
 
@@ -1805,11 +1806,11 @@ zfs_mkdir(vnode_t *dvp, char *dirname, vattr_t *vap, vnode_t **vpp, cred_t *cr,
 	 * make sure file system is at proper version
 	 */
 
-	ksid = crgetsid(cr, KSID_OWNER);
+	ksid = crgetsid(accesscr, KSID_OWNER);
 	if (ksid)
 		uid = ksid_getid(ksid);
 	else
-		uid = crgetuid(cr);
+		uid = crgetuid(accesscr);
 	if (zfsvfs->z_use_fuids == B_FALSE &&
 	    (vsecp || (vap->va_mask & AT_XVATTR) ||
 	    IS_EPHEMERAL(uid) || IS_EPHEMERAL(gid)))
@@ -1834,7 +1835,7 @@ zfs_mkdir(vnode_t *dvp, char *dirname, vattr_t *vap, vnode_t **vpp, cred_t *cr,
 
 	if (vap->va_mask & AT_XVATTR)
 		if ((error = secpolicy_xvattr((xvattr_t *)vap,
-		    crgetuid(cr), cr, vap->va_type)) != 0) {
+		    crgetuid(accesscr), accesscr, vap->va_type)) != 0) {
 			ZFS_EXIT(zfsvfs);
 			return (error);
 		}
@@ -1851,13 +1852,14 @@ top:
 		return (error);
 	}
 
-	if (error = zfs_zaccess(dzp, ACE_ADD_SUBDIRECTORY, 0, B_FALSE, cr)) {
+	if (error = zfs_zaccess(dzp, ACE_ADD_SUBDIRECTORY, 0, B_FALSE,
+	    accesscr)) {
 		zfs_dirent_unlock(dl);
 		ZFS_EXIT(zfsvfs);
 		return (error);
 	}
 
-	if ((error = zfs_acl_ids_create(dzp, 0, vap, cr, vsecp,
+	if ((error = zfs_acl_ids_create(dzp, 0, vap, createcr, vsecp,
 	    &acl_ids)) != 0) {
 		zfs_dirent_unlock(dl);
 		ZFS_EXIT(zfsvfs);
@@ -1899,7 +1901,7 @@ top:
 	/*
 	 * Create new node.
 	 */
-	zfs_mknode(dzp, vap, tx, cr, 0, &zp, 0, &acl_ids);
+	zfs_mknode(dzp, vap, tx, createcr, 0, &zp, 0, &acl_ids);
 
 	if (fuid_dirtied)
 		zfs_fuid_sync(zfsvfs, tx);
@@ -2070,7 +2072,7 @@ top:
 
 			logfunc(NS_OP_RMDIR, txg, dzp->z_phys->zp_s2fid,
 			    0, &sstb, 0, name, NULL, NULL);
-		} else { 
+		} else {
 			uint64_t txtype = TX_RMDIR;
 			if (flags & FIGNORECASE)
 				txtype |= TX_CI;
@@ -2270,7 +2272,7 @@ zfs_readdir(vnode_t *vp, uio_t *uio, cred_t *cr, int *eofp,
 
 			type = ZFS_DIRENT_TYPE(zap.za_first_integer);
 
- 			/* ZFSFUSE: don't care */
+			/* ZFSFUSE: don't care */
 #if 0
 			if (check_sysattrs && !zap.za_normalization_conflict) {
 				zap.za_normalization_conflict =
@@ -3094,7 +3096,7 @@ top:
 
 	if (mask & AT_SLASH2SIZE) {
 		oldsiz = pzp->zp_s2size;
-		pzp->zp_s2size = vap->va_s2size;		
+		pzp->zp_s2size = vap->va_s2size;
 		/*
 		 * SLASH2 generation needs to be bumped upon truncate to 0.
 		 */
@@ -3102,7 +3104,7 @@ top:
 			full_truncate = 1;
 			/* Full truncate */
 			//oldgen = zp->z_phys->zp_s2gen;
-			pzp->zp_s2gen++;		
+			pzp->zp_s2gen++;
 		}
 	}
 
@@ -3116,13 +3118,13 @@ top:
 		zfs_time_stamper_locked(zp, CONTENT_MODIFIED, tx);
 #if 0
 	/* our caller should ask for s2 timestamp changes explicitly */
-	else if (mask & AT_SLASH2SIZE) 
+	else if (mask & AT_SLASH2SIZE)
 		zfs_time_stamper_locked(zp, S2CONTENT_MODIFIED|AT_CTIME, tx);
 #endif
 	else if (mask != 0)
 		zfs_time_stamper_locked(zp, STATE_CHANGED, tx);
 
-	/* 
+	/*
 	 * SLASH2 timestamps could have already been set to the current time
 	 * if AT_SLASH2SIZE is set, but our caller may want its own timestamps.
 	 */
@@ -3726,8 +3728,9 @@ out:
  */
 /*ARGSUSED*/
 static int
-zfs_symlink(vnode_t *dvp, char *name, vattr_t *vap, char *link, cred_t *cr,
-    caller_context_t *ct, int flags, void *funcp)
+zfs_symlink(vnode_t *dvp, char *name, vattr_t *vap, char *link,
+    cred_t *accesscr, cred_t *createcr, caller_context_t *ct, int flags,
+    void *funcp)
 {
 	znode_t		*zp, *dzp = VTOZ(dvp);
 	zfs_dirlock_t	*dl;
@@ -3756,7 +3759,7 @@ zfs_symlink(vnode_t *dvp, char *name, vattr_t *vap, char *link, cred_t *cr,
 	if (flags & FIGNORECASE)
 		zflg |= ZCILOOK;
 top:
-	if (error = zfs_zaccess(dzp, ACE_ADD_FILE, 0, B_FALSE, cr)) {
+	if (error = zfs_zaccess(dzp, ACE_ADD_FILE, 0, B_FALSE, accesscr)) {
 		ZFS_EXIT(zfsvfs);
 		return (error);
 	}
@@ -3775,7 +3778,7 @@ top:
 		return (error);
 	}
 
-	VERIFY(0 == zfs_acl_ids_create(dzp, 0, vap, cr, NULL, &acl_ids));
+	VERIFY(0 == zfs_acl_ids_create(dzp, 0, vap, createcr, NULL, &acl_ids));
 	if (zfs_acl_ids_overquota(zfsvfs, &acl_ids)) {
 		zfs_acl_ids_free(&acl_ids);
 		zfs_dirent_unlock(dl);
@@ -3813,13 +3816,13 @@ top:
 	 * otherwise, store it just like any other file data.
 	 */
 	if (sizeof (znode_phys_t) + len <= dmu_bonus_max()) {
-		zfs_mknode(dzp, vap, tx, cr, 0, &zp, len, &acl_ids);
+		zfs_mknode(dzp, vap, tx, createcr, 0, &zp, len, &acl_ids);
 		if (len != 0)
 			bcopy(link, zp->z_phys + 1, len);
 	} else {
 		dmu_buf_t *dbp;
 
-		zfs_mknode(dzp, vap, tx, cr, 0, &zp, 0, &acl_ids);
+		zfs_mknode(dzp, vap, tx, createcr, 0, &zp, 0, &acl_ids);
 
 		if (fuid_dirtied)
 			zfs_fuid_sync(zfsvfs, tx);
@@ -4049,7 +4052,7 @@ top:
 		return (error);
 	}
 
-	error = zfs_link_create(dl, szp, tx, 
+	error = zfs_link_create(dl, szp, tx,
 			((flags & FKEEPPARENT) ? 0 : ZPARENT) |
 			((flags & SLASH2_IGNORE_CTIME) ? ZNEW : 0));
 
@@ -4732,13 +4735,13 @@ zfs_addmap(vnode_t *vp, offset_t off, struct as *as, caddr_t addr,
  * last page is pushed.  The problem occurs when the msync() call is omitted,
  * which by far the most common case:
  *
- * 	open()
- * 	mmap()
- * 	<modify memory>
- * 	munmap()
- * 	close()
- * 	<time lapse>
- * 	putpage() via fsflush
+ *	open()
+ *	mmap()
+ *	<modify memory>
+ *	munmap()
+ *	close()
+ *	<time lapse>
+ *	putpage() via fsflush
  *
  * If we wait until fsflush to come along, we can have a modification time that
  * is some arbitrary point in the future.  In order to prevent this in the
@@ -5035,7 +5038,7 @@ const fs_operation_def_t zfs_dvnodeops_template[] = {
 	VOPNAME_PATHCONF,	{ .vop_pathconf = zfs_pathconf },
 	VOPNAME_GETSECATTR,	{ .vop_getsecattr = zfs_getsecattr },
 	VOPNAME_SETSECATTR,	{ .vop_setsecattr = zfs_setsecattr },
-	VOPNAME_VNEVENT, 	{ .vop_vnevent = fs_vnevent_support },
+	VOPNAME_VNEVENT,	{ .vop_vnevent = fs_vnevent_support },
 	NULL,			NULL
 };
 
