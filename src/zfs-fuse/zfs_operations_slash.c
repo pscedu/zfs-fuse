@@ -2003,7 +2003,7 @@ zfsslash2_mknod(int vfsid, mdsio_fid_t parent, const char *name,
 	if (strlen(name) > MAXNAMELEN)
 		return ENAMETOOLONG;
 
-	if (!(mode & S_IFIFO))
+	if (!S_ISFIFO(mode) && !S_ISSOCK(mode))
 		return EOPNOTSUPP;
 
 	int error = zfs_zget(zfsvfs, parent, &znode, B_FALSE);
@@ -2020,7 +2020,7 @@ zfsslash2_mknod(int vfsid, mdsio_fid_t parent, const char *name,
 
 	vattr_t vattr;
 	memset(&vattr, 0, sizeof(vattr));
-	vattr.va_type = VFIFO;
+	vattr.va_type = S_ISFIFO(mode) ? VFIFO : VSOCK;
 	vattr.va_mode = mode & PERMMASK;
 	vattr.va_mask = AT_TYPE | AT_MODE;
 
