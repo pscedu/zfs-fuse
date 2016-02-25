@@ -43,7 +43,7 @@ extern "C" {
 #undef FUSE_USE_VERSION
 #define FUSE_USE_VERSION 26
 
-#include <fuse/fuse_lowlevel.h>
+#include <fuse_lowlevel.h>
 
 struct cred {
 	uid_t cr_uid; /* effective user id */

@@ -36,7 +36,7 @@
 #include <unistd.h>
 #define FUSE_USE_VERSION 26
 
-#include <fuse/fuse_lowlevel.h>
+#include <fuse_lowlevel.h>
 #include "format.h"
 #include <errno.h>
 #include <syslog.h>
