@@ -415,6 +415,8 @@ static uint64_t		arc_loaned_bytes;
 static uint64_t		arc_meta_used;
 static uint64_t		arc_meta_limit;
 static uint64_t		arc_meta_max = 0;
+static uint64_t		arc_meta_eviction1 = 0;
+static uint64_t		arc_meta_eviction2 = 0;
 
 #define L2ARC_IS_VALID_COMPRESS(_c_) \
     ((_c_) == ZIO_COMPRESS_LZ4 || (_c_) == ZIO_COMPRESS_EMPTY)
@@ -2209,8 +2211,24 @@ arc_adapt(int bytes, arc_state_t *state)
 static int
 arc_evict_needed(arc_buf_contents_t type)
 {
-	if (type == ARC_BUFC_METADATA && arc_meta_used >= arc_meta_limit)
-		return (1);
+	uint64_t delta;
+
+	if (type == ARC_BUFC_METADATA) {
+		if (arc_meta_used >= arc_meta_limit) {
+			arc_meta_eviction1++;
+			fprintf(stderr, "metadata eviction 1\n");
+			return (1);
+		}
+		/*
+ 		 * Metadata allocation must succeed or we die.
+ 		 */
+		delta = arc_meta_limit - arc_meta_used;
+		if (delta >= (arc_c_max - arc_c) / 4) {
+			arc_meta_eviction2++;
+			fprintf(stderr, "metadata eviction 2\n");
+			return (1);
+		}
+	}
 
 #if 0
 	/*
