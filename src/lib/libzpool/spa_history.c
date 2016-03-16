@@ -255,9 +255,9 @@ spa_history_log_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 		VERIFY(nvlist_add_string(nvrecord, ZPOOL_HIST_INT_STR,
 		    history_str) == 0);
 
-		zfs_dbgmsg("internal %s pool:%s txg:%llu %s",
+		zfs_dbgmsg("internal %s pool:%s txg:%"PRIu64" %s",
 		    zfs_history_event_names[hap->ha_event], spa_name(spa),
-		    (longlong_t)tx->tx_txg, history_str);
+		    tx->tx_txg, history_str);
 	}
 
 	VERIFY(nvlist_size(nvrecord, &reclen, NV_ENCODE_XDR) == 0);
@@ -464,12 +464,12 @@ spa_history_log_version(spa_t *spa, history_internal_events_t event)
 
 	if (current_vers >= SPA_VERSION_ZPOOL_HISTORY) {
 		spa_history_log_internal(event, spa, NULL,
-		    "pool spa %llu; zfs spa %llu; zpl %lld; uts %s %s %s %s",
-		    (u_longlong_t)current_vers, SPA_VERSION, ZPL_VERSION,
+		    "pool spa %"PRIu64"; zfs spa %"PRIu64"; zpl %lld; uts %s %s %s %s",
+		    current_vers, SPA_VERSION, ZPL_VERSION,
 		    utsname.nodename, utsname.release, utsname.version,
 		    utsname.machine);
 	}
-	cmn_err(CE_CONT, "!%s version %llu pool %s using %llu",
+	cmn_err(CE_CONT, "!%s version %"PRIu64" pool %s using %"PRIu64,
 	    event == LOG_POOL_IMPORT ? "imported" :
 	    event == LOG_POOL_CREATE ? "created" : "accessed",
 	    (u_longlong_t)current_vers, spa_name(spa), SPA_VERSION);
