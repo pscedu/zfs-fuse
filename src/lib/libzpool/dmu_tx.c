@@ -890,7 +890,7 @@ dmu_tx_dirty_buf(dmu_tx_t *tx, dmu_buf_impl_t *db)
 		if (match_object && match_offset)
 			return;
 	}
-	panic("dirtying dbuf obj=%llx lvl=%u blkid=%llx but not tx_held\n",
+	panic("dirtying dbuf obj=%"PRIx64" lvl=%u blkid=%"PRIx64" but not tx_held\n",
 	    (u_longlong_t)db->db.db_object, db->db_level,
 	    (u_longlong_t)db->db_blkid);
 }

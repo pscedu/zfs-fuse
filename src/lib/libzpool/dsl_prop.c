@@ -770,7 +770,7 @@ dsl_dir_prop_set_uint64_sync(dsl_dir_t *dd, const char *name, uint64_t val,
 	dsl_prop_changed_notify(dd->dd_pool, dd->dd_object, name, val, TRUE);
 
 	spa_history_log_internal(LOG_DS_PROPSET, dd->dd_pool->dp_spa, tx, 
-	    "%s=%llu dataset = %llu", name, (u_longlong_t)val,
+	    "%s=%"PRIu64" dataset = %"PRIu64, name, (u_longlong_t)val,
 	    dd->dd_phys->dd_head_dataset_obj);
 }
 
