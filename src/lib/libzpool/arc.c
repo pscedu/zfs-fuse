@@ -2215,8 +2215,6 @@ arc_evict_needed(arc_buf_contents_t type)
 
 	if (type == ARC_BUFC_METADATA) {
 		if (arc_meta_used >= arc_meta_limit) {
-			if ((arc_meta_eviction1 % 5) == 0)
-				fprintf(stderr, "metadata eviction 1\n");
 			arc_meta_eviction1++;
 			return (1);
 		}
@@ -2225,8 +2223,6 @@ arc_evict_needed(arc_buf_contents_t type)
  		 */
 		delta = arc_meta_limit - arc_meta_used;
 		if (delta >= (arc_c_max - arc_c) / 4) {
-			if ((arc_meta_eviction2 % 3) == 0)
-				fprintf(stderr, "metadata eviction 2\n");
 			arc_meta_eviction2++;
 			return (1);
 		}
