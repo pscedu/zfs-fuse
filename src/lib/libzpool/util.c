@@ -51,7 +51,7 @@ nicenum(uint64_t num, char *buf)
 	u = " KMGTPE"[index];
 
 	if (index == 0) {
-		(void) sprintf(buf, "%llu", (u_longlong_t)n);
+		(void) sprintf(buf, "%"PRIu64, n);
 	} else if (n < 10 && (num & (num - 1)) != 0) {
 		(void) sprintf(buf, "%.2f%c",
 		    (double)num / (1ULL << 10 * index), u);
@@ -59,7 +59,7 @@ nicenum(uint64_t num, char *buf)
 		(void) sprintf(buf, "%.1f%c",
 		    (double)num / (1ULL << 10 * index), u);
 	} else {
-		(void) sprintf(buf, "%llu%c", (u_longlong_t)n, u);
+		(void) sprintf(buf, "%"PRIu64"%c", n, u);
 	}
 }
 
