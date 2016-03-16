@@ -421,7 +421,7 @@ txg_sync_thread(dsl_pool_t *dp)
 		    !tx->tx_exiting && timer > 0 &&
 		    tx->tx_synced_txg >= tx->tx_sync_txg_waiting &&
 		    tx->tx_quiesced_txg == 0) {
-			dprintf("waiting; tx_synced=%llu waiting=%llu dp=%p\n",
+			dprintf("waiting; tx_synced=%"PRIu64" waiting=%"PRIu64" dp=%p\n",
 			    tx->tx_synced_txg, tx->tx_sync_txg_waiting, dp);
 			txg_thread_wait(tx, &cpr, &tx->tx_sync_more_cv, timer);
 			delta = lbolt - start;
@@ -452,7 +452,7 @@ txg_sync_thread(dsl_pool_t *dp)
 		tx->tx_syncing_txg = txg;
 		cv_broadcast(&tx->tx_quiesce_more_cv);
 
-		dprintf("txg=%llu quiesce_txg=%llu sync_txg=%llu\n",
+		dprintf("txg=%"PRIu64" quiesce_txg=%"PRIu64" sync_txg=%"PRIu64"\n",
 		    txg, tx->tx_quiesce_txg_waiting, tx->tx_sync_txg_waiting);
 		mutex_exit(&tx->tx_sync_lock);
 
@@ -499,7 +499,7 @@ txg_quiesce_thread(dsl_pool_t *dp)
 			txg_thread_exit(tx, &cpr, &tx->tx_quiesce_thread);
 
 		txg = tx->tx_open_txg;
-		dprintf("txg=%llu quiesce_txg=%llu sync_txg=%llu\n",
+		dprintf("txg=%"PRIu64" quiesce_txg=%"PRIu64" sync_txg=%"PRIu64"\n",
 		    txg, tx->tx_quiesce_txg_waiting,
 		    tx->tx_sync_txg_waiting);
 		mutex_exit(&tx->tx_sync_lock);
@@ -509,7 +509,7 @@ txg_quiesce_thread(dsl_pool_t *dp)
 		/*
 		 * Hand this txg off to the sync thread.
 		 */
-		dprintf("quiesce done, handing off txg %llu\n", txg);
+		dprintf("quiesce done, handing off txg %"PRIu64"\n", txg);
 		tx->tx_quiesced_txg = txg;
 		cv_broadcast(&tx->tx_sync_more_cv);
 		cv_broadcast(&tx->tx_quiesce_done_cv);
@@ -569,11 +569,11 @@ txg_wait_synced(dsl_pool_t *dp, uint64_t txg)
 		txg = tx->tx_open_txg + TXG_DEFER_SIZE;
 	if (tx->tx_sync_txg_waiting < txg)
 		tx->tx_sync_txg_waiting = txg;
-	dprintf("txg=%llu quiesce_txg=%llu sync_txg=%llu\n",
+	dprintf("txg=%"PRIu64" quiesce_txg=%"PRIu64" sync_txg=%"PRIu64"\n",
 	    txg, tx->tx_quiesce_txg_waiting, tx->tx_sync_txg_waiting);
 	while (tx->tx_synced_txg < txg) {
 		dprintf("broadcasting sync more "
-		    "tx_synced=%llu waiting=%llu dp=%p\n",
+		    "tx_synced=%"PRIu64" waiting=%"PRIu64" dp=%p\n",
 		    tx->tx_synced_txg, tx->tx_sync_txg_waiting, dp);
 		cv_broadcast(&tx->tx_sync_more_cv);
 		cv_wait(&tx->tx_sync_done_cv, &tx->tx_sync_lock);
@@ -592,7 +592,7 @@ txg_wait_open(dsl_pool_t *dp, uint64_t txg)
 		txg = tx->tx_open_txg + 1;
 	if (tx->tx_quiesce_txg_waiting < txg)
 		tx->tx_quiesce_txg_waiting = txg;
-	dprintf("txg=%llu quiesce_txg=%llu sync_txg=%llu\n",
+	dprintf("txg=%"PRIu64" quiesce_txg=%"PRIu64" sync_txg=%"PRIu64"\n",
 	    txg, tx->tx_quiesce_txg_waiting, tx->tx_sync_txg_waiting);
 	while (tx->tx_open_txg < txg) {
 		cv_broadcast(&tx->tx_quiesce_more_cv);
