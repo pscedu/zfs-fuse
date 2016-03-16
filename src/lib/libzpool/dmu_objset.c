@@ -658,7 +658,7 @@ dmu_objset_create_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 	}
 
 	spa_history_log_internal(LOG_DS_CREATE, dd->dd_pool->dp_spa,
-	    tx, "dataset = %llu", dsobj);
+	    tx, "dataset = %"PRIu64, dsobj);
 }
 
 int

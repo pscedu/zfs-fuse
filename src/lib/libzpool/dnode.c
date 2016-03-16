@@ -720,7 +720,7 @@ dnode_setdirty(dnode_t *dn, dmu_tx_t *tx)
 	ASSERT3U(dn->dn_next_bonuslen[txg&TXG_MASK], ==, 0);
 	ASSERT3U(dn->dn_next_blksz[txg&TXG_MASK], ==, 0);
 
-	dprintf_ds(os->os_dsl_dataset, "obj=%llu txg=%llu\n",
+	dprintf_ds(os->os_dsl_dataset, "obj=%"PRIu64" txg=%"PRIu64"\n",
 	    dn->dn_object, txg);
 
 	if (dn->dn_free_txg > 0 && dn->dn_free_txg <= txg) {
@@ -1216,7 +1216,7 @@ void
 dnode_diduse_space(dnode_t *dn, int64_t delta)
 {
 	uint64_t space;
-	dprintf_dnode(dn, "dn=%p dnp=%p used=%llu delta=%lld\n",
+	dprintf_dnode(dn, "dn=%p dnp=%p used=%"PRIu64" delta=%"PRId64"\n",
 	    dn, dn->dn_phys,
 	    (u_longlong_t)dn->dn_phys->dn_used,
 	    (longlong_t)delta);

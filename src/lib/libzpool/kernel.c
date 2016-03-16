@@ -804,7 +804,7 @@ kernel_init(int mode)
 
 	physmem = sysconf(_SC_PHYS_PAGES);
 
-	dprintf("physmem = %llu pages (%.2f GB)\n", physmem,
+	dprintf("physmem = %"PRIu64" pages (%.2f GB)\n", physmem,
 	    (double)physmem * sysconf(_SC_PAGE_SIZE) / (1ULL << 30));
 
 	uname(&utsname);
