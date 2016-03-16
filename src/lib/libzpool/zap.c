@@ -196,7 +196,7 @@ zap_table_grow(zap_t *zap, zap_table_phys_t *tbl,
 
 	tbl->zt_blks_copied++;
 
-	dprintf("copied block %llu of %llu\n",
+	dprintf("copied block %"PRIu64" of %"PRIu64"\n",
 	    tbl->zt_blks_copied, tbl->zt_numblks);
 
 	if (tbl->zt_blks_copied == tbl->zt_numblks) {

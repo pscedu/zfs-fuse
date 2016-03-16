@@ -500,7 +500,7 @@ zap_lockdir(objset_t *os, uint64_t obj, dmu_tx_t *tx,
 	    zap->zap_m.zap_num_entries == zap->zap_m.zap_num_chunks) {
 		uint64_t newsz = db->db_size + SPA_MINBLOCKSIZE;
 		if (newsz > MZAP_MAX_BLKSZ) {
-			dprintf("upgrading obj %llu: num_entries=%u\n",
+			dprintf("upgrading obj %"PRIu64": num_entries=%u\n",
 			    obj, zap->zap_m.zap_num_entries);
 			*zapp = zap;
 			return (mzap_upgrade(zapp, tx, 0));
@@ -558,7 +558,7 @@ mzap_upgrade(zap_t **zapp, dmu_tx_t *tx, zap_flags_t flags)
 		zap_name_t *zn;
 		if (mze->mze_name[0] == 0)
 			continue;
-		dprintf("adding %s=%llu\n",
+		dprintf("adding %s=%"PRIu64"\n",
 		    mze->mze_name, mze->mze_value);
 		zn = zap_name_alloc(zap, mze->mze_name, MT_EXACT);
 		err = fzap_add_cd(zn, 8, 1, &mze->mze_value, mze->mze_cd, tx);
