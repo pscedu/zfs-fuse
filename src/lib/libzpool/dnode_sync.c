@@ -114,7 +114,7 @@ free_blocks(dnode_t *dn, blkptr_t *bp, int num, dmu_tx_t *tx)
 	uint64_t bytesfreed = 0;
 	int i, blocks_freed = 0;
 
-	dprintf("ds=%p obj=%llx num=%d\n", ds, dn->dn_object, num);
+	dprintf("ds=%p obj=%"PRIx64" num=%d\n", ds, dn->dn_object, num);
 
 	for (i = 0; i < num; i++, bp++) {
 		if (BP_IS_HOLE(bp))

@@ -346,7 +346,7 @@ dsl_dir_open_spa(spa_t *spa, const char *name, void *tag,
 		ASSERT(next[0] != '\0');
 		if (next[0] == '@')
 			break;
-		dprintf("looking up %s in obj%lld\n",
+		dprintf("looking up %s in obj%"PRId64"\n",
 		    buf, dd->dd_phys->dd_child_dir_zapobj);
 
 		err = zap_lookup(dp->dp_meta_objset,

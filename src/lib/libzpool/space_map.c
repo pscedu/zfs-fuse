@@ -306,7 +306,7 @@ space_map_load(space_map_t *sm, space_map_ops_t *ops, uint8_t maptype,
 		VERIFY(P2PHASE(size, sizeof (uint64_t)) == 0);
 		VERIFY(size != 0);
 
-		dprintf("object=%llu  offset=%llx  size=%llx\n",
+		dprintf("object=%"PRIu64"  offset=%"PRIx64"  size=%"PRIx64"\n",
 		    smo->smo_object, offset, size);
 
 		mutex_exit(sm->sm_lock);

@@ -209,7 +209,7 @@ zap_table_grow(zap_t *zap, zap_table_phys_t *tbl,
 		tbl->zt_nextblk = 0;
 		tbl->zt_blks_copied = 0;
 
-		dprintf("finished; numblocks now %llu (%lluk entries)\n",
+		dprintf("finished; numblocks now %"PRIu64" (%"PRIu64"k entries)\n",
 		    tbl->zt_numblks, 1<<(tbl->zt_shift-10));
 	}
 
@@ -228,7 +228,7 @@ zap_table_store(zap_t *zap, zap_table_phys_t *tbl, uint64_t idx, uint64_t val,
 	ASSERT(RW_LOCK_HELD(&zap->zap_rwlock));
 	ASSERT(tbl->zt_blk != 0);
 
-	dprintf("storing %llx at index %llx\n", val, idx);
+	dprintf("storing %"PRIx64" at index %"PRIx64"\n", val, idx);
 
 	blk = idx >> (bs-3);
 	off = idx & ((1<<(bs-3))-1);

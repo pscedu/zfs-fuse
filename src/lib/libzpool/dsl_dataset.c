@@ -156,7 +156,7 @@ dsl_dataset_block_kill(dsl_dataset_t *ds, const blkptr_t *bp, dmu_tx_t *tx,
 	if (bp->blk_birth > ds->ds_phys->ds_prev_snap_txg) {
 		int64_t delta;
 
-		dprintf_bp(bp, "freeing ds=%llu", ds->ds_object);
+		dprintf_bp(bp, "freeing ds=%"PRIu64, ds->ds_object);
 
 		dsl_free(tx->tx_pool, tx->tx_txg, bp);
 
@@ -1940,7 +1940,7 @@ dsl_dataset_snapshot_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 	VERIFY(0 == bplist_open(&ds->ds_deadlist, mos,
 	    ds->ds_phys->ds_deadlist_obj));
 
-	dprintf("snap '%s' -> obj %llu\n", snapname, dsobj);
+	dprintf("snap '%s' -> obj %"PRIu64"\n", snapname, dsobj);
 	err = zap_add(mos, ds->ds_phys->ds_snapnames_zapobj,
 	    snapname, 8, 1, &dsobj, tx);
 	ASSERT(err == 0);

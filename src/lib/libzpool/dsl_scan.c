@@ -806,7 +806,7 @@ dsl_scan_visitbp(blkptr_t *bp, const zbookmark_t *zb,
 	scn->scn_visited_this_txg++;
 
 	dprintf_bp(bp,
-	    "visiting ds=%p/%llu zb=%llx/%llx/%llx/%llx buf=%p bp=%p",
+	    "visiting ds=%p/%llu zb=%"PRIx64"/%"PRIx64"/%"PRIx64"/%"PRIx64" buf=%p bp=%p",
 	    ds, ds ? ds->ds_object : 0,
 	    zb->zb_objset, zb->zb_object, zb->zb_level, zb->zb_blkid,
 	    pbuf, bp);
