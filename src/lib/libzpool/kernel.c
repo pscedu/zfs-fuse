@@ -610,7 +610,7 @@ __dprintf(const char *file, const char *func, int line, const char *fmt, ...)
 /*		if (dprintf_find_string("cpu"))
 			(void) printf("%u ", getcpuid());*/
 		if (dprintf_find_string("time"))
-			(void) printf("%llu ", gethrtime());
+			(void) printf("%"PRIu64" ", gethrtime());
 		if (dprintf_find_string("long"))
 			(void) printf("%s, line %d: ", newfile, line);
 		(void) printf("%s: ", func);

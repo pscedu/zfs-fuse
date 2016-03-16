@@ -1585,7 +1585,7 @@ zil_replay_error(zilog_t *zilog, lr_t *lr, int error)
 	dmu_objset_name(zilog->zl_os, name);
 
 	cmn_err(CE_WARN, "ZFS replay transaction error %d, "
-	    "dataset %s, seq 0x%llx, txtype %llu %s\n", error, name,
+	    "dataset %s, seq 0x%llx, txtype %"PRIu64" %s\n", error, name,
 	    (u_longlong_t)lr->lrc_seq,
 	    (u_longlong_t)(lr->lrc_txtype & ~TX_CI),
 	    (lr->lrc_txtype & TX_CI) ? "CI" : "");
