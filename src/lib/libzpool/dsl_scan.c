@@ -94,7 +94,7 @@ dsl_scan_init(dsl_pool_t *dp, uint64_t txg)
 		 */
 		scn->scn_restart_txg = txg;
 		zfs_dbgmsg("old-style scrub was in progress; "
-		    "restarting new-style scrub in txg %llu",
+		    "restarting new-style scrub in txg %"PRIu64"",
 		    scn->scn_restart_txg);
 
 		/*
@@ -124,7 +124,7 @@ dsl_scan_init(dsl_pool_t *dp, uint64_t txg)
 			 */
 			scn->scn_restart_txg = txg;
 			zfs_dbgmsg("new-style scrub was modified "
-			    "by old software; restarting in txg %llu",
+			    "by old software; restarting in txg %"PRIu64"",
 			    scn->scn_restart_txg);
 		}
 	}
@@ -219,7 +219,7 @@ dsl_scan_setup_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 	dsl_scan_sync_state(scn, tx);
 
 	spa_history_log_internal(LOG_POOL_SCAN, spa, tx,
-	    "func=%u mintxg=%llu maxtxg=%llu",
+	    "func=%u mintxg=%"PRIu64" maxtxg=%"PRIu64"",
 	    *funcp, scn->scn_phys.scn_min_txg, scn->scn_phys.scn_max_txg);
 }
 
@@ -806,7 +806,7 @@ dsl_scan_visitbp(blkptr_t *bp, const zbookmark_t *zb,
 	scn->scn_visited_this_txg++;
 
 	dprintf_bp(bp,
-	    "visiting ds=%p/%llu zb=%"PRIx64"/%"PRIx64"/%"PRIx64"/%"PRIx64" buf=%p bp=%p",
+	    "visiting ds=%p/%"PRIu64" zb=%"PRIx64"/%"PRIx64"/%"PRIx64"/%"PRIx64" buf=%p bp=%p",
 	    ds, ds ? ds->ds_object : 0,
 	    zb->zb_objset, zb->zb_object, zb->zb_level, zb->zb_blkid,
 	    pbuf, bp);
@@ -888,15 +888,15 @@ dsl_scan_ds_destroyed(dsl_dataset_t *ds, dmu_tx_t *tx)
 			/* Note, scn_cur_{min,max}_txg stays the same. */
 			scn->scn_phys.scn_bookmark.zb_objset =
 			    ds->ds_phys->ds_next_snap_obj;
-			zfs_dbgmsg("destroying ds %llu; currently traversing; "
-			    "reset zb_objset to %llu",
+			zfs_dbgmsg("destroying ds %"PRIu64"; currently traversing; "
+			    "reset zb_objset to %"PRIu64"",
 			    (u_longlong_t)ds->ds_object,
 			    (u_longlong_t)ds->ds_phys->ds_next_snap_obj);
 			scn->scn_phys.scn_flags |= DSF_VISIT_DS_AGAIN;
 		} else {
 			SET_BOOKMARK(&scn->scn_phys.scn_bookmark,
 			    ZB_DESTROYED_OBJSET, 0, 0, 0);
-			zfs_dbgmsg("destroying ds %llu; currently traversing; "
+			zfs_dbgmsg("destroying ds %"PRIu64"; currently traversing; "
 			    "reset bookmark to -1,0,0,0",
 			    (u_longlong_t)ds->ds_object);
 		}
@@ -914,16 +914,16 @@ dsl_scan_ds_destroyed(dsl_dataset_t *ds, dmu_tx_t *tx)
 			VERIFY(zap_add_int_key(dp->dp_meta_objset,
 			    scn->scn_phys.scn_queue_obj,
 			    ds->ds_phys->ds_next_snap_obj, mintxg, tx) == 0);
-			zfs_dbgmsg("destroying ds %llu; in queue; "
-			    "replacing with %llu",
+			zfs_dbgmsg("destroying ds %"PRIu64"; in queue; "
+			    "replacing with %"PRIu64"",
 			    (u_longlong_t)ds->ds_object,
 			    (u_longlong_t)ds->ds_phys->ds_next_snap_obj);
 		} else {
-			zfs_dbgmsg("destroying ds %llu; in queue; removing",
+			zfs_dbgmsg("destroying ds %"PRIu64"; in queue; removing",
 			    (u_longlong_t)ds->ds_object);
 		}
 	} else {
-		zfs_dbgmsg("destroying ds %llu; ignoring",
+		zfs_dbgmsg("destroying ds %"PRIu64"; ignoring",
 		    (u_longlong_t)ds->ds_object);
 	}
 
@@ -949,8 +949,8 @@ dsl_scan_ds_snapshotted(dsl_dataset_t *ds, dmu_tx_t *tx)
 	if (scn->scn_phys.scn_bookmark.zb_objset == ds->ds_object) {
 		scn->scn_phys.scn_bookmark.zb_objset =
 		    ds->ds_phys->ds_prev_snap_obj;
-		zfs_dbgmsg("snapshotting ds %llu; currently traversing; "
-		    "reset zb_objset to %llu",
+		zfs_dbgmsg("snapshotting ds %"PRIu64"; currently traversing; "
+		    "reset zb_objset to %"PRIu64"",
 		    (u_longlong_t)ds->ds_object,
 		    (u_longlong_t)ds->ds_phys->ds_prev_snap_obj);
 	} else if (zap_lookup_int_key(dp->dp_meta_objset,
@@ -960,8 +960,8 @@ dsl_scan_ds_snapshotted(dsl_dataset_t *ds, dmu_tx_t *tx)
 		VERIFY(zap_add_int_key(dp->dp_meta_objset,
 		    scn->scn_phys.scn_queue_obj,
 		    ds->ds_phys->ds_prev_snap_obj, mintxg, tx) == 0);
-		zfs_dbgmsg("snapshotting ds %llu; in queue; "
-		    "replacing with %llu",
+		zfs_dbgmsg("snapshotting ds %"PRIu64"; in queue; "
+		    "replacing with %"PRIu64"",
 		    (u_longlong_t)ds->ds_object,
 		    (u_longlong_t)ds->ds_phys->ds_prev_snap_obj);
 	}
@@ -980,14 +980,14 @@ dsl_scan_ds_clone_swapped(dsl_dataset_t *ds1, dsl_dataset_t *ds2, dmu_tx_t *tx)
 
 	if (scn->scn_phys.scn_bookmark.zb_objset == ds1->ds_object) {
 		scn->scn_phys.scn_bookmark.zb_objset = ds2->ds_object;
-		zfs_dbgmsg("clone_swap ds %llu; currently traversing; "
-		    "reset zb_objset to %llu",
+		zfs_dbgmsg("clone_swap ds %"PRIu64"; currently traversing; "
+		    "reset zb_objset to %"PRIu64"",
 		    (u_longlong_t)ds1->ds_object,
 		    (u_longlong_t)ds2->ds_object);
 	} else if (scn->scn_phys.scn_bookmark.zb_objset == ds2->ds_object) {
 		scn->scn_phys.scn_bookmark.zb_objset = ds1->ds_object;
-		zfs_dbgmsg("clone_swap ds %llu; currently traversing; "
-		    "reset zb_objset to %llu",
+		zfs_dbgmsg("clone_swap ds %"PRIu64"; currently traversing; "
+		    "reset zb_objset to %"PRIu64"",
 		    (u_longlong_t)ds2->ds_object,
 		    (u_longlong_t)ds1->ds_object);
 	}
@@ -1009,8 +1009,8 @@ dsl_scan_ds_clone_swapped(dsl_dataset_t *ds1, dsl_dataset_t *ds2, dmu_tx_t *tx)
 			    scn->scn_phys.scn_queue_obj,
 			    ds1->ds_object, mintxg, tx));
 		}
-		zfs_dbgmsg("clone_swap ds %llu; in queue; "
-		    "replacing with %llu",
+		zfs_dbgmsg("clone_swap ds %"PRIu64"; in queue; "
+		    "replacing with %"PRIu64"",
 		    (u_longlong_t)ds1->ds_object,
 		    (u_longlong_t)ds2->ds_object);
 	} else if (zap_lookup_int_key(dp->dp_meta_objset,
@@ -1021,8 +1021,8 @@ dsl_scan_ds_clone_swapped(dsl_dataset_t *ds1, dsl_dataset_t *ds2, dmu_tx_t *tx)
 		    scn->scn_phys.scn_queue_obj, ds2->ds_object, tx));
 		VERIFY(0 == zap_add_int_key(dp->dp_meta_objset,
 		    scn->scn_phys.scn_queue_obj, ds1->ds_object, mintxg, tx));
-		zfs_dbgmsg("clone_swap ds %llu; in queue; "
-		    "replacing with %llu",
+		zfs_dbgmsg("clone_swap ds %"PRIu64"; in queue; "
+		    "replacing with %"PRIu64"",
 		    (u_longlong_t)ds2->ds_object,
 		    (u_longlong_t)ds1->ds_object);
 	}
@@ -1084,7 +1084,7 @@ dsl_scan_visitds(dsl_scan_t *scn, uint64_t dsobj, dmu_tx_t *tx)
 
 	char *dsname = kmem_alloc(ZFS_MAXNAMELEN, KM_SLEEP);
 	dsl_dataset_name(ds, dsname);
-	zfs_dbgmsg("scanned dataset %llu (%s) with min=%llu max=%llu; "
+	zfs_dbgmsg("scanned dataset %"PRIu64" (%s) with min=%"PRIu64" max=%"PRIu64"; "
 	    "pausing=%u",
 	    (longlong_t)dsobj, dsname,
 	    (longlong_t)scn->scn_phys.scn_cur_min_txg,
@@ -1243,7 +1243,7 @@ dsl_scan_ddt(dsl_scan_t *scn, dmu_tx_t *tx)
 
 		if (ddb->ddb_class > scn->scn_phys.scn_ddt_class_max)
 			break;
-		dprintf("visiting ddb=%llu/%llu/%llu/%llx\n",
+		dprintf("visiting ddb=%"PRIu64"/%"PRIu64"/%"PRIu64"/%llx\n",
 		    (longlong_t)ddb->ddb_class,
 		    (longlong_t)ddb->ddb_type,
 		    (longlong_t)ddb->ddb_checksum,
@@ -1260,7 +1260,7 @@ dsl_scan_ddt(dsl_scan_t *scn, dmu_tx_t *tx)
 			break;
 	}
 
-	zfs_dbgmsg("scanned %llu ddt entries with class_max = %u; pausing=%u",
+	zfs_dbgmsg("scanned %"PRIu64" ddt entries with class_max = %u; pausing=%u",
 	    (longlong_t)n, (int)scn->scn_phys.scn_ddt_class_max,
 	    (int)scn->scn_pausing);
 
@@ -1397,7 +1397,7 @@ dsl_scan_sync(dsl_pool_t *dp, dmu_tx_t *tx)
 		dsl_scan_done(scn, B_FALSE, tx);
 		if (vdev_resilver_needed(spa->spa_root_vdev, NULL, NULL))
 			func = POOL_SCAN_RESILVER;
-		zfs_dbgmsg("restarting scan func=%u txg=%llu",
+		zfs_dbgmsg("restarting scan func=%u txg=%"PRIu64"",
 		    func, tx->tx_txg);
 		dsl_scan_setup_sync(scn, &func, tx);
 	}
@@ -1415,8 +1415,8 @@ dsl_scan_sync(dsl_pool_t *dp, dmu_tx_t *tx)
 
 	if (scn->scn_phys.scn_ddt_bookmark.ddb_class <=
 	    scn->scn_phys.scn_ddt_class_max) {
-		zfs_dbgmsg("doing scan sync txg %llu; "
-		    "ddt bm=%llu/%llu/%llu/%llx",
+		zfs_dbgmsg("doing scan sync txg %"PRIu64"; "
+		    "ddt bm=%"PRIu64"/%"PRIu64"/%"PRIu64"/%llx",
 		    (longlong_t)tx->tx_txg,
 		    (longlong_t)scn->scn_phys.scn_ddt_bookmark.ddb_class,
 		    (longlong_t)scn->scn_phys.scn_ddt_bookmark.ddb_type,
@@ -1427,7 +1427,7 @@ dsl_scan_sync(dsl_pool_t *dp, dmu_tx_t *tx)
 		ASSERT(scn->scn_phys.scn_bookmark.zb_level == 0);
 		ASSERT(scn->scn_phys.scn_bookmark.zb_blkid == 0);
 	} else {
-		zfs_dbgmsg("doing scan sync txg %llu; bm=%llu/%llu/%llu/%llu",
+		zfs_dbgmsg("doing scan sync txg %"PRIu64"; bm=%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIu64"",
 		    (longlong_t)tx->tx_txg,
 		    (longlong_t)scn->scn_phys.scn_bookmark.zb_objset,
 		    (longlong_t)scn->scn_phys.scn_bookmark.zb_object,
@@ -1441,13 +1441,13 @@ dsl_scan_sync(dsl_pool_t *dp, dmu_tx_t *tx)
 	(void) zio_wait(scn->scn_prefetch_zio_root);
 	scn->scn_prefetch_zio_root = NULL;
 
-	zfs_dbgmsg("visited %llu blocks in %llums",
+	zfs_dbgmsg("visited %"PRIu64" blocks in %"PRIu64"ms",
 	    (longlong_t)scn->scn_visited_this_txg,
 	    (longlong_t)(gethrtime() - scn->scn_sync_start_time) / MICROSEC);
 
 	if (!scn->scn_pausing) {
 		/* finished with scan. */
-		zfs_dbgmsg("finished scan txg %llu", (longlong_t)tx->tx_txg);
+		zfs_dbgmsg("finished scan txg %"PRIu64"", (longlong_t)tx->tx_txg);
 		dsl_scan_done(scn, B_TRUE, tx);
 	}
 
@@ -1480,7 +1480,7 @@ dsl_resilver_restart(dsl_pool_t *dp, uint64_t txg)
 	} else {
 		dp->dp_scan->scn_restart_txg = txg;
 	}
-	zfs_dbgmsg("restarting resilver txg=%llu", txg);
+	zfs_dbgmsg("restarting resilver txg=%"PRIu64"", txg);
 }
 
 boolean_t
