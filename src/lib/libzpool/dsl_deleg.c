@@ -184,7 +184,7 @@ dsl_deleg_set_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 			    perm, 8, 1, &n, tx) == 0);
 			spa_history_log_internal(LOG_DS_PERM_UPDATE,
 			    dd->dd_pool->dp_spa, tx,
-			    "%s %s dataset = %llu", whokey, perm,
+			    "%s %s dataset = %"PRIu64, whokey, perm,
 			    dd->dd_phys->dd_head_dataset_obj);
 		}
 	}
@@ -216,7 +216,7 @@ dsl_deleg_unset_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 			}
 			spa_history_log_internal(LOG_DS_PERM_WHO_REMOVE,
 			    dd->dd_pool->dp_spa, tx,
-			    "%s dataset = %llu", whokey,
+			    "%s dataset = %"PRIu64, whokey,
 			    dd->dd_phys->dd_head_dataset_obj);
 			continue;
 		}
@@ -237,7 +237,7 @@ dsl_deleg_unset_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 			}
 			spa_history_log_internal(LOG_DS_PERM_REMOVE,
 			    dd->dd_pool->dp_spa, tx,
-			    "%s %s dataset = %llu", whokey, perm,
+			    "%s %s dataset = %"PRIu64, whokey, perm,
 			    dd->dd_phys->dd_head_dataset_obj);
 		}
 	}

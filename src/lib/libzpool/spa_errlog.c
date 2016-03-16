@@ -59,7 +59,7 @@
 static void
 bookmark_to_name(zbookmark_t *zb, char *buf, size_t len)
 {
-	(void) snprintf(buf, len, "%llx:%llx:%llx:%llx",
+	(void) snprintf(buf, len, "%"PRIx64":%"PRIx64":%"PRIx64":%"PRIx64,
 	    (u_longlong_t)zb->zb_objset, (u_longlong_t)zb->zb_object,
 	    (u_longlong_t)zb->zb_level, (u_longlong_t)zb->zb_blkid);
 }
