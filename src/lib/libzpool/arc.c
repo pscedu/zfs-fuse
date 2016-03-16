@@ -1711,8 +1711,8 @@ arc_evict(arc_state_t *state, uint64_t spa, int64_t bytes, boolean_t recycle,
 	mutex_exit(&state->arcs_mtx);
 
 	if (bytes_evicted < bytes)
-		dprintf("only evicted %lld bytes from %x",
-		    (longlong_t)bytes_evicted, state);
+		dprintf("only evicted %lld bytes from %llx",
+		    (longlong_t)bytes_evicted, (longlong_t)state);
 
 	if (skipped)
 		ARCSTAT_INCR(arcstat_evict_skip, skipped);
@@ -3471,8 +3471,8 @@ arc_tempreserve_space(uint64_t reserve, uint64_t txg)
 
 	if (reserve + arc_tempreserve + anon_size > arc_c / 2 &&
 	    anon_size > arc_c / 4) {
-		dprintf("failing, arc_tempreserve=%lluK anon_meta=%lluK "
-		    "anon_data=%lluK tempreserve=%lluK arc_c=%lluK\n",
+		dprintf("failing, arc_tempreserve=%luK anon_meta=%luK "
+		    "anon_data=%luK tempreserve=%luK arc_c=%luK\n",
 		    arc_tempreserve>>10,
 		    arc_anon->arcs_lsize[ARC_BUFC_METADATA]>>10,
 		    arc_anon->arcs_lsize[ARC_BUFC_DATA]>>10,
