@@ -414,7 +414,7 @@ space_map_sync(space_map_t *sm, uint8_t maptype,
 	if (sm->sm_space == 0)
 		return;
 
-	dprintf("object %4"PRIu64", txg %"PRIu64", pass %d, %c, count %lu, space %llx\n",
+	dprintf("object %4"PRIu64", txg %"PRIu64", pass %d, %c, count %lu, space %"PRIx64"\n",
 	    smo->smo_object, dmu_tx_get_txg(tx), spa_sync_pass(spa),
 	    maptype == SM_ALLOC ? 'A' : 'F', avl_numnodes(&sm->sm_root),
 	    sm->sm_space);

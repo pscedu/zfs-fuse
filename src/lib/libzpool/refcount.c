@@ -178,7 +178,7 @@ refcount_remove_many(refcount_t *rc, uint64_t number, const void *holder)
 			return (count);
 		}
 	}
-	panic("No such hold %p on refcount %llx", holder,
+	panic("No such hold %p on refcount %"PRIx64, holder,
 	    (u_longlong_t)(uintptr_t)rc);
 	return (-1);
 }
