@@ -1711,8 +1711,8 @@ arc_evict(arc_state_t *state, uint64_t spa, int64_t bytes, boolean_t recycle,
 	mutex_exit(&state->arcs_mtx);
 
 	if (bytes_evicted < bytes)
-		dprintf("only evicted %lld bytes from %llx",
-		    (longlong_t)bytes_evicted, (longlong_t)state);
+		dprintf("only evicted %"PRIu64" bytes from %"PRIx64,
+		    bytes_evicted, (uint64_t)state);
 
 	if (skipped)
 		ARCSTAT_INCR(arcstat_evict_skip, skipped);

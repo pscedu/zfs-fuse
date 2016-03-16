@@ -1015,7 +1015,7 @@ dbuf_dirty(dmu_buf_impl_t *db, dmu_tx_t *tx)
 	    os->os_dsl_dataset == NULL || BP_IS_HOLE(os->os_rootbp));
 	ASSERT(db->db.db_size != 0);
 
-	dprintf_dbuf(db, "size=%llx\n", (u_longlong_t)db->db.db_size);
+	dprintf_dbuf(db, "size=%"PRIx64"\n", db->db.db_size);
 
 	if (db->db_blkid != DB_BONUS_BLKID) {
 		/*
@@ -1211,7 +1211,7 @@ dbuf_undirty(dmu_buf_impl_t *db, dmu_tx_t *tx)
 		return (0);
 	}
 
-	dprintf_dbuf(db, "size=%llx\n", (u_longlong_t)db->db.db_size);
+	dprintf_dbuf(db, "size=%"PRIx64"\n", db->db.db_size);
 
 	ASSERT(db->db.db_size != 0);
 

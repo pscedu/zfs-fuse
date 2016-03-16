@@ -471,14 +471,14 @@ dsl_scan_check_pause(dsl_scan_t *scn, const zbookmark_t *zb)
 	    txg_sync_waiting(scn->scn_dp)) ||
 	    spa_shutting_down(scn->scn_dp->dp_spa)) {
 		if (zb) {
-			dprintf("pausing at bookmark %llx/%llx/%llx/%llx\n",
+			dprintf("pausing at bookmark %"PRIx64"/%"PRIx64"/%"PRIx64"/%"PRIx64"\n",
 			    (longlong_t)zb->zb_objset,
 			    (longlong_t)zb->zb_object,
 			    (longlong_t)zb->zb_level,
 			    (longlong_t)zb->zb_blkid);
 			scn->scn_phys.scn_bookmark = *zb;
 		}
-		dprintf("pausing at DDT bookmark %llx/%llx/%llx/%llx\n",
+		dprintf("pausing at DDT bookmark %"PRIx64"/%"PRIx64"/%"PRIx64"/%"PRIx64"\n",
 		    (longlong_t)scn->scn_phys.scn_ddt_bookmark.ddb_class,
 		    (longlong_t)scn->scn_phys.scn_ddt_bookmark.ddb_type,
 		    (longlong_t)scn->scn_phys.scn_ddt_bookmark.ddb_checksum,
@@ -628,7 +628,7 @@ dsl_scan_check_resume(dsl_scan_t *scn, const dnode_phys_t *dnp,
 		 */
 		if (bcmp(zb, &scn->scn_phys.scn_bookmark, sizeof (*zb)) == 0 ||
 		    zb->zb_object > scn->scn_phys.scn_bookmark.zb_object) {
-			dprintf("resuming at %llx/%llx/%llx/%llx\n",
+			dprintf("resuming at %"PRIx64"/%"PRIx64"/%"PRIx64"/%"PRIx64"\n",
 			    (longlong_t)zb->zb_objset,
 			    (longlong_t)zb->zb_object,
 			    (longlong_t)zb->zb_level,
@@ -1243,7 +1243,7 @@ dsl_scan_ddt(dsl_scan_t *scn, dmu_tx_t *tx)
 
 		if (ddb->ddb_class > scn->scn_phys.scn_ddt_class_max)
 			break;
-		dprintf("visiting ddb=%"PRIu64"/%"PRIu64"/%"PRIu64"/%llx\n",
+		dprintf("visiting ddb=%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIx64"\n",
 		    (longlong_t)ddb->ddb_class,
 		    (longlong_t)ddb->ddb_type,
 		    (longlong_t)ddb->ddb_checksum,
@@ -1416,7 +1416,7 @@ dsl_scan_sync(dsl_pool_t *dp, dmu_tx_t *tx)
 	if (scn->scn_phys.scn_ddt_bookmark.ddb_class <=
 	    scn->scn_phys.scn_ddt_class_max) {
 		zfs_dbgmsg("doing scan sync txg %"PRIu64"; "
-		    "ddt bm=%"PRIu64"/%"PRIu64"/%"PRIu64"/%llx",
+		    "ddt bm=%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIx64,
 		    (longlong_t)tx->tx_txg,
 		    (longlong_t)scn->scn_phys.scn_ddt_bookmark.ddb_class,
 		    (longlong_t)scn->scn_phys.scn_ddt_bookmark.ddb_type,
