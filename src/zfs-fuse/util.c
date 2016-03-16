@@ -43,9 +43,7 @@
 
 #include "cmd_listener.h"
 
-#ifdef ZFS_SLASHLIB
-#include "zfs_slashlib.h"
-#else
+#ifndef ZFS_SLASHLIB
 #include "fuse_listener.h"
 
 #include "fuse.h"

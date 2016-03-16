@@ -75,7 +75,7 @@ if not (('-DDEBUG' in env['CCFLAGS']) or
 env.Append(CCFLAGS = Split(ARGUMENTS.get('DEFINES', '')))
 
 env.Append(CPPPATH = [os.path.abspath(rootdir)])
-env.Append(CPPPATH = [os.path.abspath(rootdir + '/pfl/include')])
+env.Append(CPPPATH = [os.path.abspath(rootdir + '/zfs-fuse/src/zfs-fuse')])
 env.Append(CPPPATH = [os.path.abspath(rootdir + '/slash2/include')])
 env.Append(CPPPATH = [os.path.abspath(rootdir + '/slash2')])
 

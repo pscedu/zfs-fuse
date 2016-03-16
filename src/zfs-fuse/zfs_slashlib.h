@@ -7,6 +7,10 @@
 
 #include <stdint.h>
 
+#define PFL_USE_SYSTEM_STRERROR
+
+#include "pfl/err.h"
+
 #include "fid.h"
 #include "slashd/mdsio.h"
 

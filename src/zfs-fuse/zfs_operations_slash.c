@@ -53,9 +53,9 @@
 
 #include <umem.h>
 
-#include "pfl/fs.h"
-
 #include "zfs_slashlib.h"
+
+#include "pfl/fs.h"
 
 #include "creds.h"
 #include "fid.h"

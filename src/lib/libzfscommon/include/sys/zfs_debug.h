@@ -57,7 +57,9 @@ extern int zfs_flags;
 extern void __dprintf(const char *file, const char *func,
     int line, const char *fmt, ...);
 
-# if _SLASHLIB
+#ifdef ZFS_SLASHLIB
+
+#include "zfs_slashlib.h"
 
 #include "pfl/log.h"
 

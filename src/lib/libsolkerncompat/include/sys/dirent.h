@@ -49,6 +49,8 @@ typedef struct dirent {
 	char		d_name[1];	/* name of file */
 } dirent_t;
 
+#include "zfs_slashlib.h"
+
 #include "fid.h"
 
 typedef struct slash_dentry {
