@@ -1029,7 +1029,7 @@ zap_add_int(objset_t *os, uint64_t obj, uint64_t value, dmu_tx_t *tx)
 {
 	char name[20];
 
-	(void) snprintf(name, sizeof (name), "%llx", (longlong_t)value);
+	(void) snprintf(name, sizeof (name), "%"PRIx64, value);
 	return (zap_add(os, obj, name, 8, 1, &value, tx));
 }
 
@@ -1038,7 +1038,7 @@ zap_remove_int(objset_t *os, uint64_t obj, uint64_t value, dmu_tx_t *tx)
 {
 	char name[20];
 
-	(void) snprintf(name, sizeof (name), "%llx", (longlong_t)value);
+	(void) snprintf(name, sizeof (name), "%"PRIx64, value);
 	return (zap_remove(os, obj, name, tx));
 }
 
@@ -1047,7 +1047,7 @@ zap_lookup_int(objset_t *os, uint64_t obj, uint64_t value)
 {
 	char name[20];
 
-	(void) snprintf(name, sizeof (name), "%llx", (longlong_t)value);
+	(void) snprintf(name, sizeof (name), "%"PRIx64, value);
 	return (zap_lookup(os, obj, name, 8, 1, &value));
 }
 
@@ -1057,7 +1057,7 @@ zap_add_int_key(objset_t *os, uint64_t obj,
 {
 	char name[20];
 
-	(void) snprintf(name, sizeof (name), "%llx", (longlong_t)key);
+	(void) snprintf(name, sizeof (name), "%"PRIx64, key);
 	return (zap_add(os, obj, name, 8, 1, &value, tx));
 }
 
@@ -1066,7 +1066,7 @@ zap_lookup_int_key(objset_t *os, uint64_t obj, uint64_t key, uint64_t *valuep)
 {
 	char name[20];
 
-	(void) snprintf(name, sizeof (name), "%llx", (longlong_t)key);
+	(void) snprintf(name, sizeof (name), "%"PRIx64, key);
 	return (zap_lookup(os, obj, name, 8, 1, valuep));
 }
 
@@ -1097,7 +1097,7 @@ zap_increment_int(objset_t *os, uint64_t obj, uint64_t key, int64_t delta,
 {
 	char name[20];
 
-	(void) snprintf(name, sizeof (name), "%llx", (longlong_t)key);
+	(void) snprintf(name, sizeof (name), "%"PRIx64"", key);
 	return (zap_increment(os, obj, name, delta, tx));
 }
 
