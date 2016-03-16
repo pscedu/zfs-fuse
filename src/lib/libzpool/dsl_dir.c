@@ -1178,7 +1178,7 @@ dsl_dir_set_reservation_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 	mutex_exit(&dd->dd_lock);
 
 	spa_history_log_internal(LOG_DS_RESERVATION, dd->dd_pool->dp_spa,
-	    tx, "%lld dataset = %llu",
+	    tx, "%"PRId64" dataset = %"PRIu64,
 	    (longlong_t)effective_value, dd->dd_phys->dd_head_dataset_obj);
 }
 
@@ -1343,7 +1343,7 @@ dsl_dir_rename_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 	ASSERT3U(err, ==, 0);
 
 	spa_history_log_internal(LOG_DS_RENAME, dd->dd_pool->dp_spa,
-	    tx, "dataset = %llu", dd->dd_phys->dd_head_dataset_obj);
+	    tx, "dataset = %"PRIu64, dd->dd_phys->dd_head_dataset_obj);
 }
 
 int
