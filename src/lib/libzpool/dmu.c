@@ -212,11 +212,11 @@ dmu_buf_hold_array_by_dnode(dnode_t *dn, uint64_t offset, uint64_t length,
 	} else {
 		if (offset + length > dn->dn_datablksz) {
 			zfs_panic_recover("zfs: accessing past end of object "
-			    "%llx/%llx (size=%u access=%llu+%llu)",
-			    (longlong_t)dn->dn_objset->
+			    "%"PRIx64"/%"PRIx64" (size=%u access=%"PRIu64"+%"PRIu64")",
+			    dn->dn_objset->
 			    os_dsl_dataset->ds_object,
-			    (longlong_t)dn->dn_object, dn->dn_datablksz,
-			    (longlong_t)offset, (longlong_t)length);
+			    dn->dn_object, dn->dn_datablksz,
+			    offset, length);
 			rw_exit(&dn->dn_struct_rwlock);
 			return (EIO);
 		}
