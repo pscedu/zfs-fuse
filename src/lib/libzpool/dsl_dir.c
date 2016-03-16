@@ -590,7 +590,7 @@ dsl_dir_sync(dsl_dir_t *dd, dmu_tx_t *tx)
 
 	mutex_enter(&dd->dd_lock);
 	ASSERT3U(dd->dd_tempreserved[tx->tx_txg&TXG_MASK], ==, 0);
-	dprintf_dd(dd, "txg=%llu towrite=%lluK\n", tx->tx_txg,
+	dprintf_dd(dd, "txg=%"PRIu64" towrite=%"PRIu64"\n", tx->tx_txg,
 	    dd->dd_space_towrite[tx->tx_txg&TXG_MASK] / 1024);
 	dd->dd_space_towrite[tx->tx_txg&TXG_MASK] = 0;
 	mutex_exit(&dd->dd_lock);
@@ -772,8 +772,8 @@ dsl_dir_tempreserve_impl(dsl_dir_t *dd, uint64_t asize, boolean_t netfree,
 		if (est_inflight > 0 || used_on_disk < quota ||
 		    (retval == ENOSPC && used_on_disk < quota + deferred))
 			retval = ERESTART;
-		dprintf_dd(dd, "failing: used=%lluK inflight = %lluK "
-		    "quota=%lluK tr=%lluK err=%d\n",
+		dprintf_dd(dd, "failing: used=%"PRIu64"K inflight = %"PRIu64"K "
+		    "quota=%"PRIu64"K tr=%"PRIu64"K err=%d\n",
 		    used_on_disk>>10, est_inflight>>10,
 		    quota>>10, asize>>10, retval);
 		mutex_exit(&dd->dd_lock);

@@ -732,7 +732,7 @@ dbuf_free_range(dnode_t *dn, uint64_t start, uint64_t end, dmu_tx_t *tx)
 		end = dn->dn_maxblkid;
 		last_l1 = end >> epbs;
 	}
-	dprintf_dnode(dn, "start=%llu end=%llu\n", start, end);
+	dprintf_dnode(dn, "start=%"PRIu64" end=%"PRIu64"\n", start, end);
 	mutex_enter(&dn->dn_dbufs_mtx);
 	for (db = list_head(&dn->dn_dbufs); db; db = db_next) {
 		db_next = list_next(&dn->dn_dbufs, db);

@@ -970,7 +970,7 @@ dmu_objset_sync(objset_t *os, zio_t *pio, dmu_tx_t *tx)
 	list_t *newlist = NULL;
 	dbuf_dirty_record_t *dr;
 
-	dprintf_ds(os->os_dsl_dataset, "txg=%llu\n", tx->tx_txg);
+	dprintf_ds(os->os_dsl_dataset, "txg=%"PRIu64"\n", tx->tx_txg);
 
 	ASSERT(dmu_tx_is_syncing(tx));
 	/* XXX the write_done callback should really give us the tx... */

@@ -840,7 +840,7 @@ dmu_tx_dirty_buf(dmu_tx_t *tx, dmu_buf_impl_t *db)
 
 			/* XXX txh_arg2 better not be zero... */
 
-			dprintf("found txh type %x beginblk=%llx endblk=%llx\n",
+			dprintf("found txh type %x beginblk=%"PRIx64" endblk=%"PRIx64"\n",
 			    txh->txh_type, beginblk, endblk);
 
 			switch (txh->txh_type) {
@@ -1203,7 +1203,7 @@ dmu_tx_commit(dmu_tx_t *tx)
 	list_destroy(&tx->tx_callbacks);
 	list_destroy(&tx->tx_holds);
 #ifdef ZFS_DEBUG
-	dprintf("towrite=%llu written=%llu tofree=%llu freed=%llu\n",
+	dprintf("towrite=%"PRIu64" written=%"PRIu64" tofree=%"PRIu64" freed=%"PRIu64"\n",
 	    tx->tx_space_towrite, refcount_count(&tx->tx_space_written),
 	    tx->tx_space_tofree, refcount_count(&tx->tx_space_freed));
 	refcount_destroy_many(&tx->tx_space_written,

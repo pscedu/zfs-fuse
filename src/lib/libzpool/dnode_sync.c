@@ -53,7 +53,7 @@ dnode_increase_indirection(dnode_t *dn, dmu_tx_t *tx)
 	ASSERT(db != NULL);
 
 	dn->dn_phys->dn_nlevels = new_level;
-	dprintf("os=%p obj=%llu, increase to %d\n", dn->dn_objset,
+	dprintf("os=%p obj=%"PRIu64", increase to %d\n", dn->dn_objset,
 	    dn->dn_object, dn->dn_phys->dn_nlevels);
 
 	/* check for existing blkptrs in the dnode */

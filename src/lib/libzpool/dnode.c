@@ -359,7 +359,7 @@ dnode_allocate(dnode_t *dn, dmu_object_type_t ot, int blocksize, int ibs,
 
 	ibs = MIN(MAX(ibs, DN_MIN_INDBLKSHIFT), DN_MAX_INDBLKSHIFT);
 
-	dprintf("os=%p obj=%llu txg=%llu blocksize=%d ibs=%d\n", dn->dn_objset,
+	dprintf("os=%p obj=%"PRIu64" txg=%"PRIu64" blocksize=%d ibs=%d\n", dn->dn_objset,
 	    dn->dn_object, tx->tx_txg, blocksize, ibs);
 
 	ASSERT(dn->dn_type == DMU_OT_NONE);
@@ -752,7 +752,7 @@ dnode_free(dnode_t *dn, dmu_tx_t *tx)
 {
 	int txgoff = tx->tx_txg & TXG_MASK;
 
-	dprintf("dn=%p txg=%llu\n", dn, tx->tx_txg);
+	dprintf("dn=%p txg=%"PRIu64"\n", dn, tx->tx_txg);
 
 	/* we should be the only holder... hopefully */
 	/* ASSERT3U(refcount_count(&dn->dn_holds), ==, 1); */
@@ -943,7 +943,7 @@ dnode_clear_range(dnode_t *dn, uint64_t blkid, uint64_t nblks, dmu_tx_t *tx)
 	ASSERT(MUTEX_HELD(&dn->dn_mtx));
 	ASSERT(nblks <= UINT64_MAX - blkid); /* no overflow */
 
-	dprintf_dnode(dn, "blkid=%llu nblks=%llu txg=%llu\n",
+	dprintf_dnode(dn, "blkid=%"PRIu64" nblks=%"PRIu64" txg=%"PRIu64"\n",
 	    blkid, nblks, tx->tx_txg);
 	rp_tofind.fr_blkid = blkid;
 	rp = avl_find(tree, &rp_tofind, &where);
@@ -1156,7 +1156,7 @@ done:
 		found = avl_find(tree, rp, &where);
 		ASSERT(found == NULL);
 		avl_insert(tree, rp, where);
-		dprintf_dnode(dn, "blkid=%llu nblks=%llu txg=%llu\n",
+		dprintf_dnode(dn, "blkid=%"PRIu64" nblks=%"PRIu64" txg=%"PRIu64"\n",
 		    blkid, nblks, tx->tx_txg);
 	}
 	mutex_exit(&dn->dn_mtx);
@@ -1288,7 +1288,7 @@ dnode_next_offset_level(dnode_t *dn, int flags, uint64_t *offset,
 	boolean_t hole;
 	int i, inc, error, span;
 
-	dprintf("probing object %llu offset %llx level %d of %u\n",
+	dprintf("probing object %"PRIu64" offset %"PRIx64" level %d of %u\n",
 	    dn->dn_object, *offset, lvl, dn->dn_phys->dn_nlevels);
 
 	hole = ((flags & DNODE_FIND_HOLE) != 0);
