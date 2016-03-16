@@ -1432,8 +1432,8 @@ metaslab_free_dva(spa_t *spa, const dva_t *dva, uint64_t txg, boolean_t now)
 
 	if ((vd = vdev_lookup_top(spa, vdev)) == NULL ||
 	    (offset >> vd->vdev_ms_shift) >= vd->vdev_ms_count) {
-		cmn_err(CE_WARN, "metaslab_free_dva(): bad DVA %llu:%llu",
-		    (u_longlong_t)vdev, (u_longlong_t)offset);
+		cmn_err(CE_WARN, "metaslab_free_dva(): bad DVA %"PRIu64":%"PRIu64,
+		    vdev, offset);
 		ASSERT(0);
 		return;
 	}
