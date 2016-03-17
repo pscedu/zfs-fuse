@@ -690,7 +690,7 @@ dsl_prop_set_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 		}
 
 		(void) snprintf(valbuf, sizeof (valbuf),
-		    "%lld", (longlong_t)intval);
+		    "%"PRId64, intval);
 		valstr = valbuf;
 	} else {
 		if (source == ZPROP_SRC_LOCAL) {
