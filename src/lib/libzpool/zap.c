@@ -210,7 +210,7 @@ zap_table_grow(zap_t *zap, zap_table_phys_t *tbl,
 		tbl->zt_blks_copied = 0;
 
 		dprintf("finished; numblocks now %"PRIu64" (%"PRIu64"k entries)\n",
-		    tbl->zt_numblks, 1<<(tbl->zt_shift-10));
+		    tbl->zt_numblks, ((uint64_t)1)<<(tbl->zt_shift-10));
 	}
 
 	return (0);

@@ -1816,7 +1816,7 @@ top:
 
 	if (bytes_deleted < bytes)
 		dprintf("only deleted %"PRId64" bytes from %p",
-		    (longlong_t)bytes_deleted, state);
+		    bytes_deleted, state);
 }
 
 static void

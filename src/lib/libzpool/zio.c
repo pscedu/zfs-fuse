@@ -705,7 +705,7 @@ zio_free_sync(zio_t *pio, spa_t *spa, uint64_t txg, const blkptr_t *bp,
 	zio_t *zio;
 
 	dprintf_bp(bp, "freeing in txg %"PRIu64", pass %u",
-	    (longlong_t)txg, spa->spa_sync_pass);
+	    txg, spa->spa_sync_pass);
 
 	ASSERT(!BP_IS_HOLE(bp));
 	ASSERT(spa_syncing_txg(spa) == txg);
