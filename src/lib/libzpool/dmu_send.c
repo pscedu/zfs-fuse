@@ -505,7 +505,7 @@ recv_new_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 	}
 
 	spa_history_log_internal(LOG_DS_REPLAY_FULL_SYNC,
-	    dd->dd_pool->dp_spa, tx, "dataset = %lld", dsobj);
+	    dd->dd_pool->dp_spa, tx, "dataset = %"PRId64, dsobj);
 }
 
 /* ARGSUSED */
@@ -606,7 +606,7 @@ recv_existing_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 	rbsa->ds = cds;
 
 	spa_history_log_internal(LOG_DS_REPLAY_INC_SYNC,
-	    dp->dp_spa, tx, "dataset = %lld", dsobj);
+	    dp->dp_spa, tx, "dataset = %"PRId64, dsobj);
 }
 
 /*

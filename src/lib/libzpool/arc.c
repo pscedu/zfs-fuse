@@ -1815,7 +1815,7 @@ top:
 	}
 
 	if (bytes_deleted < bytes)
-		dprintf("only deleted %lld bytes from %p",
+		dprintf("only deleted %"PRId64" bytes from %p",
 		    (longlong_t)bytes_deleted, state);
 }
 

@@ -714,7 +714,7 @@ dsl_pool_user_hold_rele_impl(dsl_pool_t *dp, uint64_t dsobj,
 		}
 	}
 
-	name = kmem_asprintf("%llx-%s", (u_longlong_t)dsobj, tag);
+	name = kmem_asprintf("%"PRIx64"-%s", (u_longlong_t)dsobj, tag);
 	if (holding)
 		error = zap_add(mos, zapobj, name, 8, 1, now, tx);
 	else
