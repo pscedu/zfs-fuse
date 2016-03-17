@@ -464,7 +464,7 @@ spa_history_log_version(spa_t *spa, history_internal_events_t event)
 
 	if (current_vers >= SPA_VERSION_ZPOOL_HISTORY) {
 		spa_history_log_internal(event, spa, NULL,
-		    "pool spa %"PRIu64"; zfs spa %"PRIu64"; zpl %lld; uts %s %s %s %s",
+		    "pool spa %"PRIu64"; zfs spa %"PRIu64"; zpl %"PRId64"; uts %s %s %s %s",
 		    current_vers, SPA_VERSION, ZPL_VERSION,
 		    utsname.nodename, utsname.release, utsname.version,
 		    utsname.machine);

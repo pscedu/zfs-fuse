@@ -3092,7 +3092,7 @@ dsl_dataset_set_quota_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 		ds->ds_quota = effective_value;
 
 		spa_history_log_internal(LOG_DS_REFQUOTA,
-		    ds->ds_dir->dd_pool->dp_spa, tx, "%lld dataset = %"PRIu64" ",
+		    ds->ds_dir->dd_pool->dp_spa, tx, "%"PRId64" dataset = %"PRIu64" ",
 		    (longlong_t)ds->ds_quota, ds->ds_object);
 	}
 }
@@ -3200,7 +3200,7 @@ dsl_dataset_set_reservation_sync(void *arg1, void *arg2, dmu_tx_t *tx)
 	mutex_exit(&ds->ds_dir->dd_lock);
 
 	spa_history_log_internal(LOG_DS_REFRESERV,
-	    ds->ds_dir->dd_pool->dp_spa, tx, "%lld dataset = %"PRIu64"",
+	    ds->ds_dir->dd_pool->dp_spa, tx, "%"PRId64" dataset = %"PRIu64"",
 	    (longlong_t)effective_value, ds->ds_object);
 }
 
@@ -3508,7 +3508,7 @@ dsl_dataset_user_release_sync(void *arg1, void *tag, dmu_tx_t *tx)
 	}
 
 	spa_history_log_internal(LOG_DS_USER_RELEASE,
-	    dp->dp_spa, tx, "<%s> %lld dataset = %"PRIu64"",
+	    dp->dp_spa, tx, "<%s> %"PRId64" dataset = %"PRIu64"",
 	    ra->htag, (longlong_t)refs, dsobj);
 }
 
