@@ -472,17 +472,17 @@ dsl_scan_check_pause(dsl_scan_t *scn, const zbookmark_t *zb)
 	    spa_shutting_down(scn->scn_dp->dp_spa)) {
 		if (zb) {
 			dprintf("pausing at bookmark %"PRIx64"/%"PRIx64"/%"PRIx64"/%"PRIx64"\n",
-			    (longlong_t)zb->zb_objset,
-			    (longlong_t)zb->zb_object,
-			    (longlong_t)zb->zb_level,
-			    (longlong_t)zb->zb_blkid);
+			    zb->zb_objset,
+			    zb->zb_object,
+			    zb->zb_level,
+			    zb->zb_blkid);
 			scn->scn_phys.scn_bookmark = *zb;
 		}
 		dprintf("pausing at DDT bookmark %"PRIx64"/%"PRIx64"/%"PRIx64"/%"PRIx64"\n",
-		    (longlong_t)scn->scn_phys.scn_ddt_bookmark.ddb_class,
-		    (longlong_t)scn->scn_phys.scn_ddt_bookmark.ddb_type,
-		    (longlong_t)scn->scn_phys.scn_ddt_bookmark.ddb_checksum,
-		    (longlong_t)scn->scn_phys.scn_ddt_bookmark.ddb_cursor);
+		    scn->scn_phys.scn_ddt_bookmark.ddb_class,
+		    scn->scn_phys.scn_ddt_bookmark.ddb_type,
+		    scn->scn_phys.scn_ddt_bookmark.ddb_checksum,
+		    scn->scn_phys.scn_ddt_bookmark.ddb_cursor);
 		scn->scn_pausing = B_TRUE;
 		return (B_TRUE);
 	}
@@ -629,10 +629,10 @@ dsl_scan_check_resume(dsl_scan_t *scn, const dnode_phys_t *dnp,
 		if (bcmp(zb, &scn->scn_phys.scn_bookmark, sizeof (*zb)) == 0 ||
 		    zb->zb_object > scn->scn_phys.scn_bookmark.zb_object) {
 			dprintf("resuming at %"PRIx64"/%"PRIx64"/%"PRIx64"/%"PRIx64"\n",
-			    (longlong_t)zb->zb_objset,
-			    (longlong_t)zb->zb_object,
-			    (longlong_t)zb->zb_level,
-			    (longlong_t)zb->zb_blkid);
+			    zb->zb_objset,
+			    zb->zb_object,
+			    zb->zb_level,
+			    zb->zb_blkid);
 			bzero(&scn->scn_phys.scn_bookmark, sizeof (*zb));
 		}
 	}
@@ -1244,10 +1244,10 @@ dsl_scan_ddt(dsl_scan_t *scn, dmu_tx_t *tx)
 		if (ddb->ddb_class > scn->scn_phys.scn_ddt_class_max)
 			break;
 		dprintf("visiting ddb=%"PRIu64"/%"PRIu64"/%"PRIu64"/%"PRIx64"\n",
-		    (longlong_t)ddb->ddb_class,
-		    (longlong_t)ddb->ddb_type,
-		    (longlong_t)ddb->ddb_checksum,
-		    (longlong_t)ddb->ddb_cursor);
+		    ddb->ddb_class,
+		    ddb->ddb_type,
+		    ddb->ddb_checksum,
+		    ddb->ddb_cursor);
 
 		/* There should be no pending changes to the dedup table */
 		ddt = scn->scn_dp->dp_spa->spa_ddt[ddb->ddb_checksum];

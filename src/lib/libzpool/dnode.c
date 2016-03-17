@@ -1218,8 +1218,8 @@ dnode_diduse_space(dnode_t *dn, int64_t delta)
 	uint64_t space;
 	dprintf_dnode(dn, "dn=%p dnp=%p used=%"PRIu64" delta=%"PRId64"\n",
 	    dn, dn->dn_phys,
-	    (u_longlong_t)dn->dn_phys->dn_used,
-	    (longlong_t)delta);
+	    dn->dn_phys->dn_used,
+	    delta);
 
 	mutex_enter(&dn->dn_mtx);
 	space = DN_USED_BYTES(dn->dn_phys);
