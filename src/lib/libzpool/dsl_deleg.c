@@ -130,8 +130,8 @@ dsl_deleg_can_unallow(char *ddname, nvlist_t *nvp, cred_t *cr)
 	if ((error = dsl_deleg_access(ddname, ZFS_DELEG_PERM_ALLOW, cr)) != 0)
 		return (error);
 
-	(void) snprintf(idstr, sizeof (idstr), "%lld",
-	    (longlong_t)crgetuid(cr));
+	(void) snprintf(idstr, sizeof (idstr), "%"PRId64,
+	    (int64_t)crgetuid(cr));
 
 	while (whopair = nvlist_next_nvpair(nvp, whopair)) {
 		zfs_deleg_who_type_t type = nvpair_name(whopair)[0];

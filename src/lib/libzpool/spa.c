@@ -5089,7 +5089,7 @@ spa_sync_props(void *arg1, void *arg2, dmu_tx_t *tx)
 		if (spa_version(spa) >= SPA_VERSION_ZPOOL_HISTORY &&
 		    tx->tx_txg != TXG_INITIAL) {
 			spa_history_log_internal(LOG_POOL_PROPSET,
-			    spa, tx, "%s %lld %s",
+			    spa, tx, "%s %"PRId64" %s",
 			    nvpair_name(elem), intval, spa_name(spa));
 		}
 	}
