@@ -244,6 +244,8 @@ zio_buf_alloc(size_t size)
 	/* 
 	 * 03/18/2016: hit no memory when size is 4096 with bits without
  	 * my arc_meta_limit experimental patch in arc_evict_needed().
+ 	 *
+ 	 * Possible solution: arc_kmem_reap_now().
  	 */
 	return (kmem_cache_alloc(zio_buf_cache[c], KM_PUSHPAGE));
 }
