@@ -3202,3 +3202,19 @@ fail:
 	(void) mutex_unlock(&umem_init_lock);
 	return (0);
 }
+
+int should_reap_umem_default(void)
+{
+	/*
+	 * arc_get_data_buf() triggers ENOMEM abort when allocating 4096 bytes 
+	 * for type ARC_BUFC_METADATA. From the core dump, umem_default_arena
+	 * is exhausted. I would assume it should go to its vm_source for more 
+	 * memory. But I couldn't find more clue.  Hence the following code 
+	 * (the ARC max in this case is 68719476736).
+	 */
+	if (umem_default_arena != NULL &&
+	    vmem_size(umem_default_arena, VMEM_FREE) <
+	    (vmem_size(umem_default_arena, VMEM_ALLOC) >> 5))
+		return (1);
+	return (0);
+}

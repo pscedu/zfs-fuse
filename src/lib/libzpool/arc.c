@@ -415,8 +415,13 @@ static uint64_t		arc_loaned_bytes;
 static uint64_t		arc_meta_used;
 static uint64_t		arc_meta_limit;
 static uint64_t		arc_meta_max = 0;
+
+/* slash2 specific changes */
+static uint64_t		arc_data_eviction = 0;
 static uint64_t		arc_meta_eviction1 = 0;
 static uint64_t		arc_meta_eviction2 = 0;
+
+extern int should_reap_umem_default(void);
 
 #define L2ARC_IS_VALID_COMPRESS(_c_) \
     ((_c_) == ZIO_COMPRESS_LZ4 || (_c_) == ZIO_COMPRESS_EMPTY)
@@ -2229,6 +2234,11 @@ arc_evict_needed(arc_buf_contents_t type)
 			arc_meta_eviction2++;
 			return (1);
 		}
+	}
+
+	if (type == ARC_BUFC_DATA && should_reap_umem_default()) {
+		arc_data_eviction++;
+		return (1);
 	}
 
 #if 0
