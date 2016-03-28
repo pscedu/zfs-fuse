@@ -2224,6 +2224,8 @@ arc_evict_needed(arc_buf_contents_t type)
 			return (1);
 		}
 		/*
+ 		 * XXX https://github.com/joyent/illumos-joyent.git
+ 		 *
  		 * Metadata allocation must succeed or we die. This
  		 * logic has been proved to be exercised a lot in
  		 * practice.
