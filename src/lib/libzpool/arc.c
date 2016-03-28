@@ -2232,7 +2232,7 @@ arc_evict_needed(arc_buf_contents_t type)
  		 *
  		 */
 		delta = arc_meta_limit - arc_meta_used;
-		if (delta >= (arc_c_max - arc_c) / 4) {
+		if (delta >= (arc_c - arc_size) / 4) {
 			arc_meta_eviction2++;
 			return (1);
 		}
