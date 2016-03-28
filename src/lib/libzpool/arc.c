@@ -2220,6 +2220,9 @@ arc_evict_needed(arc_buf_contents_t type)
 		}
 		/*
  		 * Metadata allocation must succeed or we die.
+ 		 *
+ 		 * (gdb) p arc_stats.arcstat_c_max.value.ui64
+ 		 *
  		 */
 		delta = arc_meta_limit - arc_meta_used;
 		if (delta >= (arc_c_max - arc_c) / 4) {
