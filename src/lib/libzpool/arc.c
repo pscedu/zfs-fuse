@@ -2230,6 +2230,8 @@ arc_evict_needed(arc_buf_contents_t type)
  		 *
  		 * (gdb) p arc_stats.arcstat_c_max.value.ui64
  		 *
+ 		 * The case arc_size > arc_c will be catched at the 
+ 		 * end.
  		 */
 		delta = arc_meta_limit - arc_meta_used;
 		if (delta >= (arc_c - arc_size) / 4) {
