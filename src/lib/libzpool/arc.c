@@ -2224,7 +2224,9 @@ arc_evict_needed(arc_buf_contents_t type)
 			return (1);
 		}
 		/*
- 		 * Metadata allocation must succeed or we die.
+ 		 * Metadata allocation must succeed or we die. This
+ 		 * logic has been proved to be exercised a lot in
+ 		 * practice.
  		 *
  		 * (gdb) p arc_stats.arcstat_c_max.value.ui64
  		 *
