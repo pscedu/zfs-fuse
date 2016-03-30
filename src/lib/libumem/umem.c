@@ -3211,6 +3211,9 @@ int should_reap_umem_default(void)
 	 * is exhausted. I would assume it should go to its vm_source for more 
 	 * memory. But I couldn't find more clue.  Hence the following code 
 	 * (the ARC max in this case is 68719476736).
+	 *
+	 * Hit ENOMEM today. umem_default_arena is once again exhausted, while
+	 * arc_stats.arcstat_size.value.ui64 is only 12843403664.
 	 */
 	if (umem_default_arena != NULL &&
 	    vmem_size(umem_default_arena, VMEM_FREE) <
