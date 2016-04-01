@@ -1937,6 +1937,8 @@ _umem_alloc(size_t size, int umflag)
 umem_alloc_retry:
 	if (index < UMEM_MAXBUF >> UMEM_ALIGN_SHIFT) {
 		umem_cache_t *cp = umem_alloc_table[index];
+
+		/* (gdb) p cp->cache_arena->vm_name */
 		buf = _umem_cache_alloc(cp, umflag);
 		if ((cp->cache_flags & UMF_BUFTAG) && buf != NULL) {
 			umem_buftag_t *btp = UMEM_BUFTAG(cp, buf);
