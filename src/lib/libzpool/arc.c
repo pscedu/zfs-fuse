@@ -420,6 +420,7 @@ static uint64_t		arc_meta_max = 0;
 static uint64_t		arc_data_eviction = 0;
 static uint64_t		arc_meta_eviction1 = 0;
 static uint64_t		arc_meta_eviction2 = 0;
+static uint64_t		arc_meta_eviction3 = 0;
 
 extern int should_reap_umem_default(void);
 
@@ -2224,6 +2225,14 @@ arc_evict_needed(arc_buf_contents_t type)
 			return (1);
 		}
 		/*
+		 * If less than 1/16 is free, evict now.
+		 */
+		delta = arc_meta_limit - arc_meta_used;
+		if (delta < (arc_meta_limit >> 4)) {
+			arc_meta_eviction2++;
+			return (1);
+		}
+		/*
  		 * XXX https://github.com/joyent/illumos-joyent.git
  		 *
  		 * Metadata allocation must succeed or we die. This
@@ -2235,9 +2244,8 @@ arc_evict_needed(arc_buf_contents_t type)
  		 * The case arc_size > arc_c will be catched at the 
  		 * end.
  		 */
-		delta = arc_meta_limit - arc_meta_used;
 		if (delta >= (arc_c - arc_size) / 4) {
-			arc_meta_eviction2++;
+			arc_meta_eviction3++;
 			return (1);
 		}
 	}
