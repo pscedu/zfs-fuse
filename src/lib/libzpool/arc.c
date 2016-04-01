@@ -2244,6 +2244,7 @@ arc_evict_needed(arc_buf_contents_t type)
  		 * logic has been proved to be exercised a lot in
  		 * practice.
  		 *
+ 		 * (gdb) p arc_stats.arcstat_size.value.ui64
  		 * (gdb) p arc_stats.arcstat_c_max.value.ui64
  		 *
  		 * The case arc_size > arc_c will be catched at the 
