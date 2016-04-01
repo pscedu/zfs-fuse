@@ -2227,14 +2227,16 @@ arc_evict_needed(arc_buf_contents_t type)
 			arc_meta_eviction1++;
 			return (1);
 		}
+		delta = arc_meta_limit - arc_meta_used;
+#if 0
 		/*
 		 * If less than 1/16 is free, evict now.
 		 */
-		delta = arc_meta_limit - arc_meta_used;
 		if (delta < (arc_meta_limit >> 4)) {
 			arc_meta_eviction2++;
 			return (1);
 		}
+#endif
 		/*
  		 * XXX https://github.com/joyent/illumos-joyent.git
  		 *
