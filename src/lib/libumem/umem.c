@@ -3214,6 +3214,10 @@ int should_reap_umem_default(void)
 	 *
 	 * Hit ENOMEM today. umem_default_arena is once again exhausted, while
 	 * arc_stats.arcstat_size.value.ui64 is only 12843403664.
+	 *
+	 * (gdb) p umem_default_arena->vm_kstat.vk_mem_inuse
+	 * (gdb) p umem_default_arena->vm_kstat.vk_mem_total
+	 *
 	 */
 	if (umem_default_arena != NULL &&
 	    vmem_size(umem_default_arena, VMEM_FREE) <
