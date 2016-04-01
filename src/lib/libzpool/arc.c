@@ -139,6 +139,9 @@
 
 static int arc_slashd_running = 0;
 
+static kmutex_t		evict_lock;
+static kcondvar_t	evict_cond;
+
 static kmutex_t		arc_reclaim_thr_lock;
 static kcondvar_t	arc_reclaim_thr_cv;	/* used to signal reclaim thr */
 static uint8_t		arc_thread_exit;
@@ -2351,6 +2354,9 @@ arc_get_data_buf(arc_buf_t *buf)
 			ARCSTAT_INCR(arcstat_data_size, size);
 			atomic_add_64(&arc_size, size);
 		}
+		/* 
+		 * (gdb) p arc_stats.arcstat_recycle_miss.value.ui64 
+		 */ 
 		ARCSTAT_BUMP(arcstat_recycle_miss);
 	}
 	ASSERT(buf->b_data != NULL);
@@ -3512,6 +3518,9 @@ void
 arc_init(void)
 {
 	int percentage;
+
+	cv_init(&evict_cond, NULL, CV_DEFAULT, NULL);
+	mutex_init(&evict_lock, NULL, MUTEX_DEFAULT, NULL);
 
 	mutex_init(&arc_reclaim_thr_lock, NULL, MUTEX_DEFAULT, NULL);
 	cv_init(&arc_reclaim_thr_cv, NULL, CV_DEFAULT, NULL);
