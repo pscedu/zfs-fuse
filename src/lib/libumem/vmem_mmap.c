@@ -62,7 +62,7 @@ static vmem_t *mmap_heap;
 
 static int nb_mmap;
 
-void init_mmap() {
+void read_mmap() {
     char buf[80];
     FILE *f = fopen("/proc/sys/vm/max_map_count","r");
     if (!f) {
@@ -72,11 +72,24 @@ void init_mmap() {
     (void)fgets(buf,80,f);
     fclose(f);
     nb_mmap = atoi(buf);
+}
+
+void init_mmap() {
+    read_mmap();
     syslog(LOG_WARNING,"initial max_map_count %d",nb_mmap);
 }
 
 static void raise_mmap() {
+
     if (!nb_mmap) return;
+
+    /*
+     * Don't assume that we are the only program in the system. The sys
+     * administrator can bump the limit at any time.  So make sure we
+     * really increase the limit here. IOW, the tracking of nb_mmap is
+     * almost pointless.
+     */
+    read_mmap();
     nb_mmap += 10000;
     syslog(LOG_WARNING,"raising max_map_count to %d\n",nb_mmap);
     FILE *f = fopen("/proc/sys/vm/max_map_count","w");
