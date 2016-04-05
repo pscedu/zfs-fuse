@@ -62,6 +62,7 @@ static vmem_t *mmap_heap;
 
 static int nb_mmap;
 static int nb_mmap_fail;
+static int mmap_fail_after_raise;
 
 #define	MMAP_INCREMENT		20000
 
@@ -123,6 +124,7 @@ vmem_mmap_alloc(vmem_t *src, size_t size, int vmflags)
 		    syslog(LOG_WARNING,
 			    "vmem_mmap_alloc: mmap still failing after raise_mmap");
 		    vmem_free(src, ret, size);
+		    mmap_fail_after_raise++;
 		    vmem_reap();
 
 		    ASSERT((vmflags & VM_NOSLEEP) == VM_NOSLEEP);
