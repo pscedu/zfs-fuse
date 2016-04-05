@@ -46,7 +46,7 @@ extern "C" {
 
 #define	ZPARENT		0x0100		/* slash2: update parent pointer */
 #define	ZNOMTIM_S2	0x0200		/* slash2: don't update s2mtim */
-#define	ZNOMTIM_S2	0x0400		/* slash2: don't update s2mtim */
+#define	ZNOTIME_S2	0x0400		/* slash2: don't update time */
 
 /* mknode flags */
 #define	IS_ROOT_NODE	0x01		/* create a root node */

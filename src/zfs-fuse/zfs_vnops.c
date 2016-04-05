@@ -4054,7 +4054,7 @@ top:
 
 	error = zfs_link_create(dl, szp, tx,
 			((flags & FKEEPPARENT) ? 0 : ZPARENT) |
-			((flags & SLASH2_IGNORE_CTIME) ? ZNEW : 0));
+			((flags & SLASH2_IGNORE_CTIME) ? ZNOTIME_S2 : 0));
 
 	if (error == 0) {
 		if (logfunc) {

@@ -718,7 +718,7 @@ zfs_link_create(zfs_dirlock_t *dl, znode_t *zp, dmu_tx_t *tx, int flag)
 	if ((flag & ZPARENT) && zp_is_dir)
 		zp->z_phys->zp_parent = dzp->z_id;	/* dzp is now zp's parent */
 
-	if (!(flag & ZNEW))
+	if (!(flag & ZNOTIME_S2) && !(flag & ZNEW))
 		zfs_time_stamper_locked(zp, STATE_CHANGED, tx);
 	mutex_exit(&zp->z_lock);
 
