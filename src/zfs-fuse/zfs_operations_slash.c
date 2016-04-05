@@ -1138,6 +1138,8 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
 			 * Create an extra link to the name in the
 			 * regular name space, keeping the parent
 			 * pointer intact.
+			 *
+			 * Tweaked in b15c349fb9463994676a52acecfefe153290e607
 			 */
 			error = VOP_LINK(dvp, svp, id_name, &zrootcreds,
 			    NULL, FALLOWDIRLINK | FKEEPPARENT | SLASH2_IGNORE_CTIME,
