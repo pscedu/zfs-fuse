@@ -420,7 +420,8 @@ static uint64_t		arc_meta_limit;
 static uint64_t		arc_meta_max = 0;
 
 /* slash2 specific changes */
-static uint64_t		arc_data_eviction = 0;
+static uint64_t		arc_data_eviction1 = 0;
+static uint64_t		arc_data_eviction2 = 0;
 static uint64_t		arc_meta_eviction1 = 0;
 static uint64_t		arc_meta_eviction2 = 0;
 static uint64_t		arc_meta_eviction3 = 0;
@@ -2257,7 +2258,7 @@ arc_evict_needed(arc_buf_contents_t type)
 	}
 
 	if (type == ARC_BUFC_DATA && should_reap_umem_default()) {
-		arc_data_eviction++;
+		arc_data_eviction1++;
 		return (1);
 	}
 
@@ -2275,6 +2276,11 @@ arc_evict_needed(arc_buf_contents_t type)
 
 	if (arc_reclaim_needed())
 		return (1);
+
+	if (arc_size > arc_c_max - (1ULL << 32)) {
+		arc_data_eviction2++;
+		return (1);
+	}
 
 	return (arc_size > arc_c);
 }
