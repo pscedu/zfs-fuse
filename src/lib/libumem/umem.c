@@ -463,7 +463,7 @@ static umem_magtype_t umem_magtype[] = {
 uint32_t umem_max_ncpus;	/* # of CPU caches. */
 
 uint32_t umem_stack_depth = 15; /* # stack frames in a bufctl_audit */
-uint32_t umem_reap_interval = 10; /* max reaping rate (seconds) */
+uint32_t umem_reap_interval = 5; /* max reaping rate (seconds), slash2: reduce from 10 to 5 */
 uint_t umem_depot_contention = 2; /* max failed trylocks per real interval */
 uint_t umem_abort = 1;		/* whether to abort on error */
 uint_t umem_output = 0;		/* whether to write to standard error */
