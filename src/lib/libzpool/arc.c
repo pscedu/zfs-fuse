@@ -2367,6 +2367,9 @@ out:
 	/*
 	 * Update the state size.  Note that ghost states have a
 	 * "ghost size" and so don't need to be updated.
+	 *
+	 * Hit buf->b_hdr NULL crash at revision 40031 when the ARC
+	 * and the umem_default_arena are completely exhausted.
 	 */
 	if (!GHOST_STATE(buf->b_hdr->b_state)) {
 		arc_buf_hdr_t *hdr = buf->b_hdr;
