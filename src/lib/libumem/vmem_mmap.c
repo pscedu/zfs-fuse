@@ -62,9 +62,12 @@ static vmem_t *mmap_heap;
 
 static int nb_mmap;
 static int nb_mmap_fail;
+static int nb_mmap_raise;
 static int mmap_fail_after_raise;
 
 #define	MMAP_INCREMENT		20000
+
+static mutex_t mmap_lock = DEFAULTMUTEX;
 
 void read_mmap() {
     char buf[80];
@@ -79,6 +82,7 @@ void read_mmap() {
 }
 
 void init_mmap() {
+
     read_mmap();
     syslog(LOG_WARNING,"initial max_map_count %d",nb_mmap);
 }
@@ -87,6 +91,7 @@ static void raise_mmap() {
 
     if (!nb_mmap) return;
 
+    mutex_lock(&mmap_lock);
     /*
      * Don't assume that we are the only program in the system. The sys
      * administrator can bump the limit at any time.  So make sure we
@@ -105,6 +110,8 @@ static void raise_mmap() {
     }
     fprintf(f,"%d\n",nb_mmap);
     fclose(f);
+    nb_mmap_raise++;
+    mutex_unlock(&mmap_lock);
 }
 
 static void *
