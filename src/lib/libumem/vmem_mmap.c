@@ -40,9 +40,10 @@
 #include <sys/sysmacros.h>
 #endif
 
-#include <unistd.h>
-#include <syslog.h>
+#include <pthread.h>
 #include <stdio.h>
+#include <syslog.h>
+#include <unistd.h>
 
 #include "vmem_base.h"
 
@@ -60,16 +61,12 @@ static size_t CHUNKSIZE;
 
 static vmem_t *mmap_heap;
 
-static int nb_mmap;
-static int nb_mmap_fail;
-static int nb_mmap_raise;
-static int mmap_fail_after_raise;
+static int nb_mmap_curr;
+static int nb_mmap_ceil;
 
-#define	MMAP_INCREMENT		20000
+static pthread_mutex_t vmem_mmap_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static mutex_t mmap_lock = DEFAULTMUTEX;
-
-void read_mmap() {
+void init_mmap() {
     char buf[80];
     FILE *f = fopen("/proc/sys/vm/max_map_count","r");
     if (!f) {
@@ -78,40 +75,33 @@ void read_mmap() {
     }
     (void)fgets(buf,80,f);
     fclose(f);
-    nb_mmap = atoi(buf);
+    nb_mmap_ceil = atoi(buf);
+    syslog(LOG_WARNING,"initial max_map_count %d",nb_mmap_ceil);
 }
 
-void init_mmap() {
+#define MMAP_INCREMENT 10000
 
-    read_mmap();
-    syslog(LOG_WARNING,"initial max_map_count %d",nb_mmap);
-}
+static void
+raise_mmap(void)
+{
+	if (!nb_mmap_ceil)
+		return;
 
-static void raise_mmap() {
-
-    if (!nb_mmap) return;
-
-    mutex_lock(&mmap_lock);
-    /*
-     * Don't assume that we are the only program in the system. The sys
-     * administrator can bump the limit at any time.  So make sure we
-     * really increase the limit here. IOW, the tracking of nb_mmap is
-     * almost pointless.
-     */
-    read_mmap();
-    nb_mmap += MMAP_INCREMENT;
-    syslog(LOG_WARNING,"raising max_map_count to %d\n",nb_mmap);
-    FILE *f = fopen("/proc/sys/vm/max_map_count","w");
-    if (!f) {
-	nb_mmap_fail++;
-	syslog(LOG_WARNING,"could not write to /proc/sys/vm/max_map_count");
-    	nb_mmap -= MMAP_INCREMENT;
-	return;
-    }
-    fprintf(f,"%d\n",nb_mmap);
-    fclose(f);
-    nb_mmap_raise++;
-    mutex_unlock(&mmap_lock);
+	pthread_mutex_lock(&vmem_mmap_mutex);
+	if (++nb_mmap_curr >= nb_mmap_ceil - MMAP_INCREMENT) {
+		syslog(LOG_WARNING, "raising max_map_count to %d",
+		    nb_mmap_ceil);
+		FILE *f = fopen("/proc/sys/vm/max_map_count","w");
+		if (!f) {
+			//nb_mmap_fail++;
+			syslog(LOG_WARNING, "could not write to /proc/sys/vm/max_map_count");
+			return;
+		}
+		nb_mmap_ceil += MMAP_INCREMENT;
+		fprintf(f,"%d\n",nb_mmap_ceil);
+		fclose(f);
+	}
+	pthread_mutex_unlock(&vmem_mmap_mutex);
 }
 
 static void *
@@ -123,21 +113,17 @@ vmem_mmap_alloc(vmem_t *src, size_t size, int vmflags)
 	ret = vmem_alloc(src, size, vmflags);
 #ifndef _WIN32
 	if (ret != NULL) {
+	    raise_mmap();
 	    if (mmap(ret, size, ALLOC_PROT, ALLOC_FLAGS | MAP_FIXED, -1, 0) ==
-		    MAP_FAILED) {
-		raise_mmap();
-		if (mmap(ret, size, ALLOC_PROT, ALLOC_FLAGS | MAP_FIXED, -1, 0) ==
-			MAP_FAILED) {
+		MAP_FAILED) {
 		    syslog(LOG_WARNING,
 			    "vmem_mmap_alloc: mmap still failing after raise_mmap");
 		    vmem_free(src, ret, size);
-		    mmap_fail_after_raise++;
 		    vmem_reap();
 
 		    ASSERT((vmflags & VM_NOSLEEP) == VM_NOSLEEP);
 		    errno = old_errno;
 		    return (NULL);
-		}
 	    }
 	}
 #endif
@@ -182,6 +168,7 @@ vmem_mmap_top_alloc(vmem_t *src, size_t size, int vmflags)
 	int tries = 0;
 	do {
 	    tries++;
+	    raise_mmap();
 	    buf = mmap(
 #ifdef MAP_ALIGN
 		    (void *)CHUNKSIZE,
@@ -208,6 +195,10 @@ vmem_mmap_top_alloc(vmem_t *src, size_t size, int vmflags)
 		if (ret != NULL)
 			return (ret);
 		else {
+			pthread_mutex_lock(&vmem_mmap_mutex);
+			nb_mmap_curr--;
+			pthread_mutex_unlock(&vmem_mmap_mutex);
+
 			(void) munmap(buf, size);
 			errno = old_errno;
 			return (NULL);
@@ -233,7 +224,7 @@ vmem_mmap_arena(vmem_alloc_t **a_out, vmem_free_t **f_out)
 #else
 	size_t pagesize = _sysconf(_SC_PAGESIZE);
 #endif
-	
+
 #ifdef _WIN32
 	GetSystemInfo(&info);
 	pagesize = info.dwPageSize;
@@ -241,9 +232,9 @@ vmem_mmap_arena(vmem_alloc_t **a_out, vmem_free_t **f_out)
 #elif !defined(MAP_ALIGN)
 	CHUNKSIZE = pagesize;
 #endif
-	
+
 	if (mmap_heap == NULL) {
-		mmap_heap = vmem_init("mmap_top", 
+		mmap_heap = vmem_init("mmap_top",
 			CHUNKSIZE,
 		    vmem_mmap_top_alloc, vmem_free,
 		    "mmap_heap", NULL, 0, pagesize,
