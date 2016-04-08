@@ -84,7 +84,7 @@ void init_mmap() {
 #define MMAP_INCREMENT 10000
 
 /*
- * Raise mmap limit proactively before mmap().
+ * Raise mmap limit proactively before calling mmap().
  */
 static void
 raise_mmap(void)
@@ -102,6 +102,9 @@ raise_mmap(void)
 		}
 		nb_mmap_raise++;
 		nb_mmap_ceil += MMAP_INCREMENT;
+		/*
+ 		 * Ignore whatever the current limit is there should be safe.
+ 		 */
 		fprintf(f,"%d\n",nb_mmap_ceil);
 		fclose(f);
 	}
@@ -126,7 +129,7 @@ vmem_mmap_alloc(vmem_t *src, size_t size, int vmflags)
 		    pthread_mutex_unlock(&vmem_mmap_mutex);
 
 		    syslog(LOG_WARNING,
-			    "vmem_mmap_alloc: mmap still failing after raise_mmap");
+			    "vmem_mmap_alloc: mmap still failing after raising mmaps");
 		    vmem_free(src, ret, size);
 		    vmem_reap();
 
