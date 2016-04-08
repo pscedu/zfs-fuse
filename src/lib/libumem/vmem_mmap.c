@@ -44,6 +44,7 @@
 #include <stdio.h>
 #include <syslog.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "vmem_base.h"
 
@@ -63,6 +64,7 @@ static vmem_t *mmap_heap;
 
 static int nb_mmap_curr;
 static int nb_mmap_ceil;
+static int nb_mmap_raise;
 
 static pthread_mutex_t vmem_mmap_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -84,8 +86,7 @@ void init_mmap() {
 static void
 raise_mmap(void)
 {
-	if (!nb_mmap_ceil)
-		return;
+	assert(nb_mmap_ceil);
 
 	pthread_mutex_lock(&vmem_mmap_mutex);
 	if (++nb_mmap_curr >= nb_mmap_ceil - MMAP_INCREMENT) {
@@ -93,10 +94,10 @@ raise_mmap(void)
 		    nb_mmap_ceil);
 		FILE *f = fopen("/proc/sys/vm/max_map_count","w");
 		if (!f) {
-			//nb_mmap_fail++;
 			syslog(LOG_WARNING, "could not write to /proc/sys/vm/max_map_count");
 			return;
 		}
+		nb_mmap_raise++;
 		nb_mmap_ceil += MMAP_INCREMENT;
 		fprintf(f,"%d\n",nb_mmap_ceil);
 		fclose(f);
