@@ -89,7 +89,9 @@ void init_mmap() {
 static void
 raise_mmap(void)
 {
-	assert(nb_mmap_ceil);
+	/* for init code path */
+	if (!nb_mmap_ceil)
+		return;
 
 	pthread_mutex_lock(&vmem_mmap_mutex);
 	if (++nb_mmap_curr >= nb_mmap_ceil - MMAP_INCREMENT/2) {
