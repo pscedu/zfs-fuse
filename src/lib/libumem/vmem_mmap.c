@@ -83,13 +83,16 @@ void init_mmap() {
 
 #define MMAP_INCREMENT 10000
 
+/*
+ * Raise mmap limit proactively before mmap().
+ */
 static void
 raise_mmap(void)
 {
 	assert(nb_mmap_ceil);
 
 	pthread_mutex_lock(&vmem_mmap_mutex);
-	if (++nb_mmap_curr >= nb_mmap_ceil - MMAP_INCREMENT) {
+	if (++nb_mmap_curr >= nb_mmap_ceil - MMAP_INCREMENT/2) {
 		syslog(LOG_WARNING, "raising max_map_count to %d",
 		    nb_mmap_ceil);
 		FILE *f = fopen("/proc/sys/vm/max_map_count","w");
@@ -117,6 +120,11 @@ vmem_mmap_alloc(vmem_t *src, size_t size, int vmflags)
 	    raise_mmap();
 	    if (mmap(ret, size, ALLOC_PROT, ALLOC_FLAGS | MAP_FIXED, -1, 0) ==
 		MAP_FAILED) {
+
+		    pthread_mutex_lock(&vmem_mmap_mutex);
+		    nb_mmap_curr--;
+		    pthread_mutex_unlock(&vmem_mmap_mutex);
+
 		    syslog(LOG_WARNING,
 			    "vmem_mmap_alloc: mmap still failing after raise_mmap");
 		    vmem_free(src, ret, size);
@@ -183,11 +191,13 @@ vmem_mmap_top_alloc(vmem_t *src, size_t size, int vmflags)
 		    , -1, 0);
 #endif
 	    if (buf == MAP_FAILED) {
-		if (tries == 1)
-		    raise_mmap();
-		else
-		    syslog(LOG_WARNING,
-			    "vmem_mmap_top_alloc: mmap failed again after raising mmaps");
+
+		pthread_mutex_lock(&vmem_mmap_mutex);
+		nb_mmap_curr--;
+		pthread_mutex_unlock(&vmem_mmap_mutex);
+
+		syslog(LOG_WARNING,
+		    "vmem_mmap_top_alloc: mmap failed again after raising mmaps");
 	    }
 	} while (buf == MAP_FAILED && tries < 2);
 
