@@ -529,8 +529,10 @@ zfsslash2_setxattr(int vfsid, const struct slash_creds *slcrp,
 	vattr.va_size = 0;
 
 	vnode_t *new_vp;
+	zfsslash2_cursor_start();
 	error = VOP_CREATE(vp, (char *) name, &vattr, NONEXCL, VWRITE,
 	    &new_vp, &zrootcreds, &cred, 0, NULL, NULL, NULL);
+	zfsslash2_cursor_end();
 	if (error)
 		goto out;
 
@@ -553,8 +555,10 @@ zfsslash2_setxattr(int vfsid, const struct slash_creds *slcrp,
 	uio.uio_resid = iovec.iov_len;
 	uio.uio_loffset = 0;
 
+	zfsslash2_cursor_start();
 	error = VOP_WRITE(vp, &uio, FWRITE, &cred, NULL, NULL,
 	    (void *)value);
+	zfsslash2_cursor_end();
 	if (error)
 		goto out;
 	error = VOP_CLOSE(vp, FWRITE, 1, (offset_t) 0, &cred, NULL);
@@ -640,7 +644,10 @@ zfsslash2_removexattr(int vfsid, const struct slash_creds *slcrp,
 	cred_t cred = ZFS_INIT_CREDS(slcrp);
 
 	MY_LOOKUP_XATTR(vfsid, 0);
+
+	zfsslash2_cursor_start();
 	error = VOP_REMOVE(vp, (char *)name, &cred, NULL, 0, NULL, NULL);
+	zfsslash2_cursor_end();
 
  out:
 	if (vp)
@@ -1133,6 +1140,8 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
 			goto out;
 	}
 	if (flags & FIDLINK_CREATE) {
+		zfsslash2_cursor_start();
+
 		if (svp) {
 			/*
 			 * Create an extra link to the name in the
@@ -1155,9 +1164,13 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
 			error = VOP_MKDIR(dvp, id_name, &vattr, vpp,
 			    &zrootcreds, &zrootcreds, NULL, 0, NULL, NULL);	/* zfs_mkdir() */
 		}
+		zfsslash2_cursor_end();
 		goto out;
 	}
 	assert(flags & FIDLINK_REMOVE);
+
+	zfsslash2_cursor_start();
+
 	/*
 	 * ZFS returns EPERM (1) even if root attempts to VOP_REMOVE() a
 	 * directory.
@@ -1168,6 +1181,8 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
 	else
 		error = VOP_REMOVE(dvp, id_name, &zrootcreds, NULL, 0,
 		    NULL, NULL);
+
+	zfsslash2_cursor_end();
 
  out:
 	psclog_debug("id_name=%s parent=%#"PRIx64" fid="SLPRI_FID" "
@@ -1322,10 +1337,12 @@ zfsslash2_opencreate(int vfsid, mdsio_fid_t ino,
 
 		vnode_t *new_vp;
 
+		zfsslash2_cursor_start();
 		/* FIXME: check filesystem boundaries */
 		error = VOP_CREATE(vp, (char *)name, &vattr, excl, mode,
 		    &new_vp, &zrootcreds, &cred, opflags & MDSIO_OPENCRF_NOMTIM ?
 		    SLASH2_IGNORE_MTIME : 0, NULL, NULL, logfunc); /* zfs_create() */
+		zfsslash2_cursor_end();
 
 		if (error)
 			goto out;
@@ -1557,9 +1574,11 @@ zfsslash2_mkdir(int vfsid, mdsio_fid_t parent, const char *name,
 	} else
 		vattr.va_fid = fid;
 
+	zfsslash2_cursor_start();
 	error = VOP_MKDIR(dvp, (char *)name, &vattr, &vp, &zrootcreds, &cred, NULL,
 	    opflags & MDSIO_OPENCRF_NOMTIM ? SLASH2_IGNORE_MTIME : 0,
 	    NULL, logfunc); /* zfs_mkdir() */
+	zfsslash2_cursor_end();
 	if (error)
 		goto out;
 
@@ -1634,8 +1653,10 @@ zfsslash2_rmdir(int vfsid, mdsio_fid_t parent, struct sl_fidgen *fg,
 	 * FUSE doesn't care if we remove the current working directory
 	 * so we just pass NULL as the cwd parameter (no problem for ZFS).
 	 */
+	zfsslash2_cursor_start();
 	error = VOP_RMDIR(dvp, (char *)name, NULL, &cred, NULL, 0,
 	    logfunc);	/* zfs_rmdir() */
+	zfsslash2_cursor_end();
 
 	/* Linux uses ENOTEMPTY when trying to remove a non-empty directory */
 	if (error == EEXIST)
@@ -1729,8 +1750,10 @@ zfsslash2_setattr(int vfsid, mdsio_fid_t ino,
 			bf.l_len = (off_t) 0;
 
 			/* FIXME: check locks */
+			zfsslash2_cursor_start();
 			error = VOP_SPACE(vp, F_FREESP, &bf,
 			    info->flags, 0, &cred, NULL);
+			zfsslash2_cursor_end();
 			if (error)
 				goto out;
 		}
@@ -1806,9 +1829,12 @@ zfsslash2_setattr(int vfsid, mdsio_fid_t ino,
 
 	int flags = (to_set & (PSCFS_SETATTRF_ATIME |
 	    PSCFS_SETATTRF_MTIME)) ? ATTR_S2UTIME : 0;
-	if (to_set)
+	if (to_set) {
+		zfsslash2_cursor_start();
 		error = VOP_SETATTR(vp, &vattr, flags, &cred, NULL,
 		    logfunc);	/* zfs_setattr() */
+		zfsslash2_cursor_end();
+	}
 
  out:
 	if (!error && sstb_out)
@@ -1859,8 +1885,10 @@ zfsslash2_unlink(int vfsid, mdsio_fid_t parent, struct sl_fidgen *fg,
 	if (error)
 		goto out;
 
+	zfsslash2_cursor_start();
 	error = VOP_REMOVE(dvp, (char *)name, &cred, NULL, 0, logfunc,
 	    arg);	/* zfs_remove() */
+	zfsslash2_cursor_end();
 	if (error)
 		goto out;
 
@@ -1927,9 +1955,11 @@ zfsslash2_pwritev(int vfsid, const struct slash_creds *slcrp,
 	uio.uio_resid = size;
 	uio.uio_loffset = off;
 
+	zfsslash2_cursor_start();
 	int error = VOP_WRITE(vp, &uio,
 	    info->flags | SLASH2_IGNORE_MTIME,
 	    &cred, NULL, funcp, datap);	/* zfs_write() */
+	zfsslash2_cursor_end();
 
 	ZFS_EXIT(zfsvfs);
 
@@ -2033,8 +2063,10 @@ zfsslash2_mknod(int vfsid, mdsio_fid_t parent, const char *name,
 	vnode_t *vp = NULL;
 
 	/* FIXME: check filesystem boundaries */
+	zfsslash2_cursor_start();
 	error = VOP_CREATE(dvp, (char *)name, &vattr, EXCL, 0, &vp,
 	    &zrootcreds, &cred, 0, NULL, NULL, logfunc);	/* zfs_create() */
+	zfsslash2_cursor_end();
 
 	if (error)
 		goto out;
@@ -2105,8 +2137,10 @@ zfsslash2_symlink(int vfsid, const char *link, mdsio_fid_t parent,
 	} else
 		vattr.va_fid = fid;
 
+	zfsslash2_cursor_start();
 	error = VOP_SYMLINK(dvp, (char *)name, &vattr, (char *)link,
 	    &zrootcreds, &cred, NULL, 0, logfunc); /* zfs_symlink() */
+	zfsslash2_cursor_end();
 
 	vnode_t *vp = NULL;
 
@@ -2184,8 +2218,10 @@ zfsslash2_rename(int vfsid, mdsio_fid_t oldparent, const char *oldname,
 	vnode_t *np_vp = ZTOV(np_znode);
 	ASSERT(np_vp);
 
+	zfsslash2_cursor_start();
 	error = VOP_RENAME(op_vp, (char *)oldname, np_vp, (char *)newname,
 	    &cred, NULL, 0, logfunc, arg);  /* zfs_rename() */
+	zfsslash2_cursor_end();
 
 	VN_RELE(op_vp);
 	VN_RELE(np_vp);
@@ -2212,8 +2248,10 @@ zfsslash2_fsync(int vfsid, const struct slash_creds *slcrp,
 
 	vnode_t *vp = info->vp;
 
+	zfsslash2_cursor_start();
 	int error = VOP_FSYNC(vp, datasync ? FDSYNC : FSYNC, &cred,
 	    NULL);	/* zfs_fsync() */
+	zfsslash2_cursor_end();
 
 	ZFS_EXIT(zfsvfs);
 
@@ -2261,8 +2299,10 @@ zfsslash2_link(int vfsid, mdsio_fid_t ino, mdsio_fid_t newparent,
 	ASSERT(svp);
 	ASSERT(tdvp);
 
+	zfsslash2_cursor_start();
 	error = VOP_LINK(tdvp, svp, (char *)newname, &cred, NULL, 0,
 	    logfunc);	/* zfs_link() */
+	zfsslash2_cursor_end();
 
 	vnode_t *vp = NULL;
 	if (error)
@@ -2447,8 +2487,11 @@ zfsslash2_replay_symlink(int vfsid, slfid_t pfid, slfid_t fid, char *name,
 	cred.cr_uid = sstb->sst_uid;
 	cred.cr_gid = sstb->sst_gid;
 
+	zfsslash2_cursor_start();
 	error = VOP_SYMLINK(pvp, name, &vattr, link, &zrootcreds, &cred, NULL,
 	    0, NULL); /* zfs_symlink() */
+	zfsslash2_cursor_end();
+
 	if (error)
 		goto out;
 
@@ -2502,7 +2545,9 @@ zfsslash2_replay_link(int vfsid, slfid_t pfid, slfid_t fid, char *name,
 	cred.cr_uid = sstb->sst_uid;
 	cred.cr_gid = sstb->sst_gid;
 
+	zfsslash2_cursor_start();
 	error = VOP_LINK(pvp, svp, name, &cred, NULL, 0, NULL);	/* zfs_link() */
+	zfsslash2_cursor_end();
 
  out:
 	if (svp)
@@ -2544,8 +2589,11 @@ zfsslash2_replay_mkdir(int vfsid, slfid_t pfid, char *name,
 	cred.cr_gid = sstb->sst_gid;
 
 	/* pass opflags */
+	zfsslash2_cursor_start();
 	error = VOP_MKDIR(pvp, name, &vattr, &tvp, &zrootcreds, &cred, NULL, 0, NULL,
 	    NULL); /* zfs_mkdir() */
+	zfsslash2_cursor_end();
+
 	if (error) {
 		psclog_errorx("failed to mkdir "SLPRI_FID": %s",
 		    sstb->sst_fid, sl_strerror(error));
@@ -2599,8 +2647,11 @@ zfsslash2_replay_create(int vfsid, slfid_t pfid, char *name,
 	cred.cr_gid = sstb->sst_gid;
 
 	/* pass opflags */
+	zfsslash2_cursor_start();
 	error = VOP_CREATE(pvp, name, &vattr, EXCL, 0, &tvp, &zrootcreds, &cred, 0,
 	    NULL, NULL, NULL); /* zfs_create() */
+	zfsslash2_cursor_end();
+
 	if (error)
 		goto out;
 
@@ -2645,7 +2696,9 @@ zfsslash2_replay_rmdir(int vfsid, slfid_t pfid, slfid_t fid, char *name)
 		goto out;
 	}
 
+	zfsslash2_cursor_start();
 	error = VOP_RMDIR(dvp, name, NULL, &zrootcreds, NULL, 0, NULL);		/* zfs_rmdir() */
+	zfsslash2_cursor_end();
 
 	/* Linux uses ENOTEMPTY when trying to remove a non-empty directory */
 	if (error == EEXIST)
@@ -2695,7 +2748,9 @@ zfsslash2_replay_unlink(int vfsid, slfid_t pfid, slfid_t fid, char *name)
 		goto out;
 	}
 
+	zfsslash2_cursor_start();
 	error = VOP_REMOVE(dvp, name, &zrootcreds, NULL, 0, NULL, NULL);
+	zfsslash2_cursor_end();
 
 	if (error)
 		goto out;
@@ -2749,8 +2804,12 @@ zfsslash2_replay_setattr(int vfsid, slfid_t fid, uint mask,
 			vattr.va_size = SL_BMAP_START_OFF;
 		}
 	}
+
 	/* Note: not using zrootcreds will return EPERM (1) */
+	zfsslash2_cursor_start();
 	error = VOP_SETATTR(vp, &vattr, flag, &zrootcreds, NULL, NULL);		/* zfs_setattr() */
+	zfsslash2_cursor_end();
+
 	if (!error)
 		error = fill_sstb(vfsid, vp, NULL, sstb, &zrootcreds);
  out:
@@ -2782,8 +2841,11 @@ zfsslash2_replay_rename(int vfsid, slfid_t parent, const char *name,
 		goto out;
 	}
 
+	zfsslash2_cursor_start();
 	error = VOP_RENAME(p_vp, (char *)name, np_vp, (char *)newname,
 	    &zrootcreds, NULL, 0, NULL, NULL);  /* zfs_rename() */
+	zfsslash2_cursor_end();
+
  out:
 	if (p_vp)
 		VN_RELE(p_vp);

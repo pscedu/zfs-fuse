@@ -1,4 +1,5 @@
 /* $Id$ */
+/* %GPL_LICENSE% */
 
 #ifndef _ZFS_SLASHLIB_H_
 #define _ZFS_SLASHLIB_H_
@@ -83,10 +84,6 @@ void	do_exit(void);
 #define libzfs_init		do_init
 #define libzfs_exit		do_exit
 
-void	zfsslash2_register_hook(void *);
-void	zfsslash2_register_suspend_hook(void *);
-void	zfsslash2_register_resume_hook(void *);
-
 void		arc_set_slashd(void);
 uint64_t	arc_get_maxsize(void);
 void		arc_set_maxsize(uint64_t);
@@ -105,7 +102,6 @@ int	zfsslash2_replay_rmdir(int, slfid_t, slfid_t, char *);
 int	zfsslash2_replay_setattr(int, slfid_t, uint, struct srt_stat *);
 int	zfsslash2_replay_symlink(int, slfid_t, slfid_t, char *, char *, struct srt_stat *stat);
 int	zfsslash2_replay_unlink(int, slfid_t, slfid_t, char *);
-
 int	zfsslash2_replay_setxattr(int, slfid_t, const char *, const char *, size_t);
 int	zfsslash2_replay_removexattr(int, slfid_t, const char *);
 
@@ -118,8 +114,7 @@ extern mount_info_t	zfs_mounts[];
 
 extern int		current_vfsid;
 
-extern void (*zfsslash2_hook_func)(int);
-extern void (*zfsslash2_suspend_hook_func)(void);
-extern void (*zfsslash2_resume_hook_func)(void);
+void		(*zfsslash2_cursor_start)(void);
+void		(*zfsslash2_cursor_end)(void);
 
 #endif /* _ZFS_SLASHLIB_H_ */

@@ -74,9 +74,6 @@ static kmutex_t	zfs_dev_mtx;
 /* ZFSFUSE: not needed */
 /* extern int sys_shutdown; */
 
-void (*zfsslash2_resume_hook_func)(void) = NULL;
-void (*zfsslash2_suspend_hook_func)(void) = NULL;
-
 static int zfs_mount(vfs_t *vfsp, vnode_t *mvp, struct mounta *uap, cred_t *cr);
 static int zfs_umount(vfs_t *vfsp, int fflag, cred_t *cr);
 static int zfs_mountroot(vfs_t *vfsp, enum whymountroot);
@@ -2219,16 +2216,3 @@ struct modlfs zfs_modlfs = {
 	&mod_fsops, "ZFS filesystem version " SPA_VERSION_STRING, &vfw
 };
 #endif
-
-
-void
-zfsslash2_register_resume_hook(void *funp)
-{
-	zfsslash2_resume_hook_func = funp;
-}
-
-void
-zfsslash2_register_suspend_hook(void *funp)
-{
-	zfsslash2_suspend_hook_func = funp;
-}

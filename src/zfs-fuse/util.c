@@ -67,8 +67,6 @@ int num_filesystems;
 int		zfs_nmounts;
 mount_info_t	zfs_mounts[MAX_FILESYSTEMS];
 
-void (*zfsslash2_hook_func)(int) = NULL;
-
 char * fuse_mount_options = NULL;
 char * zfs_lock_file;
 
@@ -479,16 +477,6 @@ int do_mount(char *spec, char *dir, int mflag, char *opt)
 	zfs_mounts[zfs_nmounts].zm_siteid = -1;
 	strcpy(zfs_mounts[zfs_nmounts].zm_name, dir);
 
-#if 0
-	/*
-	 * A better idea is to scan for new file systems when we do
-	 * a readdir under the root file system. Yeah, that is on-demand
-	 * registration.
-	 */
-	if (zfsslash2_hook_func)
-		zfsslash2_hook_func(zfs_nmounts);
-#endif
-
 	zfs_nmounts++;
 #endif
 
@@ -512,10 +500,4 @@ do_umount(vfs_t *vfs, boolean_t force)
 #endif
 
 	return 0;
-}
-
-void
-zfsslash2_register_hook(void *funp)
-{
-	zfsslash2_hook_func = funp;
 }
