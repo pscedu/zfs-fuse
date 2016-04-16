@@ -100,6 +100,7 @@ raise_mmap(void)
 		FILE *f = fopen("/proc/sys/vm/max_map_count","w");
 		if (!f) {
 			syslog(LOG_WARNING, "could not write to /proc/sys/vm/max_map_count");
+			pthread_mutex_unlock(&vmem_mmap_mutex);
 			return;
 		}
 		nb_mmap_raise++;
