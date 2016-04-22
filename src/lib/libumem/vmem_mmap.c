@@ -94,7 +94,7 @@ raise_mmap(void)
 		return;
 
 	pthread_mutex_lock(&vmem_mmap_mutex);
-	if (++nb_mmap_curr >= nb_mmap_ceil - MMAP_INCREMENT/2) {
+	if (++nb_mmap_curr >= nb_mmap_ceil - MMAP_INCREMENT) {
 		syslog(LOG_WARNING, "raising max_map_count to %d",
 		    nb_mmap_ceil);
 		FILE *f = fopen("/proc/sys/vm/max_map_count","w");
