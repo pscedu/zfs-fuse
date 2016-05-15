@@ -2224,7 +2224,10 @@ arc_evict_needed(arc_buf_contents_t type)
 	uint64_t delta;
 
 	if (type == ARC_BUFC_METADATA) {
-		if (arc_meta_used >= arc_meta_limit) {
+		/*
+ 		 * BTW, the umem_reap_interval is 5 now.
+ 		 */
+		if (arc_meta_used >= arc_meta_limit * 7/8) {
 			arc_meta_eviction1++;
 			return (1);
 		}
