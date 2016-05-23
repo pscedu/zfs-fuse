@@ -3653,6 +3653,7 @@ top:
 				sstb.sst_uid = cr->cr_uid;
 				sstb.sst_gid = cr->cr_gid;
 				sstb.sst_fid = szp->z_phys->zp_s2fid;
+				sstb.sst_gen = szp->z_phys->zp_s2gen;
 				sstb.sst_size = szp->z_phys->zp_s2size;
 				sstb.sst_nlink = szp->z_phys->zp_links;
 
