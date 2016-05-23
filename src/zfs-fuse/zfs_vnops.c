@@ -3643,7 +3643,7 @@ top:
 			ASSERT(error == 0);
 			if (logfunc) {
 				struct srt_stat sstb;
-				struct {
+				struct zfs_rename_arg {
 					struct sl_fidgen clfg;
 					void *a;
 				} aa;
