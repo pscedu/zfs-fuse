@@ -3663,6 +3663,8 @@ top:
 				} else
 					aa.clfg.fg_fid = FID_ANY;
 				aa.a = arg;
+
+				/* upcall to mdslog_namespace() */
 				logfunc(NS_OP_RENAME, txg,
 				    sdzp->z_phys->zp_s2fid,
 				    tdzp->z_phys->zp_s2fid, &sstb, 0,
