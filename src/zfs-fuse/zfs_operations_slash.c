@@ -1462,9 +1462,11 @@ zfsslash2_readlink(int vfsid, mdsio_fid_t ino, char *buf, size_t *lenp,
 	uio.uio_resid = PATH_MAX - 1;
 	uio.uio_loffset = 0;
 
+	zfsslash2_cursor_start();
 	error = VOP_READLINK(vp, &uio, &cred, NULL);	/* zfs_readlink() */
-
 	VN_RELE(vp);
+	zfsslash2_cursor_end();
+
 	ZFS_EXIT(zfsvfs);
 
 	if (!error) {
