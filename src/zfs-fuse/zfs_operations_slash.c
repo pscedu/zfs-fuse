@@ -1464,6 +1464,12 @@ zfsslash2_readlink(int vfsid, mdsio_fid_t ino, char *buf, size_t *lenp,
 
 	zfsslash2_cursor_start();
 	error = VOP_READLINK(vp, &uio, &cred, NULL);	/* zfs_readlink() */
+
+	/*
+ 	 * zfs_inactive() will call dmu_tx_assign(). This discovery makes
+ 	 * other call sites of VN_RELE() suspects as well. In retrospect,
+ 	 * we might as well do this at the MDS level as we used to do.
+ 	 */
 	VN_RELE(vp);
 	zfsslash2_cursor_end();
 
