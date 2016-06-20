@@ -3237,6 +3237,9 @@ int should_wait_umem_default(void)
 {
 	uint64_t total, inuse;
 
+	if (umem_default_arena == NULL)
+		return (0);
+
 	total = vmem_size(umem_default_arena, VMEM_TOTAL);
 	inuse = vmem_size(umem_default_arena, VMEM_ALLOC);
 	if (inuse + 3 > total)
