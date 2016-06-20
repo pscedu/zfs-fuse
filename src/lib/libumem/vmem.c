@@ -1436,6 +1436,9 @@ vmem_size(vmem_t *vmp, int typemask)
 	if (typemask & VMEM_FREE)
 		size += vmp->vm_kstat.vk_mem_total -
 		    vmp->vm_kstat.vk_mem_inuse;
+	if (typemask & VMEM_TOTAL)
+		size += vmp->vm_kstat.vk_mem_total;
+	return ((size_t)size);
 	return ((size_t)size);
 }
 

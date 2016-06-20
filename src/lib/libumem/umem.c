@@ -3232,3 +3232,14 @@ int should_reap_umem_default(void)
 	}
 	return (0);
 }
+
+int should_wait_umem_default(void)
+{
+	uint64_t total, inuse;
+
+	total = vmem_size(umem_default_arena, VMEM_TOTAL);
+	inuse = vmem_size(umem_default_arena, VMEM_ALLOC);
+	if (inuse + 3 > total)
+		return (1);
+	return (0);
+}

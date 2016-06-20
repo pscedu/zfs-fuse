@@ -425,8 +425,10 @@ static uint64_t		arc_data_eviction2 = 0;
 static uint64_t		arc_meta_eviction1 = 0;
 static uint64_t		arc_meta_eviction2 = 0;
 static uint64_t		arc_meta_eviction3 = 0;
+static uint64_t		umem_arena_exhausted = 0;
 
 extern int should_reap_umem_default(void);
+extern int should_wait_umem_default(void);
 
 #define L2ARC_IS_VALID_COMPRESS(_c_) \
     ((_c_) == ZIO_COMPRESS_LZ4 || (_c_) == ZIO_COMPRESS_EMPTY)
@@ -2321,6 +2323,7 @@ arc_get_data_buf(arc_buf_t *buf)
 	uint64_t		size = buf->b_hdr->b_size;
 	arc_buf_contents_t	type = buf->b_hdr->b_type;
 
+recheck:
 	arc_adapt(size, state);
 
 	/*
@@ -2338,6 +2341,11 @@ arc_get_data_buf(arc_buf_t *buf)
 			atomic_add_64(&arc_size, size);
 		}
 		goto out;
+	}
+	if (should_wait_umem_default()) {
+		umem_arena_exhausted++;
+		sleep(3);
+		goto recheck;
 	}
 
 	/*

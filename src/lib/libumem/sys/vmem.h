@@ -83,6 +83,7 @@ extern "C" {
  */
 #define	VMEM_ALLOC	0x01
 #define	VMEM_FREE	0x02
+#define	VMEM_TOTAL	0x04
 
 /*
  * Implementation-private segment types
