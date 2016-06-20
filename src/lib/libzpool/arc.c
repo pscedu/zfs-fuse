@@ -2265,7 +2265,10 @@ arc_evict_needed(arc_buf_contents_t type)
 		}
 	}
 
+#if 0
 	if (type == ARC_BUFC_DATA && should_reap_umem_default()) {
+#endif
+	if (should_reap_umem_default()) {
 		arc_data_eviction1++;
 		return (1);
 	}
