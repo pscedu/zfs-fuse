@@ -3242,8 +3242,8 @@ int should_wait_umem_default(void)
 
 #if 0
 	/*
-	 * This code causes "mountpoint or dataset is busy" on illusion2 
-	 * and it turns out that total and inuse are often the same!
+	 * This code causes hang when allocating a data buffer. It turns out that 
+	 * total and inuse are often the same!
 	 */
 	total = vmem_size(umem_default_arena, VMEM_TOTAL);
 	inuse = vmem_size(umem_default_arena, VMEM_ALLOC);
