@@ -3240,9 +3240,16 @@ int should_wait_umem_default(void)
 	if (umem_default_arena == NULL)
 		return (0);
 
+#if 0
+	/*
+	 * This code causes "mountpoint or dataset is busy" on illusion2 
+	 * and it turns out that total and inuse are often the same!
+	 */
 	total = vmem_size(umem_default_arena, VMEM_TOTAL);
 	inuse = vmem_size(umem_default_arena, VMEM_ALLOC);
 	if (inuse + 3 > total)
 		return (1);
+#endif
+
 	return (0);
 }
