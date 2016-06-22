@@ -2591,7 +2591,7 @@ arc_read_done(zio_t *zio)
 	    &hash_lock);
 
 	/* 
-	 * 06/23/2016: Hit on the second condtion in the following assert (max arc size is 32G):
+	 * 06/23/2016: Hit on the second condtion in the following assert (max arc size is 32G on illusion2):
  	 * 
  	 * #4  0x00000000006b7e66 in arc_read_done (zio=0x7f37fd9313f0) at lib/libzpool/arc.c:2593
  	 * #5  0x0000000000761988 in zio_done (zio=0x7f37fd9313f0) at lib/libzpool/zio.c:2974
