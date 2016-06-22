@@ -2590,6 +2590,24 @@ arc_read_done(zio_t *zio)
 	found = buf_hash_find(hdr->b_spa, &hdr->b_dva, hdr->b_birth,
 	    &hash_lock);
 
+	/* 
+	 * 06/23/2016: Hit on the second condtion in the following assert (max arc size is 32G):
+ 	 * 
+ 	 * #4  0x00000000006b7e66 in arc_read_done (zio=0x7f37fd9313f0) at lib/libzpool/arc.c:2593
+ 	 * #5  0x0000000000761988 in zio_done (zio=0x7f37fd9313f0) at lib/libzpool/zio.c:2974
+ 	 * #6  0x000000000075bb0c in zio_execute (zio=0x7f37fd9313f0) at lib/libzpool/zio.c:1218
+ 	 * #7  0x0000000000759044 in zio_notify_parent (pio=0x7f37fd9313f0, zio=0x7f3a73cdfbe0, wait=ZIO_WAIT_DONE) 
+ 	 * at lib/libzpool/zio.c:497
+ 	 * #8  0x0000000000761a2c in zio_done (zio=0x7f3a73cdfbe0) at lib/libzpool/zio.c:2984
+ 	 * #9  0x000000000075bb0c in zio_execute (zio=0x7f3a73cdfbe0) at lib/libzpool/zio.c:1218
+ 	 * #10 0x0000000000759044 in zio_notify_parent (pio=0x7f3a73cdfbe0, zio=0x7f3763bf8400, wait=ZIO_WAIT_DONE) 
+ 	 * at lib/libzpool/zio.c:497
+ 	 * #11 0x0000000000761a2c in zio_done (zio=0x7f3763bf8400) at lib/libzpool/zio.c:2984
+ 	 * #12 0x000000000075bb0c in zio_execute (zio=0x7f3763bf8400) at lib/libzpool/zio.c:1218
+ 	 * #13 0x0000000000787d6e in taskq_thread (arg=0x7f3eb0df7280) at lib/libsolkerncompat/taskq.c:1376
+ 	 * #14 0x00007f3eaf5617f1 in start_thread 
+ 	 *
+ 	 */
 	ASSERT((found == NULL && HDR_FREED_IN_READ(hdr) && hash_lock == NULL) ||
 	    (found == hdr && DVA_EQUAL(&hdr->b_dva, BP_IDENTITY(zio->io_bp))) ||
 	    (found == hdr && HDR_L2_READING(hdr)));
