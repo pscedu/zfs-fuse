@@ -3226,7 +3226,7 @@ int should_reap_umem_default(void)
 	 */
 	if (umem_default_arena != NULL &&
 	    vmem_size(umem_default_arena, VMEM_FREE) <
-	    (vmem_size(umem_default_arena, VMEM_ALLOC) >> 5)) {
+	    (vmem_size(umem_default_arena, VMEM_ALLOC) >> 4)) {
 		vmem_reap();
 		return (1);
 	}
