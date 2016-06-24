@@ -125,7 +125,7 @@ handle_connection(int sock)
 				goto done;
 			break;
 		default:
-			fprintf(stderr, "invalid request type %d for socket %d\n", 
+			fprintf(stderr, "ignore invalid request type %d from socket %d\n", 
 				cmd.cmd_type, sock);
 			continue;
 			/*
@@ -373,7 +373,8 @@ listener_loop(void *arg)
 
 	int nfds = 1;
 
-	fprintf(stderr, "listening to ZFS socket fd = %d\n", fds[0].fd);
+	fprintf(stderr, "pid %d: listening to ZFS socket fd = %d\n", 
+		getpid(), fds[0].fd);
 	while (!exit_listener) {
 		/* Poll all sockets with a 1 second timeout */
 		int ret = poll(fds, nfds, 1000);
