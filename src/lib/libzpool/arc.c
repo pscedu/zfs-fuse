@@ -2393,6 +2393,10 @@ out:
 	 *
 	 * Hit buf->b_hdr NULL crash at revision 40031 when the ARC
 	 * and the umem_default_arena are completely exhausted.
+	 *
+	 * 06/24/2016: Hit a segment fault here. However, under gdb
+	 * the core shows buf->b_hdr->b_state is valid. So it could
+	 * be triggered by buggy code (no lock is used?).
 	 */
 	if (!GHOST_STATE(buf->b_hdr->b_state)) {
 		arc_buf_hdr_t *hdr = buf->b_hdr;
