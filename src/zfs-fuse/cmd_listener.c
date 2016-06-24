@@ -373,6 +373,7 @@ listener_loop(void *arg)
 
 	int nfds = 1;
 
+	fprintf(stderr, "listening to ZFS socket fd = %d\n", fds[0].fd);
 	while (!exit_listener) {
 		/* Poll all sockets with a 1 second timeout */
 		int ret = poll(fds, nfds, 1000);
@@ -413,6 +414,7 @@ listener_loop(void *arg)
 					continue;
 				}
 
+				/* this will be included in the next poll */
 				fds[nfds].fd = sock;
 				fds[nfds].events = POLLIN;
 				fds[nfds].revents = 0;
@@ -420,6 +422,7 @@ listener_loop(void *arg)
 			} else {
 				int sock = fds[i].fd;
 				/* queue request */
+				fprintf(stderr, "enqueue connection, fd = %d\n", fds[i].fd);
 				enqueue_connection(&ioctl_queue, fds[i].fd);
 
 				/* socket is now handled by queue and can be removed from list */
