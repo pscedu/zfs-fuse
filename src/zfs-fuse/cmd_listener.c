@@ -181,6 +181,7 @@ zfsfuse_ioctl_queue_worker_thread(void* init)
 	int must_exit = 0;
 	ioctl_queue_item_t job;
 
+	/* handle ioctl_queue */
 	for (;;) {
 		if (sem_wait(&queue->pending) == -1) {
 			if (errno == EINTR)
@@ -319,9 +320,12 @@ zfsfuse_ioctl_queue_fini(queue_t* queue)
 
 /********************************************************************************************************/
 
+static int enqueue_waited;
+
 static void
 enqueue_connection(queue_t* queue, int sock)
 {
+	int waited = 0;
 	ASSERT(queue);
 	VERIFY(0 == pthread_mutex_lock(&queue->lock));
 
@@ -334,9 +338,12 @@ enqueue_connection(queue_t* queue, int sock)
 
 	ioctl_queue_item_t* item = zfsfuse_ioctl_queue_find(1); // locate free item
 
-	if (0 == item) {
+	while (0 == item) {
+		if (waited)
+			enqueue_waited++;
 		VERIFY(0 == pthread_cond_wait(&queue->handling, &queue->lock)); // block until any worker has popped it's job
 		item = zfsfuse_ioctl_queue_find(1); // locate free item
+		waited++;
 	}
 
 	// fill queue item
