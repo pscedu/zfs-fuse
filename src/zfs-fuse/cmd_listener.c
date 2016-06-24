@@ -103,6 +103,7 @@ handle_connection(int sock)
 	dev_t dev = {0};
 	cred_t cr;
 
+	fprintf(stderr, "wait to handle requests from socket %d\n", sock);
 	while (zfsfuse_socket_read_loop(sock, &cmd,
 	    sizeof(zfsfuse_cmd_t)) != -1) {
 		switch(cmd.cmd_type)
@@ -124,6 +125,9 @@ handle_connection(int sock)
 				goto done;
 			break;
 		default:
+			fprintf(stderr, "invalid request type %d for socket %d\n", 
+				cmd.cmd_type, sock);
+			continue;
 			/*
  			 * This could be caused by slashd.sh not cleaning up
  			 * the socket properly. Kill the slashd.sh seems to
@@ -135,6 +139,7 @@ handle_connection(int sock)
 
  done:
 	cur_fd = -1;
+	fprintf(stderr, "done with handling requests from socket %d\n", sock);
 	close(sock);
 }
 
