@@ -2232,7 +2232,7 @@ arc_evict_needed(arc_buf_contents_t type)
  		 * illusion2 for 17 hours except one instance
  		 * of umem exhaustion.
  		 */
-		if (arc_meta_used >= arc_meta_limit * 7/8) {
+		if (arc_meta_used >= arc_meta_limit * 3/4) {
 			arc_meta_eviction1++;
 			return (1);
 		}
@@ -2322,6 +2322,7 @@ arc_evict_needed(arc_buf_contents_t type)
 static void
 arc_get_data_buf(arc_buf_t *buf)
 {
+	int do_evict;
 	arc_state_t		*state = buf->b_hdr->b_state;
 	uint64_t		size = buf->b_hdr->b_size;
 	arc_buf_contents_t	type = buf->b_hdr->b_type;
@@ -2333,6 +2334,7 @@ recheck:
 	 * We have not yet reached cache maximum size,
 	 * just allocate a new buffer.
 	 */
+	do_evict = 1;
 	if (!arc_evict_needed(type)) {
 		if (type == ARC_BUFC_METADATA) {
 			buf->b_data = zio_buf_alloc(size);
@@ -2343,6 +2345,7 @@ recheck:
 			ARCSTAT_INCR(arcstat_data_size, size);
 			atomic_add_64(&arc_size, size);
 		}
+		do_evict = 0;
 		goto out;
 	}
 	if (should_wait_umem_default()) {
