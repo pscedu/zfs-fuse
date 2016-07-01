@@ -2225,14 +2225,15 @@ arc_evict_needed(arc_buf_contents_t type)
 {
 	uint64_t delta;
 
-//	if (type == ARC_BUFC_METADATA) {
+	if (type == ARC_BUFC_METADATA) {
 		/*
  		 * BTW, the umem_reap_interval is 5 now. The
  		 * change to use 7/8 has been holding up on
  		 * illusion2 for 17 hours except one instance
  		 * of umem exhaustion.
  		 */
-		if (arc_meta_used >= arc_meta_limit * 3/4) {
+		if (arc_meta_used >= arc_meta_limit * 31/32) {
+			arc_adjust();
 			arc_meta_eviction1++;
 			return (1);
 		}
@@ -2263,7 +2264,7 @@ arc_evict_needed(arc_buf_contents_t type)
 			arc_meta_eviction3++;
 			return (1);
 		}
-//	}
+	}
 
 #if 0
 	if (type == ARC_BUFC_DATA && should_reap_umem_default()) {
