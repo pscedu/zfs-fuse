@@ -2225,7 +2225,7 @@ arc_evict_needed(arc_buf_contents_t type)
 {
 	uint64_t delta;
 
-	if (type == ARC_BUFC_METADATA) {
+//	if (type == ARC_BUFC_METADATA) {
 		/*
  		 * BTW, the umem_reap_interval is 5 now. The
  		 * change to use 7/8 has been holding up on
@@ -2263,7 +2263,7 @@ arc_evict_needed(arc_buf_contents_t type)
 			arc_meta_eviction3++;
 			return (1);
 		}
-	}
+//	}
 
 #if 0
 	if (type == ARC_BUFC_DATA && should_reap_umem_default()) {
