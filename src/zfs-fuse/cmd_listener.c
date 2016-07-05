@@ -125,6 +125,10 @@ handle_connection(int sock)
 				goto done;
 			break;
 		default:
+			/*
+ 			 * 07/05/2016: There might be a race in file descriptor handoff. 
+ 			 * Anyway, I haven't seen this case for days on illusion2.
+ 			 */
 			fprintf(stderr, "ignore invalid request type %d from socket %d\n", 
 				cmd.cmd_type, sock);
 			continue;
