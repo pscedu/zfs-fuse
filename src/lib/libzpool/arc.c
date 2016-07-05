@@ -2233,7 +2233,6 @@ arc_evict_needed(arc_buf_contents_t type)
  		 * of umem exhaustion.
  		 */
 		if (arc_meta_used >= arc_meta_limit * 31/32) {
-			arc_adjust();
 			arc_meta_eviction1++;
 			return (1);
 		}
@@ -2775,6 +2774,9 @@ arc_read_nolock(zio_t *pio, spa_t *spa, const blkptr_t *bp,
 	uint64_t guid = spa_guid(spa);
 
 top:
+	if (arc_meta_used >= arc_meta_limit * 31/32)
+		arc_adjust();
+
 	hdr = buf_hash_find(guid, BP_IDENTITY(bp), BP_PHYSICAL_BIRTH(bp),
 	    &hash_lock);
 	if (hdr && hdr->b_datacnt > 0) {
