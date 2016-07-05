@@ -1903,6 +1903,7 @@ arc_do_user_evicts(void)
 		arc_eviction_list = buf->b_next;
 		mutex_enter(&buf->b_evict_lock);
 		buf->b_hdr = NULL;
+		buf->b_debug = 8765432;
 		mutex_exit(&buf->b_evict_lock);
 		mutex_exit(&arc_eviction_mtx);
 
@@ -2327,7 +2328,11 @@ arc_get_data_buf(arc_buf_t *buf)
 	uint64_t		size = buf->b_hdr->b_size;
 	arc_buf_contents_t	type = buf->b_hdr->b_type;
 
+	buf->b_debug = 12345678;
+
 recheck:
+
+	buf->b_debug++;
 	arc_adapt(size, state);
 
 	/*
@@ -3115,6 +3120,7 @@ arc_buf_evict(arc_buf_t *buf)
 	buf->b_private = NULL;
 	buf->b_hdr = NULL;
 	buf->b_next = NULL;
+	buf->b_debug = 654321;
 	kmem_cache_free(buf_cache, buf);
 	return (1);
 }

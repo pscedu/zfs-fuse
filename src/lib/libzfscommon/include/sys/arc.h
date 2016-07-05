@@ -51,6 +51,7 @@ struct arc_buf {
 	krwlock_t		b_data_lock;
 	void			*b_data;
 	arc_evict_func_t	*b_efunc;
+	int			b_debug;
 	void			*b_private;
 };
 
