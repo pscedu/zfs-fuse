@@ -1439,6 +1439,7 @@ arc_buf_destroy(arc_buf_t *buf, boolean_t recycle, boolean_t all)
 
 	/* clean up the buf */
 	buf->b_hdr = NULL;
+	buf->b_debug = 88776644;
 	kmem_cache_free(buf_cache, buf);
 }
 
