@@ -2324,10 +2324,12 @@ static void
 arc_get_data_buf(arc_buf_t *buf)
 {
 	int do_evict;
+	arc_buf_hdr_t *hdr;
 	arc_state_t		*state = buf->b_hdr->b_state;
 	uint64_t		size = buf->b_hdr->b_size;
 	arc_buf_contents_t	type = buf->b_hdr->b_type;
 
+	hdr = buf->b_hdr;
 	buf->b_debug = 12345678;
 
 recheck:
