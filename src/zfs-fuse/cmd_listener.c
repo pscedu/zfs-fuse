@@ -127,10 +127,15 @@ handle_connection(int sock)
 		default:
 			/*
  			 * 07/05/2016: There might be a race in file descriptor handoff. 
+ 			 * If so, adding these fprintf()s probably eliminates the race.
  			 * Anyway, I haven't seen this case for days on illusion2.
  			 */
 			fprintf(stderr, "ignore invalid request type %d from socket %d\n", 
 				cmd.cmd_type, sock);
+			/*
+			 * It is probably not a good idea to crash due to a random message
+			 * sent by a utility.
+			 */
 			continue;
 			/*
  			 * This could be caused by slashd.sh not cleaning up
