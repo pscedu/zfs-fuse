@@ -1620,9 +1620,10 @@ arc_buf_size(arc_buf_t *buf)
  * it can't get a hash_lock on, and so may not catch all candidates.
  * It may also return without evicting as much space as requested.
  */
+static long evict_skipped;
 static void *
 arc_evict(arc_state_t *state, uint64_t spa, int64_t bytes, boolean_t recycle,
-    arc_buf_contents_t type)
+    arc_buf_contents_t type, arc_buf_hdr_t *skipme)
 {
 	arc_state_t *evicted_state;
 	uint64_t bytes_evicted = 0, skipped = 0, missed = 0;
@@ -1649,6 +1650,11 @@ arc_evict(arc_state_t *state, uint64_t spa, int64_t bytes, boolean_t recycle,
 			skipped++;
 			continue;
 		}
+		if (ab == skipme) {
+			evict_skipped++;
+			continue;
+		}
+		
 		/* "lookahead" for better eviction candidate */
 		if (recycle && ab->b_size != bytes &&
 		    ab_prev && ab_prev->b_size == bytes)
@@ -1846,14 +1852,14 @@ arc_adjust(void)
 
 	if (adjustment > 0 && arc_mru->arcs_lsize[ARC_BUFC_DATA] > 0) {
 		delta = MIN(arc_mru->arcs_lsize[ARC_BUFC_DATA], adjustment);
-		(void) arc_evict(arc_mru, 0, delta, FALSE, ARC_BUFC_DATA);
+		(void) arc_evict(arc_mru, 0, delta, FALSE, ARC_BUFC_DATA, NULL);
 		adjustment -= delta;
 	}
 
 	if (adjustment > 0 && arc_mru->arcs_lsize[ARC_BUFC_METADATA] > 0) {
 		delta = MIN(arc_mru->arcs_lsize[ARC_BUFC_METADATA], adjustment);
 		(void) arc_evict(arc_mru, 0, delta, FALSE,
-		    ARC_BUFC_METADATA);
+		    ARC_BUFC_METADATA, NULL);
 	}
 
 	/*
@@ -1864,7 +1870,7 @@ arc_adjust(void)
 
 	if (adjustment > 0 && arc_mfu->arcs_lsize[ARC_BUFC_DATA] > 0) {
 		delta = MIN(adjustment, arc_mfu->arcs_lsize[ARC_BUFC_DATA]);
-		(void) arc_evict(arc_mfu, 0, delta, FALSE, ARC_BUFC_DATA);
+		(void) arc_evict(arc_mfu, 0, delta, FALSE, ARC_BUFC_DATA, NULL);
 		adjustment -= delta;
 	}
 
@@ -1872,7 +1878,7 @@ arc_adjust(void)
 		int64_t delta = MIN(adjustment,
 		    arc_mfu->arcs_lsize[ARC_BUFC_METADATA]);
 		(void) arc_evict(arc_mfu, 0, delta, FALSE,
-		    ARC_BUFC_METADATA);
+		    ARC_BUFC_METADATA, NULL);
 	}
 
 	/*
@@ -1932,22 +1938,22 @@ arc_flush(spa_t *spa)
 		guid = spa_guid(spa);
 
 	while (list_head(&arc_mru->arcs_list[ARC_BUFC_DATA])) {
-		(void) arc_evict(arc_mru, guid, -1, FALSE, ARC_BUFC_DATA);
+		(void) arc_evict(arc_mru, guid, -1, FALSE, ARC_BUFC_DATA, NULL);
 		if (spa)
 			break;
 	}
 	while (list_head(&arc_mru->arcs_list[ARC_BUFC_METADATA])) {
-		(void) arc_evict(arc_mru, guid, -1, FALSE, ARC_BUFC_METADATA);
+		(void) arc_evict(arc_mru, guid, -1, FALSE, ARC_BUFC_METADATA, NULL);
 		if (spa)
 			break;
 	}
 	while (list_head(&arc_mfu->arcs_list[ARC_BUFC_DATA])) {
-		(void) arc_evict(arc_mfu, guid, -1, FALSE, ARC_BUFC_DATA);
+		(void) arc_evict(arc_mfu, guid, -1, FALSE, ARC_BUFC_DATA, NULL);
 		if (spa)
 			break;
 	}
 	while (list_head(&arc_mfu->arcs_list[ARC_BUFC_METADATA])) {
-		(void) arc_evict(arc_mfu, guid, -1, FALSE, ARC_BUFC_METADATA);
+		(void) arc_evict(arc_mfu, guid, -1, FALSE, ARC_BUFC_METADATA, NULL);
 		if (spa)
 			break;
 	}
@@ -2326,12 +2332,13 @@ arc_get_data_buf(arc_buf_t *buf)
 {
 	int do_evict;
 	arc_buf_hdr_t *hdr;
+
 	arc_state_t		*state = buf->b_hdr->b_state;
 	uint64_t		size = buf->b_hdr->b_size;
 	arc_buf_contents_t	type = buf->b_hdr->b_type;
 
-	hdr = buf->b_hdr;
 	buf->b_debug = 12345678;
+	hdr = buf->b_hdr;
 
 recheck:
 
@@ -2381,7 +2388,7 @@ recheck:
 		state =  (arc_mru->arcs_lsize[type] >= size &&
 		    mfu_space > arc_mfu->arcs_size) ? arc_mru : arc_mfu;
 	}
-	if ((buf->b_data = arc_evict(state, 0, size, TRUE, type)) == NULL) {
+	if ((buf->b_data = arc_evict(state, 0, size, TRUE, type, hdr)) == NULL) {
 		if (type == ARC_BUFC_METADATA) {
 			buf->b_data = zio_buf_alloc(size);
 			arc_space_consume(size, ARC_SPACE_DATA);
@@ -2404,10 +2411,6 @@ out:
 	 *
 	 * Hit buf->b_hdr NULL crash at revision 40031 when the ARC
 	 * and the umem_default_arena are completely exhausted.
-	 *
-	 * 06/24/2016: Hit a segment fault here. However, under gdb
-	 * the core shows buf->b_hdr->b_state is valid. So it could
-	 * be triggered by buggy code (no lock is used?).
 	 */
 	if (!GHOST_STATE(buf->b_hdr->b_state)) {
 		arc_buf_hdr_t *hdr = buf->b_hdr;
@@ -2605,24 +2608,6 @@ arc_read_done(zio_t *zio)
 	found = buf_hash_find(hdr->b_spa, &hdr->b_dva, hdr->b_birth,
 	    &hash_lock);
 
-	/* 
-	 * 06/23/2016: Hit on the second condtion in the following assert (max arc size is 32G on illusion2):
- 	 * 
- 	 * #4  0x00000000006b7e66 in arc_read_done (zio=0x7f37fd9313f0) at lib/libzpool/arc.c:2593
- 	 * #5  0x0000000000761988 in zio_done (zio=0x7f37fd9313f0) at lib/libzpool/zio.c:2974
- 	 * #6  0x000000000075bb0c in zio_execute (zio=0x7f37fd9313f0) at lib/libzpool/zio.c:1218
- 	 * #7  0x0000000000759044 in zio_notify_parent (pio=0x7f37fd9313f0, zio=0x7f3a73cdfbe0, wait=ZIO_WAIT_DONE) 
- 	 * at lib/libzpool/zio.c:497
- 	 * #8  0x0000000000761a2c in zio_done (zio=0x7f3a73cdfbe0) at lib/libzpool/zio.c:2984
- 	 * #9  0x000000000075bb0c in zio_execute (zio=0x7f3a73cdfbe0) at lib/libzpool/zio.c:1218
- 	 * #10 0x0000000000759044 in zio_notify_parent (pio=0x7f3a73cdfbe0, zio=0x7f3763bf8400, wait=ZIO_WAIT_DONE) 
- 	 * at lib/libzpool/zio.c:497
- 	 * #11 0x0000000000761a2c in zio_done (zio=0x7f3763bf8400) at lib/libzpool/zio.c:2984
- 	 * #12 0x000000000075bb0c in zio_execute (zio=0x7f3763bf8400) at lib/libzpool/zio.c:1218
- 	 * #13 0x0000000000787d6e in taskq_thread (arg=0x7f3eb0df7280) at lib/libsolkerncompat/taskq.c:1376
- 	 * #14 0x00007f3eaf5617f1 in start_thread 
- 	 *
- 	 */
 	ASSERT((found == NULL && HDR_FREED_IN_READ(hdr) && hash_lock == NULL) ||
 	    (found == hdr && DVA_EQUAL(&hdr->b_dva, BP_IDENTITY(zio->io_bp))) ||
 	    (found == hdr && HDR_L2_READING(hdr)));
