@@ -697,9 +697,11 @@ void vn_rele(vnode_t *vp)
 	if(vp->v_count == 1) {
 		mutex_exit(&vp->v_lock);
 		/* fprintf(stderr, "VNode %p inactive\n", vp); */
-		zfsslash2_cursor_start();
+		if (zfsslash2_cursor_start)
+			zfsslash2_cursor_start();
 		VOP_INACTIVE(vp, CRED(), NULL);
-		zfsslash2_cursor_end();
+		if (zfsslash2_cursor_end)
+			zfsslash2_cursor_end();
 	} else {
 		vp->v_count--;
 		mutex_exit(&vp->v_lock);
