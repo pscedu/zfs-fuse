@@ -701,14 +701,14 @@ zfsslash2_lookup(int vfsid, mdsio_fid_t parent, const char *name,
 		goto out;
 	}
 
-	if (xattrsize && mfp == NULL)
-		mfp = &mfid;
-
-	if (sstb || mfp)
-		error = fill_sstb(vfsid, vp, mfp, sstb, &cred);
+	if (sstb || mfp || xattrsize)
+		error = fill_sstb(vfsid, vp, &mfid, sstb, &cred);
 
 	if (xattrsize)
-		*xattrsize = zfsslash2_hasxattrs(vfsid, slcrp, *mfp);
+		*xattrsize = zfsslash2_hasxattrs(vfsid, slcrp, mfid);
+
+	if (mfp)
+		*mfp = mfid;
 
  out:
 	if (vp)
