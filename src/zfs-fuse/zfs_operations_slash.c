@@ -797,6 +797,7 @@ zfsslash2_release(int vfsid, __unusedx const struct slash_creds *slcrp,
 	ASSERT(info->vp);
 	ASSERT(VTOZ(info->vp));
 
+	fprintf(stderr, "zfsslash2_release: vp = %p, count = %d\n", info->vp, info->vp->v_count);
 	VN_RELE(info->vp);
 
 	kmem_cache_free(file_info_cache, info);
