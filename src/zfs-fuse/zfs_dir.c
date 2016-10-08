@@ -55,6 +55,8 @@
 #include <sys/dnlc.h>
 #include <sys/extdirent.h>
 
+extern int mount_unlinked_drain;
+
 /*
  * zfs_match_find() is used by zfs_dirent_lock() to peform zap lookups
  * of names after deciding which is the appropriate lookup interface.
@@ -587,11 +589,13 @@ zfs_rmnode(znode_t *zp)
 	 * If this is an attribute directory, purge its contents.
 	 */
 	if (ZTOV(zp)->v_type == VDIR && (zp->z_phys->zp_flags & ZFS_XATTR)) {
-		if (zfs_purgedir(zp) != 0) {
+		if (mount_unlinked_drain || zfs_purgedir(zp) != 0) {
 			/*
 			 * Not enough space to delete some xattrs.
 			 * Leave it in the unlinked set.
 			 */
+			fprintf(stderr, "zfs_rmnode, skipping znode: mount = %d, id = %lu\n",
+				mount_unlinked_drain, zp->z_id);
 			zfs_znode_dmu_fini(zp);
 			zfs_znode_free(zp);
 			return;

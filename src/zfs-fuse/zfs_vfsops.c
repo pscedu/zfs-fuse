@@ -64,6 +64,8 @@
 #include "util.h"
 #include "zfs_slashlib.h"
 
+int mount_unlinked_drain;
+
 int zfsfstype;
 vfsops_t *zfs_vfsops = NULL;
 /* ZFSFUSE: not needed */
@@ -961,8 +963,11 @@ zfsvfs_setup(zfsvfs_t *zfsvfs, boolean_t mounting)
 		readonly = zfsvfs->z_vfs->vfs_flag & VFS_RDONLY;
 		if (readonly != 0)
 			zfsvfs->z_vfs->vfs_flag &= ~VFS_RDONLY;
-		else
+		else {
+			mount_unlinked_drain = 1;
 			zfs_unlinked_drain(zfsvfs);
+			mount_unlinked_drain = 0;
+		}
 
 		if (zfsvfs->z_log) {
 			/*
