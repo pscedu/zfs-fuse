@@ -65,6 +65,7 @@
 #include "zfs_slashlib.h"
 
 int mount_unlinked_drain;
+int mount_unlinked_count;
 
 int zfsfstype;
 vfsops_t *zfs_vfsops = NULL;
@@ -967,6 +968,9 @@ zfsvfs_setup(zfsvfs_t *zfsvfs, boolean_t mounting)
 			mount_unlinked_drain = 1;
 			zfs_unlinked_drain(zfsvfs);
 			mount_unlinked_drain = 0;
+			if (mount_unlinked_count)
+				fprintf(stderr, "%d directories with xattr are skipped.\n", 
+					mount_unlinked_count);
 		}
 
 		if (zfsvfs->z_log) {

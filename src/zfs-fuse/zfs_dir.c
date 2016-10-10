@@ -56,6 +56,7 @@
 #include <sys/extdirent.h>
 
 extern int mount_unlinked_drain;
+extern int mount_unlinked_count;
 
 /*
  * zfs_match_find() is used by zfs_dirent_lock() to peform zap lookups
@@ -596,6 +597,7 @@ zfs_rmnode(znode_t *zp)
 			 */
 			fprintf(stderr, "zfs_rmnode, skipping znode: mount = %d, id = %lu\n",
 				mount_unlinked_drain, zp->z_id);
+			mount_unlinked_count++;
 			zfs_znode_dmu_fini(zp);
 			zfs_znode_free(zp);
 			return;
