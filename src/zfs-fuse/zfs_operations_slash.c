@@ -692,7 +692,7 @@ zfsslash2_lookup(int vfsid, mdsio_fid_t parent, const char *name,
 	vnode_t *vp = NULL;
 
 	error = VOP_LOOKUP(dvp, (char *)name, &vp, NULL, 0, NULL, &cred,
-	    NULL, NULL, NULL);
+	    NULL, NULL, NULL);	/* zfs_lookup() */
 	if (error)
 		goto out;
 
