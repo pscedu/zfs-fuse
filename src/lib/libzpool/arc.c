@@ -954,6 +954,16 @@ arc_cksum_verify(arc_buf_t *buf)
  	 * (gdb) p arc_stats.arcstat_size.value.ui64
  	 * $8 = 11400516032
  	 *
+ 	 * 02/01/2017: Hit this assert with the following stack trace:
+ 	 *
+ 	 * arc_read_nolock() --> arc_buf_alloc() --> arc_get_data_buf()
+ 	 * --> arc_evict() --> arc_buf_destroy() --> arc_cksum_verify().
+ 	 *
+ 	 *  (gdb) p arc_stats.arcstat_c_max.value.ui64
+ 	 *  $3 = 34359738368
+ 	 *  (gdb) p arc_stats.arcstat_size.value.ui64
+ 	 *  $4 = 2682549976
+ 	 *
  	 */
 	if (!ZIO_CHECKSUM_EQUAL(*buf->b_hdr->b_freeze_cksum, zc))
 		panic("buffer modified while frozen!");
