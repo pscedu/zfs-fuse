@@ -1199,6 +1199,8 @@ _zfsslash2_fidlink(const struct pfl_callerinfo *_pfl_callerinfo,
 /**
  * zfsslash2_lookup_slfid - Given a SLASH2 FID, lookup the inum for that
  *	corresponding file relevant to the backing metadata file system.
+ *
+ * This function is called from mdsio_lookup_slfid().
  */
 int
 zfsslash2_lookup_slfid(int vfsid, slfid_t fid,
