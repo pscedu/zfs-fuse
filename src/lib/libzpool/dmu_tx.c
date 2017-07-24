@@ -1156,6 +1156,12 @@ dmu_tx_willuse_space(dmu_tx_t *tx, int64_t delta)
 		return;
 
 	if (delta > 0) {
+		/*
+		 * 07/24/2017: Crash here delta = 393216. It is called from 
+		 * fzap_add_cd() --> zap_expand_leaf() --> zap_grow_ptrtbl()
+		 * --> zap_table_grow() --> dbuf_will_dirty() --> dbuf_dirty()
+		 * --> dnode_willuse_space().
+		 */
 		ASSERT3U(refcount_count(&tx->tx_space_written) + delta, <=,
 		    tx->tx_space_towrite);
 		(void) refcount_add_many(&tx->tx_space_written, delta, NULL);
