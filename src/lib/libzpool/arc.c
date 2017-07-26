@@ -425,6 +425,7 @@ static uint64_t		arc_data_eviction2 = 0;
 static uint64_t		arc_meta_eviction1 = 0;
 static uint64_t		arc_meta_eviction2 = 0;
 static uint64_t		arc_meta_eviction3 = 0;
+static uint64_t		arc_thread_adjust = 0;
 static uint64_t		umem_arena_exhausted = 0;
 
 extern int should_reap_umem_default(void);
@@ -2161,10 +2162,14 @@ arc_reclaim_thread(void)
 		} else if (arc_no_grow && lbolt64 >= growtime) {
 			arc_no_grow = FALSE;
 		}
-
-		if (2 * arc_c < arc_size +
-		    arc_mru_ghost->arcs_size + arc_mfu_ghost->arcs_size)
+	
+		/* 07/26/2017: readdir is painfully slow, try a desperate patch */
+		if (arc_meta_used >= arc_meta_limit * 31/32 ||
+		    2 * arc_c < arc_size +
+		    arc_mru_ghost->arcs_size + arc_mfu_ghost->arcs_size) {
+			arc_thread_adjust++;
 			arc_adjust();
+		}
 
 		if (arc_eviction_list != NULL)
 			arc_do_user_evicts();
