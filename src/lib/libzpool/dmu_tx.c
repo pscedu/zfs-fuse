@@ -1161,6 +1161,16 @@ dmu_tx_willuse_space(dmu_tx_t *tx, int64_t delta)
 		 * fzap_add_cd() --> zap_expand_leaf() --> zap_grow_ptrtbl()
 		 * --> zap_table_grow() --> dbuf_will_dirty() --> dbuf_dirty()
 		 * --> dnode_willuse_space().
+		 *
+		 * 07/31/2017: More evidence: 
+		 *
+		 * (gdb) p delta
+		 * $1 = 393216
+		 * (gdb) p tx->tx_space_towrite
+		 * $2 = 9830400
+		 * (gdb) p tx->tx_space_written->rc_count
+		 * $3 = 9830400
+		 *
 		 */
 		ASSERT3U(refcount_count(&tx->tx_space_written) + delta, <=,
 		    tx->tx_space_towrite);
